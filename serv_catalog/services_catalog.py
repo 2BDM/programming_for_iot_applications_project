@@ -617,7 +617,7 @@ if __name__ == "__main__":
     cherrypy.tree.mount(WebService, '/', conf)
     # cherrypy.config.update({'server.socket_host': '192.168.64.152'})
     cherrypy.engine.start()
-    WebService.cleanupLoop(60)
+    WebService.cleanupLoop(30)
     
     # This part is not executed
     cherrypy.engine.block()
