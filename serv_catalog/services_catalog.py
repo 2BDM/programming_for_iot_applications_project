@@ -4,45 +4,61 @@ import cherrypy
 import json
 
 """
-This program contains the service catalog for the application
+This program contains the services catalog for the application
 """
 
 
-class Catalog():
+class ServicesCatalog():
     """ 
-    Catalog class
-    ---
-    Used to handle an application catalog keeping track of the
-    connected devices and available resources
+    ServicesCatalog class
     """
+
     def __init__(self, in_path, out_path):
         self.cat = json.load(open(in_path))
         self.out_path = out_path
         self.lastupdate = time.time()
-        self.dev_params = ["id", "name", "endpoints", 
-                    "endpoints_details", "greenhouse", 
-                    "resources"]
-        self.usr_params = ["id", "user_name", "user_surname", 
+
+        # For checking at insertion:
+        self._dev_cat_params = ["ip", "ports", "methods"]
+        self._usr_params = ["id", "user_name", "user_surname", 
                     "email_addr", "greenhouse"]
-        self.sens_params = ["id", "deviceName", "measureType", 
+        self._sens_params = ["id", "deviceName", "measureType", 
                         "device_id", "availableServices", "servicesDetails"]
 
+        self._default_dev_cat = {
+            "ip": "", "port": -1, "methods": []
+            }
+
     def saveAsJson(self):
-        # Used to save a local copy of the current dictionary
+        # Used to save a local copy of the current dictionary - returns 1 if success, else 0
         try:
             json.dump(self.cat, open(self.out_path, "w"))
             return 1
         except:
             return 0
 
-    def searchDevice(self, parameter, value):
-        elem = {}
-        for elem_cat in self.cat["devices"]:
-            if elem_cat[parameter] == value:
-                # Supposing no duplicates
-                elem = elem_cat.copy()
-        
-        return elem
+    # GETTERS: they all return a python dictionary
+    
+    def gerProjectName(self):
+        return self.cat["project_name"]
+    
+    def gerProjectOwner(self):
+        return self.cat["project_owner"]
+
+    def getBroker(self):
+        return self.cat["broker"]
+
+    def getTelegram(self):
+        return self.cat["telegram"]
+
+    def getDevCatalog(self):
+        # Not hard-coded: need to check it is not empty!
+        if self.cat["device_catalog"]["last_update"] != "":
+            return self.cat["device_catalog"]
+        else:
+            return {}
+
+    # SEARCHES: search for specific record
 
     def searchUser(self, parameter, value):
         elem = {}
@@ -53,41 +69,17 @@ class Catalog():
         
         return elem
 
-    def searchSens(self, device_id, parameter, value):
-        """
-        Search for sensor given the device ID and the parameter 
-        over which to perform the search
-        """
-        
-        elem = {}
-        for elem_cat in self.cat["devices"]:
-            if elem_cat["id"] == device_id:
-                for sens in elem_cat["resources"]["sensors"]:
-                    if sens[parameter] == value:
-                        elem = sens.copy()
-        
-        return elem
+    # ADDERS: add new records
 
-    def addDevice(self, newDev):
-        # Check body contains the right fields
-        # has_key() method
-        
-        if all(elem in newDev for elem in self.dev_params):
-            # can proceed to adding the element
-            new_id = newDev["id"]
-            if self.searchDevice("id", new_id) == {}:
-                # not found
-                newDev["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                self.cat["devices"].append(newDev)
-                return new_id
-
-        return 0    # Element is either invalid or already exists
+    def addDevCat(self, device_catalog):
+        if all(elem in device_catalog for elem in self._dev_cat_params):
+            pass
 
     def addUser(self, newUsr):
         # Check body contains the right fields
         # has_key() method
         
-        if all(elem in newUsr for elem in self.usr_params):
+        if all(elem in newUsr for elem in self._usr_params):
             # can proceed to adding the element
             new_id = newUsr["id"]
             if self.searchUser("id", new_id) == {}:
@@ -98,86 +90,32 @@ class Catalog():
 
         return 0    # Element is either invalid or already exists
 
-    def addSensor(self, newSens):
-        # Check body contains the right fields
-        # has_key() method
-        
-        if all(elem in newSens for elem in self.sens_params):
-            # can proceed to adding the element
-            dev_id = newSens["device_id"]
-            sens_id = newSens["id"]
-            for ind in range(len(self.cat["devices"])):
-                # Find correct device
-                if self.cat["devices"][ind]["id"] == dev_id:
-                    sens_found = False
-                    for sens in self.cat["devices"][ind]["resources"]["sensors"]:
-                        if sens["id"] == sens_id and not sens_found:
-                            sens_found = True
-                    
-                    if not sens_found:
-                        newSens["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        self.cat["devices"][ind]["resources"]["sensors"].append(newSens)
-                        return sens_id
-
-        return 0    # Element is either invalid or already exists
-
-    def updateDevice(self, updDev):
-        # Check fields
-        if all(elem in updDev for elem in self.dev_params):
-            # Find device
-            for ind in range(len(self.cat["devices"])):
-                if self.cat["devices"][ind]["id"] == updDev["id"]:
-                    for key in self.dev_params:
-                        self.cat["devices"][ind][key] = updDev[key]
-                    self.cat["devices"][ind]["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    return updDev["id"]
-        
-        return 0
+    # UPDATERS: update records
     
     def updateUser(self, updUsr):
         # Check fields
-        if all(elem in updUsr for elem in self.usr_params):
+        if all(elem in updUsr for elem in self._usr_params):
             # Find device
             for ind in range(len(self.cat["users"])):
                 if self.cat["users"][ind]["id"] == updUsr["id"]:
-                    for key in self.usr_params:
+                    for key in self._usr_params:
                         self.cat["users"][ind][key] = updUsr[key]
                     self.cat["users"][ind]["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     return updUsr["id"]
             
         return 0
 
-    def updateSensor(self, updSens):
-        # Check fields
-        if all(elem in updSens for elem in self.sens_params):
-            # Find device
-            for ind in range(len(self.cat["devices"])):
-                if self.cat["devices"][ind]["id"] == updSens["device_id"]:
-                    for ind2 in range(len(self.cat["devices"][ind]["resources"]["sensors"])):
-                        if self.cat["devices"][ind]["resources"]["sensors"][ind2]["id"] == updSens["id"]:
-                            # Update device (found)
-                            for key in self.sens_params:
-                                self.cat["devices"][ind]["resources"]["sensors"][ind2][key] = updSens[key]
-                            self.cat["devices"][ind]["resources"]["sensors"][ind2]['last_update'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                            return updSens["id"]
-                
-        return 0
+    # CLEANERS: perform timeout check on records
 
-    def cleanDevices(self, curr_time, timeout):
+    def cleanDevCat(self, curr_time, timeout):
         """
-        Clean up old device records
-        - curr_time: unix timestamp
-        - timeout: in seconds
+        Clean up device catalog records
+
         """
-        n_rem = 0
-        for ind in range(len(self.cat["devices"])):
-            dev_time = datetime.timestamp(datetime.strptime(self.cat["devices"][ind]["last_update"], "%Y-%m-%d %H:%M:%S"))
-            if curr_time - dev_time > timeout:
-                # Delete record
-                self.cat["devices"].remove(self.cat["devices"][ind])
-                n_rem += 1
-        
-        return n_rem
+        oldtime = datetime.timestamp(datetime.strptime(self.cat["device_catalog"]["last_update"], "%Y-%m-%d %H:%M:%S"))
+        if curr_time - oldtime > timeout:
+            self.cat["device_catalog"] = self._default_dev_cat
+            self.cat["device_catalog"]["last_update"] = ""
 
     def cleanUsers(self, curr_time, timeout):
         """
@@ -198,7 +136,7 @@ class Catalog():
 
     
 
-class CatalogWebService():
+class ServicesCatalogWebService():
     """
     CatalogWebService
     ---
@@ -210,7 +148,7 @@ class CatalogWebService():
     def __init__(self, catalog_path, cmd_list_cat, output_cat_path="catalog_updated.json"):
         #self.catalog = json.load(open(catalog_path))
         self.commandList = json.load(open(cmd_list_cat))
-        self.catalog = Catalog(catalog_path, output_cat_path)
+        self.catalog = ServicesCatalog(catalog_path, output_cat_path)
         self.msg_ok = {"status": "SUCCESS", "msg": ""}
         self.msg_ko = {"status": "FAILURE", "msg": ""}
         self.timeout = 120          # seconds
@@ -220,7 +158,7 @@ class CatalogWebService():
         if (len(uri) >= 1):
             if (str(uri[0]) == "broker"):
                 # Return broker info
-                return json.dumps(self.catalog.cat["broker"])
+                return json.dumps()
             elif (str(uri[0]) == "devices"):
                 # Return all devices info
                 return json.dumps(self.catalog.cat["devices"])
@@ -375,9 +313,7 @@ if __name__ == "__main__":
         }
     }
 
-    WebService = CatalogWebService("serv_catalog.json", "cmdList.json")
-
-    #threading.Timer(60, WebService.cleanRecords()).start()
+    WebService = ServicesCatalogWebService("serv_catalog.json", "cmdList.json")
 
     cherrypy.tree.mount(WebService, '/', conf)
     # cherrypy.config.update({'server.socket_host': '192.168.64.152'})

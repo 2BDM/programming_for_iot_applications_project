@@ -26,6 +26,7 @@ Information is stored inside `serv_catalog.json`.
   * user_name
   * user_surname
   * email_addr
+  * telegram_id (?)
   * greenhouse
   * last_update
 * greenhouses
