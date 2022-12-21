@@ -2,3 +2,5 @@ pandas
 numpy
 cherrypy
 paho-mqtt
+requests
+telepot
