@@ -1,0 +1,38 @@
+{
+    "methods": [
+        {
+            "method": "GET",
+            "available_commands": [
+                "/project_info",
+                "/broker",
+                "/telegram",
+                "/device_catalog",
+                "/users",
+                "/user?id=",
+                "/greenhouses",
+                "/greenhouse?id=",
+                "/services",
+                "/service?id=",
+                "/service?name="
+            ]
+        },
+        {
+            "method": "POST",
+            "available_commands": [
+                "/device_catalog",
+                "/user",
+                "/greenhouse",
+                "/service"
+            ]
+        },
+        {
+            "method": "PUT",
+            "available_commands": [
+                "/device_catalog",
+                "/user",
+                "/greenhouse",
+                "/service"
+            ]
+        }
+    ]
+}
