@@ -1,6 +1,16 @@
 {
-    "project_name": "smartGreenhouse",
+    "project_name": "Smart greenhouse",
     "project_owner": "2BDM",
+    "services_catalog": {
+        "ip": "127.0.0.1",
+        "port": 8080,
+        "methods": [
+            "GET",
+            "PUT",
+            "POST",
+            "DELETE"
+        ]
+    },
     "broker": {
         "ip": "mqtt.eclipseprojects.io",
         "port_n": 1883
@@ -37,6 +47,22 @@
                 {
                     "max_hum": 90,
                     "unit": "g/m^3"
+                }
+            ],
+            "last_update": "2020-03-30 12:00:00"
+        }
+    ],
+    "services": [
+        {
+            "id": 1,
+            "name": "weather_station",
+            "endpoints": [
+                "REST"
+            ],
+            "endpoints_details": [
+                {
+                    "endpoint": "REST",
+                    "address": "http://192.168.1.10:8080"
                 }
             ],
             "last_update": "2020-03-30 12:00:00"
