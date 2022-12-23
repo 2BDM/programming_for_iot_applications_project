@@ -38,6 +38,7 @@ class ServicesCatalog():
             raise KeyError("Wrong catalog syntax!")
         
         self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.cat["last_update"] = self.last_update
 
         # For checking at insertion:
         self._dev_cat_params = ["ip", "port", "methods"]
@@ -154,7 +155,9 @@ class ServicesCatalog():
                 for key in self._default_dev_cat:
                     # Doing this prevents to insert keys that are not the allowed ones
                     self.cat["device_catalog"][key] = device_catalog[key]
-                self.cat["device_catalog"]["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.cat["device_catalog"]["last_update"] = self.last_update
+                self.cat["last_update"] = self.last_update
                 return 1
         return 0
 
@@ -180,9 +183,10 @@ class ServicesCatalog():
                 new_dict = {}
                 for key in self._usr_params:
                     new_dict[key] = newUsr[key]
-                new_dict["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                new_dict["last_update"] = self.last_update
                 self.cat["users"].append(new_dict)
-
+                self.cat["last_update"] = self.last_update
                 return new_id
 
         return 0    # Element is either invalid or already exists
@@ -207,9 +211,10 @@ class ServicesCatalog():
                 new_dict = {}
                 for key in self._greenhouse_params:
                     new_dict[key] = newGH[key]
-                new_dict["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                new_dict["last_update"] = self.last_update
                 self.cat["greenhouses"].append(new_dict)
-
+                self.cat["last_update"] = self.last_update
                 return new_id
         
         return 0
@@ -234,8 +239,10 @@ class ServicesCatalog():
                 new_dict = {}
                 for key in self._services_params:
                     new_dict[key] = newServ[key]
-                new_dict["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                new_dict["last_update"] = self.last_update
                 self.cat["services"].append(new_dict)
+                self.cat["last_update"] = self.last_update
                 return new_id
         
         return 0
@@ -250,7 +257,9 @@ class ServicesCatalog():
                 for key in self._default_dev_cat:
                     # Doing this prevents to insert keys that are not the allowed ones
                     self.cat["device_catalog"][key] = upd_info[key]
-                self.cat["device_catalog"]["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.cat["device_catalog"]["last_update"] = self.last_update
+                self.cat["last_update"] = self.last_update
                 return 1
         return 0
 
@@ -262,7 +271,9 @@ class ServicesCatalog():
                 if self.cat["users"][ind]["id"] == updUsr["id"]:
                     for key in self._usr_params:
                         self.cat["users"][ind][key] = updUsr[key]
-                    self.cat["users"][ind]["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    self.cat["users"][ind]["last_update"] = self.last_update
+                    self.cat["last_update"] = self.last_update
                     return updUsr["id"]
             
         return 0
@@ -274,7 +285,9 @@ class ServicesCatalog():
                 if self.cat["greenhouses"][ind]["id"] == upd_gh["id"]:
                     for key in self._greenhouse_params:
                         self.cat["greenhouses"][ind][key] = upd_gh[key]
-                    self.cat["greenhouses"][ind]["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    self.cat["greenhouses"][ind]["last_update"] = self.last_update
+                    self.cat["last_update"] = self.last_update
                     return upd_gh["id"]
             
         return 0
@@ -286,7 +299,9 @@ class ServicesCatalog():
                 if self.cat["services"][ind]["id"] == upd_ser["id"]:
                     for key in self._services_params:
                         self.cat["services"][ind][key] = upd_ser[key]
-                    self.cat["services"][ind]["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    self.cat["services"][ind]["last_update"] = self.last_update
+                    self.cat["last_update"] = self.last_update
                     return upd_ser["id"]
             
         return 0
@@ -307,6 +322,8 @@ class ServicesCatalog():
         if curr_time - oldtime > timeout:
             self.cat["device_catalog"] = self._default_dev_cat
             self.cat["device_catalog"]["last_update"] = ""
+            self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.cat["last_update"] = self.last_update
             return 1
         
         return 0
@@ -323,6 +340,8 @@ class ServicesCatalog():
             if curr_time - dev_time > timeout:
                 # Delete record
                 self.cat["users"].remove(self.cat["users"][ind])
+                self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.cat["last_update"] = self.last_update
                 n_rem += 1
         
         return n_rem
@@ -339,6 +358,8 @@ class ServicesCatalog():
             if curr_time - gh_time > timeout:
                 # Delete record
                 self.cat["greenhouses"].remove(self.cat["greenhouses"][ind])
+                self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.cat["last_update"] = self.last_update
                 n_rem += 1
         
         return n_rem
@@ -355,6 +376,8 @@ class ServicesCatalog():
             if curr_time - gh_time > timeout:
                 # Delete record
                 self.cat["services"].remove(self.cat["services"][ind])
+                self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.cat["last_update"] = self.last_update
                 n_rem += 1
         
         return n_rem
