@@ -478,7 +478,7 @@ class ServicesCatalogWebService():
                     raise cherrypy.HTTPError(400, "Missing/wrong parameters")
 
         else:       # Default case
-            return json.dumps(self.API["methods"][0])
+            return "Available commands: " + json.dumps(self.API["methods"][0])
 
     def POST(self, *uri, **params):
         """ 
@@ -540,7 +540,7 @@ class ServicesCatalogWebService():
                     return json.dumps(out)
         
         else:
-            return json.dumps(self.API["methods"][1])
+            return "Available commands: " + json.dumps(self.API["methods"][1])
 
     def PUT(self, *uri, **params):
         """
@@ -550,7 +550,7 @@ class ServicesCatalogWebService():
         body = json.loads(cherrypy.request.body.read())
 
         if (len(uri) >= 1):
-            if (str(uri[0]) == "device_cetelog"):
+            if (str(uri[0]) == "device_catalog"):
                 if self.catalog.updateDevCat(body) != 0:
                     out = self.msg_ok.copy()
                     out["msg"] = "Device catalog was updated"
@@ -602,7 +602,7 @@ class ServicesCatalogWebService():
                     cherrypy.response.status = 400
                     return json.dumps(out)
 
-        return json.dumps(self.API["methods"][2])
+        return "Available commands: " + json.dumps(self.API["methods"][2])
 
     ############ Private methods ###################
 
@@ -632,6 +632,11 @@ class ServicesCatalogWebService():
     def getMyPort(self):
         return self.my_info["port"]
 
+#
+#
+#
+#
+#
 
 if __name__ == "__main__":
     conf = {
