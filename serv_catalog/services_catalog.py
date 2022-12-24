@@ -38,6 +38,7 @@ class ServicesCatalog():
             raise KeyError("Wrong catalog syntax!")
         
         self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.cat["last_update"] = self.last_update
 
         # For checking at insertion:
         self._dev_cat_params = ["ip", "port", "methods"]
@@ -68,6 +69,9 @@ class ServicesCatalog():
     
     def gerProjectOwner(self):
         return self.cat["project_owner"]
+
+    def getServCatInfo(self):
+        return self.cat["services_catalog"]
 
     def getBroker(self):
         return self.cat["broker"]
@@ -154,7 +158,9 @@ class ServicesCatalog():
                 for key in self._default_dev_cat:
                     # Doing this prevents to insert keys that are not the allowed ones
                     self.cat["device_catalog"][key] = device_catalog[key]
-                self.cat["device_catalog"]["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.cat["device_catalog"]["last_update"] = self.last_update
+                self.cat["last_update"] = self.last_update
                 return 1
         return 0
 
@@ -180,9 +186,10 @@ class ServicesCatalog():
                 new_dict = {}
                 for key in self._usr_params:
                     new_dict[key] = newUsr[key]
-                new_dict["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                new_dict["last_update"] = self.last_update
                 self.cat["users"].append(new_dict)
-
+                self.cat["last_update"] = self.last_update
                 return new_id
 
         return 0    # Element is either invalid or already exists
@@ -203,13 +210,14 @@ class ServicesCatalog():
         if all(elem in newGH for elem in self._greenhouse_params):
             # can proceed to adding the element
             new_id = newGH["id"]
-            if self.searchUser("id", new_id) == {}:
+            if self.searchGreenhouse("id", new_id) == {}:
                 new_dict = {}
                 for key in self._greenhouse_params:
                     new_dict[key] = newGH[key]
-                new_dict["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                new_dict["last_update"] = self.last_update
                 self.cat["greenhouses"].append(new_dict)
-
+                self.cat["last_update"] = self.last_update
                 return new_id
         
         return 0
@@ -230,12 +238,14 @@ class ServicesCatalog():
         if all(elem in newServ for elem in self._services_params):
             # can proceed to adding the element
             new_id = newServ["id"]
-            if self.searchUser("id", new_id) == {}:
+            if self.searchService("id", new_id) == {}:
                 new_dict = {}
                 for key in self._services_params:
                     new_dict[key] = newServ[key]
-                new_dict["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                new_dict["last_update"] = self.last_update
                 self.cat["services"].append(new_dict)
+                self.cat["last_update"] = self.last_update
                 return new_id
         
         return 0
@@ -250,7 +260,9 @@ class ServicesCatalog():
                 for key in self._default_dev_cat:
                     # Doing this prevents to insert keys that are not the allowed ones
                     self.cat["device_catalog"][key] = upd_info[key]
-                self.cat["device_catalog"]["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.cat["device_catalog"]["last_update"] = self.last_update
+                self.cat["last_update"] = self.last_update
                 return 1
         return 0
 
@@ -262,7 +274,9 @@ class ServicesCatalog():
                 if self.cat["users"][ind]["id"] == updUsr["id"]:
                     for key in self._usr_params:
                         self.cat["users"][ind][key] = updUsr[key]
-                    self.cat["users"][ind]["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    self.cat["users"][ind]["last_update"] = self.last_update
+                    self.cat["last_update"] = self.last_update
                     return updUsr["id"]
             
         return 0
@@ -274,7 +288,9 @@ class ServicesCatalog():
                 if self.cat["greenhouses"][ind]["id"] == upd_gh["id"]:
                     for key in self._greenhouse_params:
                         self.cat["greenhouses"][ind][key] = upd_gh[key]
-                    self.cat["greenhouses"][ind]["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    self.cat["greenhouses"][ind]["last_update"] = self.last_update
+                    self.cat["last_update"] = self.last_update
                     return upd_gh["id"]
             
         return 0
@@ -286,7 +302,9 @@ class ServicesCatalog():
                 if self.cat["services"][ind]["id"] == upd_ser["id"]:
                     for key in self._services_params:
                         self.cat["services"][ind][key] = upd_ser[key]
-                    self.cat["services"][ind]["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    self.cat["services"][ind]["last_update"] = self.last_update
+                    self.cat["last_update"] = self.last_update
                     return upd_ser["id"]
             
         return 0
@@ -307,6 +325,8 @@ class ServicesCatalog():
         if curr_time - oldtime > timeout:
             self.cat["device_catalog"] = self._default_dev_cat
             self.cat["device_catalog"]["last_update"] = ""
+            self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.cat["last_update"] = self.last_update
             return 1
         
         return 0
@@ -323,6 +343,8 @@ class ServicesCatalog():
             if curr_time - dev_time > timeout:
                 # Delete record
                 self.cat["users"].remove(self.cat["users"][ind])
+                self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.cat["last_update"] = self.last_update
                 n_rem += 1
         
         return n_rem
@@ -339,6 +361,8 @@ class ServicesCatalog():
             if curr_time - gh_time > timeout:
                 # Delete record
                 self.cat["greenhouses"].remove(self.cat["greenhouses"][ind])
+                self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.cat["last_update"] = self.last_update
                 n_rem += 1
         
         return n_rem
@@ -355,6 +379,8 @@ class ServicesCatalog():
             if curr_time - gh_time > timeout:
                 # Delete record
                 self.cat["services"].remove(self.cat["services"][ind])
+                self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.cat["last_update"] = self.last_update
                 n_rem += 1
         
         return n_rem
@@ -363,18 +389,20 @@ class ServicesCatalog():
 
 class ServicesCatalogWebService():
     """
-    CatalogWebService
+    ServicesCatalogWebService
     ---
     Used to open the service catalog to the public
     """
     exposed = True
 
-    def __init__(self, catalog_path, cmd_list_cat, output_cat_path="catalog_updated.json"):
+    def __init__(self, catalog_path, cmd_list_cat, output_cat_path="serv_catalog_updated.json"):
         self.API = json.load(open(cmd_list_cat))
         self.catalog = ServicesCatalog(catalog_path, output_cat_path)
         self.msg_ok = {"status": "SUCCESS", "msg": ""}
         self.msg_ko = {"status": "FAILURE", "msg": ""}
         self.timeout = 120          # seconds
+
+        self.my_info = self.catalog.getServCatInfo()
 
     def GET(self, *uri, **params):
 
@@ -450,7 +478,7 @@ class ServicesCatalogWebService():
                     raise cherrypy.HTTPError(400, "Missing/wrong parameters")
 
         else:       # Default case
-            return json.dumps(self.API["methods"][0])
+            return "Available commands: " + json.dumps(self.API["methods"][0])
 
     def POST(self, *uri, **params):
         """ 
@@ -512,7 +540,7 @@ class ServicesCatalogWebService():
                     return json.dumps(out)
         
         else:
-            return "Insert device catalog in /device_catalog, users in /user, greenhouses in /greenhouse and services in /service"
+            return "Available commands: " + json.dumps(self.API["methods"][1])
 
     def PUT(self, *uri, **params):
         """
@@ -522,7 +550,7 @@ class ServicesCatalogWebService():
         body = json.loads(cherrypy.request.body.read())
 
         if (len(uri) >= 1):
-            if (str(uri[0]) == "device_cetelog"):
+            if (str(uri[0]) == "device_catalog"):
                 if self.catalog.updateDevCat(body) != 0:
                     out = self.msg_ok.copy()
                     out["msg"] = "Device catalog was updated"
@@ -574,7 +602,7 @@ class ServicesCatalogWebService():
                     cherrypy.response.status = 400
                     return json.dumps(out)
 
-        return "Update device catalog in /device_catalog, user info in /user, greenhouse info in /greenhouse and services info in /service"
+        return "Available commands: " + json.dumps(self.API["methods"][2])
 
     ############ Private methods ###################
 
@@ -598,6 +626,18 @@ class ServicesCatalogWebService():
             self.cleanRecords()
 
 
+    def getMyIP(self):
+        return self.my_info["ip"]
+
+    def getMyPort(self):
+        return self.my_info["port"]
+
+#
+#
+#
+#
+#
+
 if __name__ == "__main__":
     conf = {
         '/':{
@@ -615,7 +655,8 @@ if __name__ == "__main__":
         WebService = ServicesCatalogWebService("serv_catalog.json", "cmdList.json")
 
     cherrypy.tree.mount(WebService, '/', conf)
-    # cherrypy.config.update({'server.socket_host': '192.168.64.152'})
+    cherrypy.config.update({'server.socket_host': WebService.getMyIP()})
+    cherrypy.config.update({'server.socket_port': WebService.getMyPort()})
     cherrypy.engine.start()
     WebService.cleanupLoop(30)
     

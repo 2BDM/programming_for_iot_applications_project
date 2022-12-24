@@ -1,0 +1,84 @@
+{
+    "project_name": "Smart greenhouse",
+    "project_owner": "2BDM",
+    "device_catalog": {
+        "ip": "127.0.0.1",
+        "port": 8080,
+        "methods": [
+            "GET",
+            "POST",
+            "PUT"
+        ]
+    },
+    "devices": [
+        {
+            "id": 1,
+            "name": "RaspberryPi3",
+            "endpoints": [
+                "REST",
+                "MQTT"
+            ],
+            "endpoints_details": [
+                {
+                    "endpoint": "REST",
+                    "address": "http://localhost:8080"
+                },
+                {
+                    "servicetype": "MQTT",
+                    "topic": [
+                        "smartGreenhouse/1"
+                    ]
+                }
+            ],
+            "greenhouse": 1,
+            "resources": {
+                "sensors": [
+                    {
+                        "id": 1,
+                        "deviceName": "DHT11",
+                        "measureType": [
+                            "Temperature",
+                            "Humidity"
+                        ],
+                        "device_id": 1,
+                        "availableServices": [
+                            "MQTT"
+                        ],
+                        "servicesDetails": [
+                            {
+                                "serviceType": "MQTT",
+                                "topic": [
+                                    "smartGreenhouse/1/temperature",
+                                    "smartGreenhouse/1/humidity"
+                                ]
+                            }
+                        ],
+                        "last_update": "2020-03-30 12:00:00"
+                    },
+                    {
+                        "id": 2,
+                        "deviceName": "BMP180",
+                        "measureType": [
+                            "Air pressure"
+                        ],
+                        "device_id": 1,
+                        "availableServices": [
+                            "MQTT"
+                        ],
+                        "servicesDetails": [
+                            {
+                                "serviceType": "MQTT",
+                                "topic": [
+                                    "smartGreenhouse/1/airPressure"
+                                ]
+                            }
+                        ],
+                        "lastUpdate": "2020-03-30 12:00:00"
+                    }
+                ]
+            },
+            "last_update": "2020-03-30 12:00:00"
+        }
+    ],
+    "last_update": ""
+}
