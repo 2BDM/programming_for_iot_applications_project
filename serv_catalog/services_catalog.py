@@ -70,6 +70,9 @@ class ServicesCatalog():
     def gerProjectOwner(self):
         return self.cat["project_owner"]
 
+    def getServCatInfo(self):
+        return self.cat["services_catalog"]
+
     def getBroker(self):
         return self.cat["broker"]
 
@@ -207,7 +210,7 @@ class ServicesCatalog():
         if all(elem in newGH for elem in self._greenhouse_params):
             # can proceed to adding the element
             new_id = newGH["id"]
-            if self.searchUser("id", new_id) == {}:
+            if self.searchGreenhouse("id", new_id) == {}:
                 new_dict = {}
                 for key in self._greenhouse_params:
                     new_dict[key] = newGH[key]
@@ -235,7 +238,7 @@ class ServicesCatalog():
         if all(elem in newServ for elem in self._services_params):
             # can proceed to adding the element
             new_id = newServ["id"]
-            if self.searchUser("id", new_id) == {}:
+            if self.searchService("id", new_id) == {}:
                 new_dict = {}
                 for key in self._services_params:
                     new_dict[key] = newServ[key]
@@ -386,18 +389,20 @@ class ServicesCatalog():
 
 class ServicesCatalogWebService():
     """
-    CatalogWebService
+    ServicesCatalogWebService
     ---
     Used to open the service catalog to the public
     """
     exposed = True
 
-    def __init__(self, catalog_path, cmd_list_cat, output_cat_path="catalog_updated.json"):
+    def __init__(self, catalog_path, cmd_list_cat, output_cat_path="serv_catalog_updated.json"):
         self.API = json.load(open(cmd_list_cat))
         self.catalog = ServicesCatalog(catalog_path, output_cat_path)
         self.msg_ok = {"status": "SUCCESS", "msg": ""}
         self.msg_ko = {"status": "FAILURE", "msg": ""}
         self.timeout = 120          # seconds
+
+        self.my_info = self.catalog.getServCatInfo()
 
     def GET(self, *uri, **params):
 
@@ -535,7 +540,7 @@ class ServicesCatalogWebService():
                     return json.dumps(out)
         
         else:
-            return "Insert device catalog in /device_catalog, users in /user, greenhouses in /greenhouse and services in /service"
+            return json.dumps(self.API["methods"][1])
 
     def PUT(self, *uri, **params):
         """
@@ -597,7 +602,7 @@ class ServicesCatalogWebService():
                     cherrypy.response.status = 400
                     return json.dumps(out)
 
-        return "Update device catalog in /device_catalog, user info in /user, greenhouse info in /greenhouse and services info in /service"
+        return json.dumps(self.API["methods"][2])
 
     ############ Private methods ###################
 
@@ -621,6 +626,13 @@ class ServicesCatalogWebService():
             self.cleanRecords()
 
 
+    def getMyIP(self):
+        return self.my_info["ip"]
+
+    def getMyPort(self):
+        return self.my_info["port"]
+
+
 if __name__ == "__main__":
     conf = {
         '/':{
@@ -638,7 +650,8 @@ if __name__ == "__main__":
         WebService = ServicesCatalogWebService("serv_catalog.json", "cmdList.json")
 
     cherrypy.tree.mount(WebService, '/', conf)
-    # cherrypy.config.update({'server.socket_host': '192.168.64.152'})
+    cherrypy.config.update({'server.socket_host': WebService.getMyIP()})
+    cherrypy.config.update({'server.socket_port': WebService.getMyPort()})
     cherrypy.engine.start()
     WebService.cleanupLoop(60)
     
