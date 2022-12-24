@@ -3,13 +3,12 @@
     "project_owner": "2BDM",
     "device_catalog": {
         "ip": "127.0.0.1",
-        "port": 2222,
+        "port": 8080,
         "methods": [
             "GET",
             "POST",
             "PUT"
-        ],
-        "last_update": ""
+        ]
     },
     "devices": [
         {
@@ -80,5 +79,6 @@
             },
             "last_update": "2020-03-30 12:00:00"
         }
-    ]
+    ],
+    "last_update": ""
 }
