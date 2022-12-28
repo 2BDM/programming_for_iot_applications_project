@@ -11,7 +11,7 @@ Sample information can be found inside `dev_catalog.json`.
 
 The catalog web service is built on top of the DeviceCatalog class.
 
-The constructor of this class requires: 
+The constructor of this class requires:
 
 * The path for the input catalog (if invalid, the default one will be provided)
 * The path to the updated catalog (saved everytime the saveAsJson() method is called - typically after any catalog update)
@@ -84,7 +84,7 @@ The following is the structure of the device catalog JSON file
 The timestamps (`last_update`) follow this syntax:
 
     %Y-%m-%d %H:%M:%S
- 
+
 ## Working principle
 
 When launched, the web service will first (try to) register itself at the provided services catalog. Then it will start operating looking for incoming HTTP requests on the specified port.
@@ -94,14 +94,3 @@ Any type oc communication with other application microservices happens through R
 While still listening for incoming requests, the program will perform a timeout check on the catalog records. Therefore it is necessary that all connected devices update their records (by means of PUT requests) every now and then.
 
 The catalog will also have to update its own information at the services catalog. This operation is done continuously, as the records cleanup.
-
-
-
-
-
-
-
-
-
-
-
