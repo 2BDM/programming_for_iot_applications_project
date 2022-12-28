@@ -24,7 +24,7 @@
                     "address": "http://localhost:8080"
                 },
                 {
-                    "service_type": "MQTT",
+                    "endpoint": "MQTT",
                     "topic": [
                         "smartGreenhouse/1"
                     ]
