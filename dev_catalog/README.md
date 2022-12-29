@@ -89,7 +89,7 @@ The timestamps (`last_update`) follow this syntax:
 
 When launched, the web service will first (try to) register itself at the provided services catalog. Then it will start operating looking for incoming HTTP requests on the specified port.
 
-Any type oc communication with other application microservices happens through RESTful APIs.
+Any type of communication with other application microservices happens through RESTful APIs.
 
 While still listening for incoming requests, the program will perform a timeout check on the catalog records. Therefore it is necessary that all connected devices update their records (by means of PUT requests) every now and then.
 
