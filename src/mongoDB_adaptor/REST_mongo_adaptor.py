@@ -5,11 +5,7 @@ import json as js
 class adaptor_mongo_interface(object):
     exposed = True
     
-    def __init__(self, inputPath):
-        self.deviceM = dev.deviceManager(inputPath)
-        url = "mongodb+srv://2BDM:Gruppo17@2bdm.bxvbkre.mongodb.net/"
-        self.mongoP = mDB.mongoAdaptor(url,"IOT_project","plants")
-        self.mongoW = mDB.mongoAdaptor(url,"IOT_project","weather")
+    
     #####################################################################################
     # In this method each case is identified by different parameters:                   #
     # - coll            --> to select the right collection                              #
@@ -25,6 +21,13 @@ class adaptor_mongo_interface(object):
     #           - date                    --> to search by a specific date              #
     #           - min_date, max_date      --> to search records in a interval of dates  #
     #####################################################################################
+    def __init__(self, inputPath):
+        self.deviceM = dev.deviceManager(inputPath)
+        url = "mongodb+srv://2BDM:Gruppo17@2bdm.bxvbkre.mongodb.net/"
+        self.mongoP = mDB.mongoAdaptor(url,"IOT_project","plants")
+        self.mongoW = mDB.mongoAdaptor(url,"IOT_project","weather")
+    
+    
     def GET(self, *uri, **params):
         value = params.keys()
         
