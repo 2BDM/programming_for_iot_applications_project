@@ -21,8 +21,7 @@ class adaptor_mongo_interface(object):
     #           - date                    --> to search by a specific date              #
     #           - min_date, max_date      --> to search records in a interval of dates  #
     #####################################################################################
-    def __init__(self, inputPath):
-        self.deviceM = dev.deviceManager(inputPath)
+    def __init__(self):
         url = "mongodb+srv://2BDM:Gruppo17@2bdm.bxvbkre.mongodb.net/"
         self.mongoP = mDB.mongoAdaptor(url,"IOT_project","plants")
         self.mongoW = mDB.mongoAdaptor(url,"IOT_project","weather")
@@ -30,7 +29,6 @@ class adaptor_mongo_interface(object):
     
     def GET(self, *uri, **params):
         value = params.keys()
-        
         if params['coll']=="plants":
             if "id" in value:
                 return self.mongoP.find_by_id(int(params['id']))
