@@ -5,6 +5,11 @@ import json as js
 class adaptor_mongo_interface(object):
     exposed = True
     
+    def __init__(self, inputPath):
+        self.deviceM = dev.deviceManager(inputPath)
+        url = "mongodb+srv://2BDM:Gruppo17@2bdm.bxvbkre.mongodb.net/"
+        self.mongoP = mDB.mongoAdaptor(url,"IOT_project","plants")
+        self.mongoW = mDB.mongoAdaptor(url,"IOT_project","weather")
     #####################################################################################
     # In this method each case is identified by different parameters:                   #
     # - coll            --> to select the right collection                              #
@@ -22,44 +27,41 @@ class adaptor_mongo_interface(object):
     #####################################################################################
     def GET(self, *uri, **params):
         value = params.keys()
-        url = "mongodb+srv://2BDM:Gruppo17@2bdm.bxvbkre.mongodb.net/"
-        mongo = mDB.mongoAdaptor(url,"IOT_project",params["coll"])
+        
         if params['coll']=="plants":
             if "id" in value:
-                return mongo.find_by_id(int(params['id']))
+                return self.mongoP.find_by_id(int(params['id']))
             
             elif "min_size" in value and "max_size" in value and "N" in value:
-                return mongo.find_by_size(int(params['min_size']),int(params['max_size']),int(params['N']))
+                return self.mongoP.find_by_size(int(params['min_size']),int(params['max_size']),int(params['N']))
             
             elif "category" in value and "N" in value:
-                return mongo.find_by_category(str(params['category']),int(params['N']))
+                return self.mongoP.find_by_category(str(params['category']),int(params['N']))
             
             elif "temperature" in value and "N" in value:
-                return mongo.find_by_temperature(int(params['temperature']),int(params['N']))
+                return self.mongoP.find_by_temperature(int(params['temperature']),int(params['N']))
             
             elif "humidity" in value and "N" in value:
-                return mongo.find_by_humidity(int(params['humidity']),int(params['N']))
+                return self.mongoP.find_by_humidity(int(params['humidity']),int(params['N']))
             
             elif "lux" in value and "N" in value:
-                return mongo.find_by_lux(int(params['lux']),int(params['N']))
+                return self.mongoP.find_by_lux(int(params['lux']),int(params['N']))
             
             elif "moisture" in value and "N" in value:
-                return mongo.find_by_moisture(int(params['moisture']),int(params['N']))
+                return self.mongoP.find_by_moisture(int(params['moisture']),int(params['N']))
         elif params['coll']=="weather":
             if "date" in value:
-                return mongo.find_by_timestamp(str(params['date']))
+                return self.mongoW.find_by_timestamp(str(params['date']))
             elif "min_date" in value and "max_date" in value:
-                return mongo.find_by_timestamp(str(params['min_date']),str(params['max_date']))
+                return self.mongoW.find_by_timestamp(str(params['min_date']),str(params['max_date']))
         else:
             return "error"   
     
     def POST(self,**params):
-        url = "mongodb+srv://2BDM:Gruppo17@2bdm.bxvbkre.mongodb.net/"
-        mongo = mDB.mongoAdaptor(url,"IOT_project",params["coll"])
         bodyAsString = cherrypy.request.body.read()
         newDataDict = js.loads(bodyAsString)
         if params['coll'] == "weather":
-            mongo.insert_one_dict(newDataDict)
+            self.mongoW.insert_one_dict(newDataDict)
         
 
 
