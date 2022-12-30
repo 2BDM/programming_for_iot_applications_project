@@ -22,7 +22,6 @@ class adaptor_mongo_interface(object):
     #####################################################################################
     def GET(self, *uri, **params):
         value = params.keys()
-        print(value)
         url = "mongodb+srv://2BDM:Gruppo17@2bdm.bxvbkre.mongodb.net/"
         mongo = mDB.mongoAdaptor(url,"IOT_project",params["coll"])
         if params['coll']=="plants":
@@ -54,7 +53,13 @@ class adaptor_mongo_interface(object):
         else:
             return "error"   
     
-    #TODO [post]
+    def POST(self):
+        url = "mongodb+srv://2BDM:Gruppo17@2bdm.bxvbkre.mongodb.net/"
+        mongo = mDB.mongoAdaptor(url,"IOT_project",params["coll"])
+        bodyAsString = cherrypy.request.body.read()
+        newDataDict = js.loads(bodyAsString)
+        if coll == "weather":
+            mongo.insert_one_dict(newDataDict)
         
 
 
