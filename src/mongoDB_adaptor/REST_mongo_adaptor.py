@@ -53,12 +53,12 @@ class adaptor_mongo_interface(object):
         else:
             return "error"   
     
-    def POST(self):
+    def POST(self,**params):
         url = "mongodb+srv://2BDM:Gruppo17@2bdm.bxvbkre.mongodb.net/"
         mongo = mDB.mongoAdaptor(url,"IOT_project",params["coll"])
         bodyAsString = cherrypy.request.body.read()
         newDataDict = js.loads(bodyAsString)
-        if coll == "weather":
+        if params['coll'] == "weather":
             mongo.insert_one_dict(newDataDict)
         
 
