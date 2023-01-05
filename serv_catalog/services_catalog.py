@@ -44,7 +44,7 @@ class ServicesCatalog():
         self._dev_cat_params = ["ip", "port", "methods"]
         self._usr_params = ["id", "user_name", "user_surname", 
                     "email_addr", "greenhouse"]
-        self._greenhouse_params = ['id', 'plant_type', 'plant_needs']
+        self._greenhouse_params = ['id', 'user_id', 'device_id' 'plant_type', 'plant_needs']
         self._services_params = ['id', 'name', 'endpoints', 'endpoints_details']
 
         # Default empty device catalog
