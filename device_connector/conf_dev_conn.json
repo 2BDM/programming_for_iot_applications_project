@@ -1,0 +1,24 @@
+{
+    "project_name": "Smart greenhouse",
+    "project_owner": "2BDM",
+    "services_catalog": {
+        "ip": "127.0.0.1",
+        "port": 2222,
+        "methods": [
+            "GET",
+            "PUT",
+            "POST"
+        ]
+    },
+    "sens_pins": [
+        {
+            "name": "DHT11",
+            "dt": 8
+        },
+        {
+            "name": "BMP180",
+            "dt": 12,
+            "sck": 13
+        }
+    ]
+}
