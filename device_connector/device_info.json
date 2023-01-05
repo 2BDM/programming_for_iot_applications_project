@@ -69,6 +69,40 @@
                 ],
                 "last_update": "2020-03-30 12:00:00"
             }
+        ],
+        "actuators": [
+            {
+                "id": 1,
+                "device_name": "ACT00",
+                "device_id": 1,
+                "available_services": [
+                    "MQTT"
+                ],
+                "service_details": [
+                    {
+                        "service_type": "MQTT",
+                        "topic": [
+                            "smartGreenhouse/1/act_water"
+                        ]
+                    }
+                ]
+            },
+            {
+                "id": 2,
+                "device_name": "ACT00",
+                "device_id": 1,
+                "available_services": [
+                    "MQTT"
+                ],
+                "service_details": [
+                    {
+                        "service_type": "MQTT",
+                        "topic": [
+                            "smartGreenhouse/1/act_light"
+                        ]
+                    }
+                ]
+            }
         ]
     },
     "last_update": "2020-03-30 12:00:00"
