@@ -36,8 +36,8 @@ class DevConn:
         # in a dictionary having as keys the sensor names
         # The program does not know in advance which sensors it has!
         self.last_meas = []
-        self.dev_agents = []
-        self.dev_agent_ind = {}
+        self.dev_agents_sens = []
+        self.dev_agent_ind_sens = {}
         count = 0
         for elem in self.whoami["resources"]["sensors"]:            
             # Add the 'last measured' field
@@ -59,18 +59,30 @@ class DevConn:
             # NOTE: Pin numbers are found in the configuration file
 
             if elem["device_name"] == "DHT11":
-                self.dev_agent_ind["DHT11"] = count
+                self.dev_agent_ind_sens["DHT11"] = count
                 count += 1
                 #
-                # self.dev_agents.append(DHT11())
+                # self.dev_agents_sens.append(DHT11())
                 pass
             elif elem["device_name"] == "BMP180":
-                self.dev_agent_ind["BMP180"] = count
+                self.dev_agent_ind_sens["BMP180"] = count
                 count += 1
-                # self.dev_agents.append(BMP180())
+                # self.dev_agents_sens.append(BMP180())
                 pass
         
         self.n_sens = count
+
+        # Same thing but for actuators:
+        self.dev_agents_act = []
+        self.dev_agent_ind_act = {}
+        count = 0
+        for elem in self.whoami["resources"]["actuators"]:
+            # if elem["name"] == "ACT00":
+                # self.dev_agent_ind["ACT00"]  = count
+                # count += 1
+                # self.dev_agents_act.append(ACT00())
+            pass
+
 
         ######## MQTT client
         # Get broker information
