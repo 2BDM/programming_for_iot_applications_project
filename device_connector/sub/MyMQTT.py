@@ -21,7 +21,8 @@ class MyMQTT:
     - clientID: name of the client - must be unique for the chosen server
     - broker: server url
     - port: port number
-    - notifier:
+    - notifier: object supporting the `notify()` method which is the callback 
+      used upon message reception
     --------------------------------------------------------------------------
     Attributes:
     - broker: server url
