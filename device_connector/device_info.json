@@ -1,0 +1,75 @@
+{
+    "id": 1,
+    "name": "RaspberryPi3_01",
+    "endpoints": [
+        "REST",
+        "MQTT"
+    ],
+    "endpoints_details": [
+        {
+            "endpoint": "REST",
+            "address": "http://localhost:8080"
+        },
+        {
+            "endpoint": "MQTT",
+            "topic": [
+                "smartGreenhouse/1"
+            ]
+        }
+    ],
+    "greenhouse": 1,
+    "resources": {
+        "sensors": [
+            {
+                "id": 1,
+                "device_name": "DHT11",
+                "measure_type": [
+                    "Temperature",
+                    "Humidity"
+                ],
+                "units": [
+                    "Cel",
+                    "RH"
+                ],
+                "device_id": 1,
+                "available_services": [
+                    "MQTT"
+                ],
+                "service_details": [
+                    {
+                        "service_type": "MQTT",
+                        "topic": [
+                            "smartGreenhouse/1/temperature",
+                            "smartGreenhouse/1/humidity"
+                        ]
+                    }
+                ],
+                "last_update": "2020-03-30 12:00:00"
+            },
+            {
+                "id": 2,
+                "device_name": "BMP180",
+                "measure_type": [
+                    "Air pressure"
+                ],
+                "units": [
+                    "Bar"
+                ],
+                "device_id": 1,
+                "available_services": [
+                    "MQTT"
+                ],
+                "services_details": [
+                    {
+                        "service_type": "MQTT",
+                        "topic": [
+                            "smartGreenhouse/1/airPressure"
+                        ]
+                    }
+                ],
+                "last_update": "2020-03-30 12:00:00"
+            }
+        ]
+    },
+    "last_update": "2020-03-30 12:00:00"
+}
