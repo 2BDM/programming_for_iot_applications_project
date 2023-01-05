@@ -4,6 +4,7 @@ import requests
 import json
 from datetime import datetime
 import time
+from sub.MyMQTT import MyMQTT
 
 # TODO: add libraries for sensors - need RPi
 
@@ -33,14 +34,19 @@ class DevConn:
         # !!!! 
         # IDEA: store device agents in a list, plus the corresponding position 
         # in a dictionary having as keys the sensor names
+        # The program does not know in advance which sensors it has!
         self.last_meas = []
         self.dev_agents = []
         self.dev_agent_ind = {}
         count = 0
         for elem in self.whoami["resources"]["sensors"]:            
             # Add the 'last measured' field
+            # Iterate over the measure_type list
             for ind in range(len(elem["measure_type"])):
                 # NOTE: SenML format
+                # Assume no sensors measure the same quantity 
+                # (if 2 sensors measure the same quantity, then
+                # one always covers the other)
                 curr_meas = {
                     "n": elem["measure_type"][ind], 
                     "u": elem["units"][ind],
@@ -65,6 +71,52 @@ class DevConn:
                 pass
         
         self.n_sens = count
+
+        ######## MQTT client
+        # Get broker information
+        self.broker_info = {}           # No timestamp - suppose it does not change
+        
+        while self.broker_info == {}:
+            if self.getBrokerInfo(max_tries=500) != 1:
+                print("Cannot get broker info!")
+
+        self.mqtt_cli = MyMQTT(
+            clientID=self.whoami["name"], 
+            broker=self.broker_info["ip"],
+            port=self.broker_info["port_n"],
+            notifier=self
+            )
+
+    #TODO
+    ##################################################################
+    def notify(self):
+        """
+        Callback for the MyMQTT object
+        When a message is received in either of the 
+        topics related to the actuators, it acts on them.
+        """
+        # Read message
+        # Depending on the topic and content, choose the most suitable action
+        pass
+    ##################################################################
+
+
+
+    def getBrokerInfo(self, max_tries):
+        tries = 0
+        while tries <= max_tries and self.broker_info == {}:
+            addr = self.sc_addr + "/broker"
+            r = requests.get(addr)
+            if r.status_code == requests.code.ok:
+                self.broker_info = r.json()
+                print("Device catalog info retrieved!")
+            else:
+                print(f"Error {r.status_code}")
+        
+        if self.broker_info != {}:
+            return 1
+        else:
+            return 0
 
     def connectToServCat(self, max_tries):
         """
