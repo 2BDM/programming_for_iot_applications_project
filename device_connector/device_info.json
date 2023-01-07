@@ -24,8 +24,8 @@
                 "id": 1,
                 "device_name": "DHT11",
                 "measure_type": [
-                    "Temperature",
-                    "Humidity"
+                    "temperature",
+                    "humidity"
                 ],
                 "units": [
                     "Cel",
@@ -50,7 +50,7 @@
                 "id": 2,
                 "device_name": "BMP180",
                 "measure_type": [
-                    "Air pressure"
+                    "airPressure"
                 ],
                 "units": [
                     "Bar"
