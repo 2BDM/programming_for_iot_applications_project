@@ -22,4 +22,15 @@ Each device agent (class) must have a `measure()` method, which returns all meas
 
 The list `self.last_meas` contains the last measurements for each measured quantity. It is created by reading the available quantities to be measured inside the lists `measure_type` found in the device information.
 
-`self.last_meas` is actually a list of lists, each of which contains all (last) measurements available from each service. The positional indexing reflects that of `self.dev_agents_sens`, meaning the correct measurements can be accessed by making use of `self.device_agent_ind_sens`.
+`self.last_meas` is actually a list of lists, each of which contains all (last) measurements available from each sensor. The positional indexing reflects that of `self.dev_agents_sens`, meaning the correct measurements can be accessed by making use of `self.device_agent_ind_sens`.
+
+### MQTT topics - sensors
+
+All sensor measurements are published via MQTT on the broker.
+The `publishLastMeas()` method performs the publication, acting as follows:
+
+- Iterate through sensor list in the device information dict (`self.whoami`)
+- Retrieve the last measurements for each sensor (using the name-index mapping as explained in 'Last measurements')
+- Get list of topics assoc. with the sensor
+- For each entry in the selected last-measured list, find the associated topic, knowing the last element in the topic url is the name of the measurement (associated with key `"n"` in the SenML-compliant measure info), **all lowercase and with spaces replaced by underscores**.
+- Publish the SenML message containing the measure in the topic
