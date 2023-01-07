@@ -1,6 +1,6 @@
 {
     "id": 1,
-    "name": "RaspberryPi3_01",
+    "name": "RaspberryPi3",
     "endpoints": [
         "REST",
         "MQTT"
@@ -24,8 +24,8 @@
                 "id": 1,
                 "device_name": "DHT11",
                 "measure_type": [
-                    "temperature",
-                    "humidity"
+                    "Temperature",
+                    "Humidity"
                 ],
                 "units": [
                     "Cel",
@@ -50,7 +50,7 @@
                 "id": 2,
                 "device_name": "BMP180",
                 "measure_type": [
-                    "airPressure"
+                    "Air Pressure"
                 ],
                 "units": [
                     "Bar"
@@ -63,7 +63,7 @@
                     {
                         "service_type": "MQTT",
                         "topic": [
-                            "smartGreenhouse/1/airPressure"
+                            "smartGreenhouse/1/air_pressure"
                         ]
                     }
                 ],
