@@ -6,6 +6,8 @@ from datetime import datetime
 import time
 from sub.MyMQTT import MyMQTT
 
+from device_agents.dht11_agent import DHT11Agent
+
 # TODO: add libraries for sensors - need RPi
 
 
@@ -84,12 +86,22 @@ class DevConn:
             # NOTE: Pin numbers are found in the configuration file
 
             if elem["device_name"] == "DHT11":
+                # EXAMPLE:
                 self.dev_agent_ind_sens["DHT11"] = count
                 count += 1
-                # Here one can add the specific instantiations of the device agents
-                #
-                # self.dev_agents_sens.append(DHT11())
-                pass
+
+                found = False
+                for sens_conf in self.conf["sens_pins"]:
+                    if sens_conf["name"] == "DHT11":
+                        dht_conf = sens_conf.copy()
+                        found = True
+                
+                if found:
+                    self.dev_agents_sens.append(DHT11Agent(dht_conf))
+                else:
+                    raise ValueError("The configuration file is missing DHT11 information!")
+
+            # TODO: same thing, but for all other sensors
             elif elem["device_name"] == "BMP180":
                 self.dev_agent_ind_sens["BMP180"] = count
                 count += 1
@@ -118,8 +130,11 @@ class DevConn:
             if self.getBrokerInfo(max_tries=500) != 1:
                 print("Cannot get broker info!")
 
+        # MQTT publisher base name
+        self.mqtt_bn = self.whoami["name"] + '_' + str(self.whoami["id"])
+
         self.mqtt_cli = MyMQTT(
-            clientID=self.whoami["name"], 
+            clientID=self.mqtt_bn,    # Devices can have same name, but must not have same id
             broker=self.broker_info["ip"],
             port=self.broker_info["port_n"],
             notifier=self
@@ -253,13 +268,16 @@ class DevConn:
                 r = requests.post(addr, data=self.whoami)
                 if r.status_code == requests.code.ok:
                     self.dev_cat_info = r.json()
+                    self._registered_dev_cat = True
                     print("Registered!")
                 else:
                     print(f"Error {r.status_code}")
             
-            if self.dev_cat_info != {}:
+            if self._registered_dev_cat:
+                # Success
                 return 1
             else:
+                # Not registered
                 return 0
         else: 
             print("Missing device catalog info!")
@@ -269,7 +287,8 @@ class DevConn:
     def updateDevCat(self, max_tries):
         tries = 0
         if self.dev_cat_info != {}:
-            while tries <= max_tries and not self._registered_dev_cat:
+            upd_succ = False
+            while tries <= max_tries and not upd_succ:
                 addr_dev_cat = self.dev_cat_info["ip"] + str(self.dev_cat_info["port"])
                 addr = addr_dev_cat + "/device"
                 r = requests.put(addr, data=self.whoami)
@@ -278,17 +297,21 @@ class DevConn:
                     print("Registered!")
                 elif r.status_code == 400:  # From dev. cat.: if unable to update, the return code is 400
                     # Try to POST
+                    self._registered_dev_cat = False
                     if self.registerAtDevCat() == 1:
                         print("Had to register!")
                         return 1
                 else:
                     print(f"Error {r.status_code}")
             
-            if self.dev_cat_info != {}:
+            if upd_succ:
+                # Success
                 return 1
             else:
+                # Not updated - can't reach server
                 return 0
         else: 
+            # Missing catalog info
             return -1
 
 
@@ -314,9 +337,31 @@ class DevConn:
     
     def publishLastMeas(self):
         # Read all sensor topics from "self.whoami"
-        # Find the last measured value for the specific quantity (use indexing in `self.dev_agent_ind_sens`)
-        # Publish it in the correct topic
-        pass
+        # Find the last measured value for the specific quantity 
+        # (use indexing in `self.dev_agent_ind_sens`)
+        for sens in self.whoami["resources"]["sensors"]:
+            if "MQTT" in sens["available_services"]:
+                # Retrieve last measurements via the name-index mapping
+                meas_lst = self.last_meas[self.dev_agent_ind_sens[sens["device_name"]]]
+
+                # Find available topics
+                for det in sens["service_details"]:
+                    if det["service_type"] == "MQTT":
+                        topics_lst = det["topic"]
+        
+                # Publish it in the correct topic
+                # The correct topic contains as last element in the path the 
+                # name of the measured quantity in lowercase, with spaces 
+                # replaced by underscores
+                for meas in meas_lst:
+                    meas_qty = meas["n"]
+                    
+                    # Find topic - the last element in the topic URi must be the measure name 
+                    # (lowercase, with '_' instead of ' ')
+                    for top_iter in topics_lst:
+                        if top_iter.split('/')[-1].replace(' ', '_').lower() == meas_qty.lower():
+                            msg = {"bn":self.mqtt_bn, "e": [meas]}
+                            self.mqtt_cli.myPublish(topic=top_iter, msg=msg)
 
 
 
@@ -326,3 +371,56 @@ if __name__ == "__main__":
     
     myDevConn = DevConn("./conf_dev_conn.json", "./dev_info.json")
     
+    ############### Start operation ###############
+
+    ok = False
+    max_iter_init = 10
+    iter_init = 0
+
+    while not ok:
+        myDevConn.connectToServCat(max_tries=100)
+        init_status = myDevConn.registerAtDevCat(max_tries=100)
+
+        if init_status == 1:
+            # Correctly registered
+            ok = True
+        elif init_status == 0:
+            iter_init += 1
+        elif init_status == -1:
+            # No dev. cat. info
+            iter_init += 1
+            myDevConn.connectToServCat()
+
+        if iter_init >= max_iter_init:
+            # If too many tries - wait some time, then retry
+            iter_init = 0
+            time.sleep(10)
+
+    ############### Working loop ###############
+    while True:
+        # Update info
+        upd_oper = myDevConn.updateDevCat()
+        
+        if upd_oper == -1:
+            # No dev cat info
+            myDevConn.connectToServCat()
+            upd_oper = myDevConn.updateDevCat()
+        
+        # No `elif` - upd_oper was updated
+        if upd_oper == 0:
+            # Cannot reach device catalog
+            print("Cannot reach device catalog!")
+            
+            max_it = 5
+            it = 0
+            while upd_oper != 1 and it < max_it:
+                time.sleep(5)   # Wait 5s
+                upd_oper = myDevConn.updateDevCat()
+                it += 1
+
+        # Make and publish measurements
+        myDevConn.updateMeas()
+        myDevConn.publishLastMeas()
+
+        # Clean possibly old info
+        myDevConn.cleanupDevCat()
