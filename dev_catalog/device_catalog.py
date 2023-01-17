@@ -320,7 +320,8 @@ class DeviceCatalogWebService():
             time.sleep(5)
             self.cleanRecords()
 
-
+    # Used to get information about IP and port n. from the 
+    # device catalog settings json
     def getMyIP(self):
         return self.my_info["ip"]
 
@@ -342,6 +343,8 @@ if __name__ == "__main__":
         }
     }
 
+    # It is possible to specify the path of the empty device catalog
+    # or of the device catalog info as command line parameters
     if len(sys.argv) == 3:
         WebService = DeviceCatalogWebService(sys.argv[1], sys.argv[2])
     elif len(sys.argv) == 2:
