@@ -91,6 +91,8 @@ The following is the structure of the catalog JSON file:
   * last_update
 * greenhouses
   * id
+  * user_id
+  * device_id
   * plant_id
   * plant_type
   * plant_needs (list)
