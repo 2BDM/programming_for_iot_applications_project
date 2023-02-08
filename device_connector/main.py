@@ -115,9 +115,9 @@ class DevConn:
         self.dev_agent_ind_act = {}
         count = 0
         for elem in self.whoami["resources"]["actuators"]:
-            # if elem["name"] == "ACT00":
-                # self.dev_agent_ind["ACT00"]  = count
-                # count += 1
+            # if elem["name"] == "ACT00":                   >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+                # self.dev_agent_ind["ACT00"]  = count      # And if two devices have the same name? Why not for id?
+                # count += 1                                <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
                 # self.dev_agents_act.append(ACT00())
             pass
 
@@ -167,7 +167,7 @@ class DevConn:
         # Depending on the topic and content, choose the right action
 
         # Find right actuator depending on topic
-        for index,act in enumerate(self.whoami["resources"]["actuators"]):
+        for act in self.whoami["resources"]["actuators"]:
             if "MQTT" in act["available_services"]:
                 if "topic" in act["service_details"].keys():
                 
@@ -179,6 +179,7 @@ class DevConn:
                 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
                 
                     if topic == act["service_details"]["topic"]:
+                        index =  self.dev_agent_ind_act[act["id"]]
                         if payload == "start" and  self.dev_agent[index].isStart() == False:
                             self.dev_agent[index].start()
                         elif payload == "stop" and self.dev_agent[index].isStart() == True:
