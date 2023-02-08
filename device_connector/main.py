@@ -167,11 +167,24 @@ class DevConn:
         # Depending on the topic and content, choose the right action
 
         # Find right actuator depending on topic
-        for act in self.whoami["resources"]["actuators"]:
+        for index,act in enumerate(self.whoami["resources"]["actuators"]):
             if "MQTT" in act["available_services"]:
-                if topic in act["service_setails"]:
-                    # Found correct device!
-                    # ...
+                if "topic" in act["service_details"].keys():
+                
+                #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+                #if topic in act["service_details"]: # -----> Why did you make "service_details" as a list? Each actuator can
+                                                     # -----> perform an action only
+                                                     # -----> By looking at device_info you have created a different record  
+                                                     # -----> for each action (topic) even if it belongs to the same actuator.
+                #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+                
+                    if topic == act["service_details"]["topic"]:
+                        if payload == "start" and  self.dev_agent[index].isStart() == False:
+                            self.dev_agent[index].start()
+                        elif payload == "stop" and self.dev_agent[index].isStart() == True:
+                            self.dev_agent[index].stop()
+                    
+                
                     pass
 
         pass
