@@ -82,6 +82,7 @@ class DevConn:
             
             self.last_meas.append(sens_meas_sublist)
 
+            #####################################################
             # TODO: initialize correct objects - need RPi
             # NOTE: Pin numbers are found in the configuration file
 
@@ -107,6 +108,7 @@ class DevConn:
                 count += 1
                 # self.dev_agents_sens.append(BMP180())
                 pass
+            #####################################################
         
         self.n_sens = count
 
