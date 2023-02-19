@@ -89,7 +89,7 @@
             },
             {
                 "id": 2,
-                "device_name": "ACT00",
+                "device_name": "ACT01",
                 "device_id": 1,
                 "available_services": [
                     "MQTT"
