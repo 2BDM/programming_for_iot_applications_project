@@ -10,7 +10,6 @@ from device_agents.dht11_agent import DHT11Agent
 
 # TODO: add libraries for sensors - need RPi
 
-
 def searchListOfDict(lst, parameter, value):
     """
     Used to search for elements inside a list of dictionaries
@@ -48,9 +47,9 @@ class DevConn:
         # Read all available sensors from the 'whoami' dict, initialize suitable
         # device agents
 
-        # !!!! 
-        # IDEA: store device agents in a list, plus the corresponding position 
-        # in a dictionary having as keys the sensor names
+        # NOTE: store device agents in a list, plus the corresponding position 
+        # in a dictionary having as keys the sensor ID
+        
         # The program does not know in advance which sensors it has!
         self.last_meas = []
         self.dev_agents_sens = []
@@ -67,9 +66,12 @@ class DevConn:
             sens_meas_sublist = []
             for ind in range(len(elem["measure_type"])):
                 # NOTE: SenML format
-                # Assume no sensors measure the same quantity 
+                
+                # Is it?
+                """# Assume no sensors measure the same quantity 
                 # (if 2 sensors measure the same quantity, then
-                # one always covers the other)
+                # one always covers the other)"""
+
                 curr_meas = {
                     "n": elem["measure_type"][ind], 
                     "u": elem["units"][ind],
@@ -77,6 +79,10 @@ class DevConn:
                     "v": 0
                     }
 
+                # Prevent from adding more than once the same measured quantity
+                # Append the current last measurement for the specified quantity 
+                # only if the same quantity is not already present in the sub list
+                ############## probably can be removed
                 if searchListOfDict(sens_meas_sublist, "n", curr_meas["n"]) is None:
                     sens_meas_sublist.append(curr_meas)
             
@@ -88,7 +94,7 @@ class DevConn:
 
             if elem["device_name"] == "DHT11":
                 # EXAMPLE:
-                self.dev_agent_ind_sens["DHT11"] = count
+                self.dev_agent_ind_sens[str(elem["id"])] = count
                 count += 1
 
                 found = False
@@ -103,25 +109,34 @@ class DevConn:
                     raise ValueError("The configuration file is missing DHT11 information!")
 
             # TODO: same thing, but for all other sensors
+
             elif elem["device_name"] == "BMP180":
-                self.dev_agent_ind_sens["BMP180"] = count
-                count += 1
+                # self.dev_agent_ind_sens[str(elem["id"])] = count
+                # count += 1
                 # self.dev_agents_sens.append(BMP180())
                 pass
             #####################################################
         
         self.n_sens = count
 
-        # Same thing but for actuators:
+        ################################################
+        # Same thing but for actuators
+        
+        ### NOTE:
+        # Each actuator device agent is appended to the list self.dev_agents_act
+        # The corresponding positional index is saved as the value of the key 
+        # corresponding with the ID of the actuator
         self.dev_agents_act = []
         self.dev_agent_ind_act = {}
         count = 0
         for elem in self.whoami["resources"]["actuators"]:
-            # if elem["name"] == "ACT00":                   >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-                # self.dev_agent_ind["ACT00"]  = count      # And if two devices have the same name? Why not for id?
-                # count += 1                                <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+            # if elem["name"] == "ACT00":             
+                # self.dev_agent_ind_act[str(elem["id"])] = count
+                # count += 1                          
                 # self.dev_agents_act.append(ACT00())
             pass
+
+        ################################################
 
 
         ######## MQTT client
@@ -170,32 +185,53 @@ class DevConn:
 
         # Find right actuator depending on topic
         for act in self.whoami["resources"]["actuators"]:
+            # Check MQTT is supported
             if "MQTT" in act["available_services"]:
+                # Check there are available topics (may be unnecessary, but prevent errors in conf)
                 if "topic" in act["service_details"].keys():
-                
-                #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-                #if topic in act["service_details"]: # -----> Why did you make "service_details" as a list? Each actuator can
-                                                     # -----> perform an action only
-                                                     # -----> By looking at device_info you have created a different record  
-                                                     # -----> for each action (topic) even if it belongs to the same actuator.
-                #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-                
+                    # Find the actuator associated with the specified topic
                     if topic == act["service_details"]["topic"]:
-                        index =  self.dev_agent_ind_act[act["id"]]
-                        if payload == "start" and  self.dev_agent[index].isStart() == False:
-                            self.dev_agent[index].start()
-                        elif payload == "stop" and self.dev_agent[index].isStart() == True:
-                            self.dev_agent[index].stop()
-                    
-                
-                    pass
+                        
+                        # Locate the position of the correct device agent in the list
+                        # 'dev_agents_act' via the dictionary 'self_agent_ind_act'
 
-        pass
+                        # Payload may be either 'start' or 'stop' - this method will 
+                        # 'blindly' call the associated method on the device agent
+                        index = self.dev_agent_ind_act[str(act["id"])]
+                        if payload == "start":
+                            if self.dev_agent[index].isOn() == False:
+                                self.dev_agent[index].start()
+                                print(f"Actuator {act['id']} was turmed on")
+                            else:
+                                print(f"Tried to turn on actuator {act['id']}, but it was on!")
+                        elif payload == "stop":
+                            if self.dev_agent[index].isOn() == True:
+                                self.dev_agent[index].stop()
+                                print(f"Actuator {act['id']} was turmed off")
+                            else:
+                                print(f"Tried to turn off actuator {act['id']}, but it was off!")
+                    
+                    # May need more customization, e.g., turn on for a specified period
+                    # but this must be handled by the corresponding strategy
+                
     ##################################################################
 
 
 
-    def getBrokerInfo(self, max_tries):
+    def getBrokerInfo(self, max_tries=50):
+        """
+        Obtain the broker information from the services catalog.
+        ----------------------------------------------------------
+        Need to specify the maximum number of tries (default 50).
+        ----------------------------------------------------------
+        Return values:
+        - 1: information was correctly retrieved and is stored in
+        attribute self.broker_info
+        - 0: the information was not received (for how the 
+        services catalog is implemented, it means that it was not
+        possible to reach it)
+        ----------------------------------------------------------
+        """
         tries = 0
         while tries <= max_tries and self.broker_info == {}:
             addr = self.sc_addr + "/broker"
@@ -212,10 +248,8 @@ class DevConn:
             return 0
 
 
-    def connectToServCat(self, max_tries):
+    def connectToServCat(self, max_tries=50):
         """
-        connectToServCat
-        ----------------------------------------------
         Attempt to contact the services catalog to 
         retrieve information about the device catalog
         ----------------------------------------------
@@ -246,8 +280,6 @@ class DevConn:
 
     def cleanupDevCat(self):
         """
-        cleanupDevCat
-        ----------------------------------------------
         Used to clean device catalog records. It uses 
         the attribute 'self.dev_cat_timeout'.
         ----------------------------------------------
@@ -262,10 +294,8 @@ class DevConn:
         return 0        
 
 
-    def registerAtDevCat(self, max_tries):
+    def registerAtDevCat(self, max_tries=50):
         """
-        registerAtDevCat
-        ----------------------------------------------
         Used to register at the device catalog
         ----------------------------------------------
         Parameters:
@@ -300,7 +330,21 @@ class DevConn:
             return -1
 
 
-    def updateDevCat(self, max_tries):
+    def updateDevCat(self, max_tries = 50):
+        """
+        Update own information at device catalog
+        ----------------------------------------------------------
+        The user can set the max. number of tries.
+        If the response to the HTTP request used to contact the 
+        device catalog was 400, i.e., unable to update - old 
+        record not found, the method 'registerAtDevCat' will be 
+        used to register the information.
+        ----------------------------------------------------------
+        Return value:
+        - 1: successful update (also if it was needed to register)
+        - 0: unable to reach server
+        - -1: missing device catalog information
+        """
         tries = 0
         if self.dev_cat_info != {}:
             upd_succ = False
@@ -334,10 +378,13 @@ class DevConn:
     def updateMeas(self):
         # Read all available services and update self.last_meas
 
-        for sensname in self.dev_agent_ind_sens:
+        for sens_id in self.dev_agent_ind_sens.keys():
+            # sens_id is already a string
+
             # Each device agent must have a method 'measure()'
             # `curr_meas` is already a SenML-formatted Python dictionary
-            curr_meas = self.dev_agents_sens[self.dev_agent_ind_sens[sensname]].measure()
+            # OR list of dictionaries
+            curr_meas = self.dev_agents_sens[self.dev_agent_ind_sens[sens_id]].measure()
             
             # Find the correct sublist containing the last measurement for the sensor 
             # and place the current measurement inside
@@ -345,10 +392,10 @@ class DevConn:
             # curr_meas can be either a single dict (same device used to 
             # measure multiple quantities) or a list of dicts
             if isinstance(curr_meas, dict):
-                self.last_meas[self.dev_agent_ind_sens[sensname]] = [curr_meas]
+                self.last_meas[self.dev_agent_ind_sens[sens_id]] = [curr_meas]
             
             elif isinstance(curr_meas, list):
-                self.last_meas[self.dev_agent_ind_sens[sensname]] = curr_meas
+                self.last_meas[self.dev_agent_ind_sens[sens_id]] = curr_meas
 
     
     def publishLastMeas(self):
@@ -358,26 +405,26 @@ class DevConn:
         for sens in self.whoami["resources"]["sensors"]:
             if "MQTT" in sens["available_services"]:
                 # Retrieve last measurements via the name-index mapping
-                meas_lst = self.last_meas[self.dev_agent_ind_sens[sens["device_name"]]]
+                meas_lst = self.last_meas[self.dev_agent_ind_sens[int(sens["id"])]]
 
                 # Find available topics
                 for det in sens["service_details"]:
                     if det["service_type"] == "MQTT":
                         topics_lst = det["topic"]
-        
-                # Publish it in the correct topic
-                # The correct topic contains as last element in the path the 
-                # name of the measured quantity in lowercase, with spaces 
-                # replaced by underscores
-                for meas in meas_lst:
-                    meas_qty = meas["n"]
-                    
-                    # Find topic - the last element in the topic URi must be the measure name 
-                    # (lowercase, with '_' instead of ' ')
-                    for top_iter in topics_lst:
-                        if top_iter.split('/')[-1].replace(' ', '_').lower() == meas_qty.lower():
-                            msg = {"bn":self.mqtt_bn, "e": [meas]}
-                            self.mqtt_cli.myPublish(topic=top_iter, msg=msg)
+
+                        # Publish it in the correct topic
+                        # The correct topic contains as last element in the path the 
+                        # name of the measured quantity in lowercase, with spaces 
+                        # replaced by underscores
+                        for meas in meas_lst:
+                            meas_qty = meas["n"]
+                            
+                            # Find topic - the last element in the topic URI must be the measure name 
+                            # (lowercase, with '_' instead of ' ')
+                            for top_iter in topics_lst:
+                                if top_iter.lower().endswith(meas_qty.lower().replace(' ', '_')):
+                                    msg = {"bn":self.mqtt_bn, "e": [meas]}
+                                    self.mqtt_cli.myPublish(topic=top_iter, msg=msg)
 
 
 
