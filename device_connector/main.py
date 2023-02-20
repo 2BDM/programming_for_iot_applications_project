@@ -4,6 +4,7 @@ import requests
 import json
 from datetime import datetime
 import time
+import warnings
 from sub.MyMQTT import MyMQTT
 
 from device_agents.dht11_agent import DHT11Agent
@@ -97,6 +98,7 @@ class DevConn:
                 self.dev_agent_ind_sens[str(elem["id"])] = count
                 count += 1
 
+                # Check availability of conf information
                 found = False
                 for sens_conf in self.conf["sens_pins"]:
                     if sens_conf["name"] == "DHT11":
@@ -179,9 +181,13 @@ class DevConn:
         Callback for the MyMQTT object
         When a message is received in either of the 
         topics related to the actuators, it acts on them.
+        ---------------------------------------------------
+        The payload is a string in json format
         """
         # Read message
         # Depending on the topic and content, choose the right action
+        
+        message = json.loads(payload)
 
         # Find right actuator depending on topic
         for act in self.whoami["resources"]["actuators"]:
@@ -198,16 +204,16 @@ class DevConn:
                         # Payload may be either 'start' or 'stop' - this method will 
                         # 'blindly' call the associated method on the device agent
                         index = self.dev_agent_ind_act[str(act["id"])]
-                        if payload == "start":
+                        if message["cmd"] == "start":
                             if self.dev_agent[index].isOn() == False:
                                 self.dev_agent[index].start()
-                                print(f"Actuator {act['id']} was turmed on")
+                                print(f"Actuator {act['id']} was turmed on at time {message['t']}")
                             else:
                                 print(f"Tried to turn on actuator {act['id']}, but it was on!")
-                        elif payload == "stop":
+                        elif message["cmd"] == "stop":
                             if self.dev_agent[index].isOn() == True:
                                 self.dev_agent[index].stop()
-                                print(f"Actuator {act['id']} was turmed off")
+                                print(f"Actuator {act['id']} was turmed off at time {message['t']}")
                             else:
                                 print(f"Tried to turn off actuator {act['id']}, but it was off!")
                     
@@ -391,11 +397,21 @@ class DevConn:
 
             # curr_meas can be either a single dict (same device used to 
             # measure multiple quantities) or a list of dicts
+
+            ## TODO: decide what to do with None values returned by the agents if
+            # it was not possible to neasure the quantity.
             if isinstance(curr_meas, dict):
                 self.last_meas[self.dev_agent_ind_sens[sens_id]] = [curr_meas]
+
+                if curr_meas["v"] is None:
+                    raise warnings.warn(f"Null {curr_meas['n']} measurement at {curr_meas['t']}")
             
             elif isinstance(curr_meas, list):
                 self.last_meas[self.dev_agent_ind_sens[sens_id]] = curr_meas
+
+                for meas in curr_meas:
+                    if meas["v"] is None:
+                        raise warnings.warn(f"Null {meas['n']} measurement at {meas['t']}")
 
     
     def publishLastMeas(self):
@@ -425,6 +441,9 @@ class DevConn:
                                 if top_iter.lower().endswith(meas_qty.lower().replace(' ', '_')):
                                     msg = {"bn":self.mqtt_bn, "e": [meas]}
                                     self.mqtt_cli.myPublish(topic=top_iter, msg=msg)
+        
+        # Keep in mind: can use wildcards (at subscriber) to obtain all measurements
+        # for a single parameter if it is measured by multiple sensors
 
 
 
