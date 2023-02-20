@@ -10,7 +10,7 @@ The device connector consists in a program which on one side interfaces with the
 
 ## Sensors
 
-### Device agents
+### Device agents - sensors
 
 Device agents are implemented as pieces of software (classes) which are instantiated at initialization only if the device uses these objects.
 This mechanism is designed to guarantee transparent interoperability between the different possible sensors that can be used.
@@ -23,6 +23,8 @@ The same dictionaries can be used to access the attribute `se;f.last_meas`.
 Each device agent (class) related to a sensor *must* have a `measure()` method, which returns the measurement (or *list* of measurements if more than 1 variable can be measured by the same sensor) in SenML format:
 
     {"n": "Measured quantity", "u": "Unit of meas", "t": timestamp , "v": measured_value}
+
+Whenever the measurement is not carried out (for any kind of issue relative to the sensor), the returned value is `None`. As a consequence the device connector needs to be able to 'discard' these problematic ones and
 
 ### Last measurements
 
@@ -61,7 +63,12 @@ Each actuator needs to provide a `start()` method and a `stop()` method. Also, i
 
 It is possible to perform two operations on the actuators: turn on and turn off (i.e., start and stop). This means that **the complexity needs to be managed outside**, by whoever sends the message to the actuator.
 
-Actuators receive the commands via MQTT at the specified topic. The message need to contain as payload either the string `"start"` or `"stop"`.
+Actuators receive the commands via MQTT at the specified topic. The message need to contain as payload a json-formatted string, with the following format:
+
+    {"cmd": "start/stop", "t": timestamp}
+
+in which the command can be either `"start"` or `"stop"`.
+
 Then, depending on the received command, the `notify()` callback, used by `MyMQTT` will choose the associated actuator and call the corresponding method on it.
 
 ---
@@ -92,3 +99,12 @@ Here is reported the structure (keys) of the `.json` file containing the device 
     - **available_services**: list of supported communication protocols for communicating (i.e., giving commands) to the actuator
     - **service_details**: additional information related to the specified communication protocols
 - **last_update**: timestamp (YYYY-MM-DD hh:mm:ss) the information was last updated
+
+---
+
+## Device agents
+
+The following device agents have been provided:
+
+- DHT11: temperature and humidity sensor
+- BMP180: atmospheric pressure
