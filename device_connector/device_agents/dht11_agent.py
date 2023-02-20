@@ -1,28 +1,13 @@
-<<<<<<< HEAD
-import random as rnd
-
-class DHT11Agent:
-    def __init__(self):
-        self.type = "DHT11"
-        self.dict_temp_hum = {"humidity":0,"temperature":0}
-        
-    def take_measure(self):
-        self.updateTemp()
-        self.updateHum()
-        return self.dict_temp_hum
-    
-    def updateTemp(self):
-        self.dict_temp_hum["temperature"]=rnd.randint(18,25)
-        
-    
-    def updateHum(self):
-        self.dict_temp_hum["humidity"]=rnd.randint(50,80)    
-=======
 import json
 import time
 import random
 import sys
-import Adafruit_DHT
+
+try:
+    import Adafruit_DHT
+    on_pi = True
+except:
+    on_pi = False
 
 # NOTE: this program can only run on the raspberry pi!
 
@@ -48,7 +33,10 @@ class DHT11Agent:
             self.config = conf
 
         self._name = self.config["name"]
-        self._sensor = Adafruit_DHT.DHT11
+        if on_pi:
+            self._sensor = Adafruit_DHT.DHT11
+        else:
+            self._sensor = None
         self._pin = int(self.config["dt"])
 
         # Temperature measurement: degrees Celsius
@@ -69,6 +57,14 @@ class DHT11Agent:
 
     
     def measure(self):
+        """
+        The measurements are returned in SenML format.
+        -------------------------------------------------------------
+        If the measure is not obtained, the measurement is None.
+        This means that the program calling the agent needs to handle
+        missing values.
+        """
+        
         meas_t = None
         meas_h = None
 
@@ -76,8 +72,13 @@ class DHT11Agent:
         max_tries = 25
         tries = 0
         while tries < max_tries and (meas_t is None or meas_h is None):
-            tries += 0
-            meas_h, meas_t = Adafruit_DHT.read_retry(self._sensor, self._pin)
+            tries += 1
+            
+            if on_pi:
+                meas_h, meas_t = Adafruit_DHT.read_retry(self._sensor, self._pin)
+            else:
+                meas_h = round(random.uniform(20, 60), 2)
+                meas_t = round(random.uniform(18, 35), 2)
 
         msg_t = self.temp_template.copy()
         msg_t["t"] = time.time()
@@ -89,13 +90,8 @@ class DHT11Agent:
 
         out = []
 
-        if meas_t is not None:
-            out.append(msg_t)
-        
-        if meas_h is not None:
-            out.append(msg_h)
-
         return out
-        
-        
->>>>>>> 838665f44b1fa9770c5bda4940a2b70dd244120d
+    
+
+if __name__ == "__main__":
+    pass
