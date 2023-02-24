@@ -13,13 +13,32 @@
     "sens_pins": [
         {
             "name": "DHT11",
+            "id": 1,
             "dt": 7
         },
         {
             "name": "BMP180",
+            "id": 2,
+            "dt": 3,
+            "sck": 5
+        },
+        {
+            "name": "BH1750",
+            "id": 3,
             "dt": 3,
             "sck": 5
         }
     ],
-    "act_pins": []
+    "act_pins": [
+        {
+            "name": "Keyes_SRLY",
+            "id": 1,
+            "dt": 21
+        },
+        {
+            "name": "Keyes_SRLY",
+            "id": 2,
+            "dt": 19
+        }
+    ]
 }
