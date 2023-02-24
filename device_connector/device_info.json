@@ -39,8 +39,8 @@
                     {
                         "service_type": "MQTT",
                         "topic": [
-                            "smartGreenhouse/1/temperature",
-                            "smartGreenhouse/1/humidity"
+                            "smartGreenhouse/1/DHT11/temperature",
+                            "smartGreenhouse/1/DHT11/humidity"
                         ]
                     }
                 ],
@@ -50,9 +50,11 @@
                 "id": 2,
                 "device_name": "BMP180",
                 "measure_type": [
+                    "Temperature",
                     "Air Pressure"
                 ],
                 "units": [
+                    "Cel",
                     "Bar"
                 ],
                 "device_id": 1,
@@ -63,7 +65,31 @@
                     {
                         "service_type": "MQTT",
                         "topic": [
-                            "smartGreenhouse/1/air_pressure"
+                            "smartGreenhouse/1/BMP180/temperature",
+                            "smartGreenhouse/1/BMP180/air_pressure"
+                        ]
+                    }
+                ],
+                "last_update": "2020-03-30 12:00:00"
+            },
+            {
+                "id": 3,
+                "device_name": "BH1750",
+                "measure_type": [
+                    "Light Intensity"
+                ],
+                "units": [
+                    "Lux"
+                ],
+                "device_id": 1,
+                "available_services": [
+                    "MQTT"
+                ],
+                "services_details": [
+                    {
+                        "service_type": "MQTT",
+                        "topic": [
+                            "smartGreenhouse/1/BH1750/light_intensity"
                         ]
                     }
                 ],
