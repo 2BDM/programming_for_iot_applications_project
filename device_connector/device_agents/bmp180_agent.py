@@ -1,6 +1,7 @@
 import json
 import time
 import random
+import warnings
 import sys
 
 # The program will try to infer whether it is running on the RPi
@@ -16,8 +17,8 @@ which is used to obtain measurements about the atmophteric
 pressure, temperature (and altitude).
 """
 
-class BMP180_agent():
-    def __init__(self, conf):
+class BMP180Agent():
+    def __init__(self, conf=None):
         """
         The class BMP180_agent is used as the device agent for the BMP180 sensor.
         The required parameter at initialization is 'conf', being either the conf
@@ -26,7 +27,10 @@ class BMP180_agent():
         
         ## NOTE: the configuration is not necessary since the sensor uses the I2C bus
         # but still it's something nice to have
-        if isinstance(conf, str):
+        if conf is None:
+            warnings.warn("Missing conf for BMP180!")
+            self.config = None
+        elif isinstance(conf, str):
             try:
                 with open(conf) as fp:
                     self.config = json.load(fp)
@@ -44,8 +48,9 @@ class BMP180_agent():
         else:
             self._sensor = None
         
-        self._name = self.config["name"]
-        self._pin = int(self.config["dt"])
+        if self.config is not None:
+            self._name = self.config["name"]
+            self._pin = int(self.config["dt"])
 
         self.temp_template = {
             "n": "Temperature",
@@ -94,9 +99,9 @@ class BMP180_agent():
         msg_t["t"] = time.time()
         msg_t["v"] = meas_t
 
-        msg_h = self.press_template.copy()
-        msg_h["t"] = time.time()
-        msg_h["v"] = meas_p
+        msg_p = self.press_template.copy()
+        msg_p["t"] = time.time()
+        msg_p["v"] = meas_p
 
         out = []
 
@@ -111,12 +116,11 @@ if __name__ == "__main__":
         "sck": 5
     }
     
-    agent = BMP180_agent(sample_conf)
+    agent = BMP180Agent(sample_conf)
 
     if agent._sensor is None:
         print("Library not detected!")
     else:
+        print("Current measurements: ")
         for meas in agent.measure():
             print(f"{meas}")
-
-

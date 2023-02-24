@@ -15,12 +15,16 @@ class DHT11Agent:
     """
     Class for DHT11 sensor, which measures temperature and humidity
     """
-    def __init__(self, conf):
+    def __init__(self, conf=None):
         """
         - conf: path of the configuration file 
           OR configuration dict
         """
-        #
+        # Check conf - in this case it is required, since the sensor does not
+        # run on the i2c bus
+        if conf is None:
+            raise ValueError("Missing DHT11 configuration!")
+
         if isinstance(conf, str):
             try:
                 with open(conf) as fp:
@@ -32,11 +36,12 @@ class DHT11Agent:
         elif isinstance(conf, dict):
             self.config = conf
 
-        self._name = self.config["name"]
         if on_pi:
             self._sensor = Adafruit_DHT.DHT11
         else:
             self._sensor = None
+        
+        self._name = self.config["name"]
         self._pin = int(self.config["dt"])
 
         # Temperature measurement: degrees Celsius
@@ -93,5 +98,18 @@ class DHT11Agent:
         return out
     
 
+### Program demo - can be used for testing
 if __name__ == "__main__":
-    pass
+    sample_conf = {
+        "name": "DHT11",
+        "dt": 7
+    }
+    
+    agent = DHT11Agent(sample_conf)
+
+    if agent._sensor is None:
+        print("Library not detected!")
+    else:
+        print("Current measurements: ")
+        for meas in agent.measure():
+            print(f"{meas}")
