@@ -51,7 +51,7 @@ The `publishLastMeas()` method performs the publication, acting as follows:
 
 The `DevConn` object needs to instantiate one device agent for each actuator. Since the actuator type (model) cannot be known in advance, we need to allow the device connector to be flexible on this.
 
-The proposed solution consists ofstoring the device agents in the list `dev_agents_act`, by appending them at initialization. To link them to the correct actuator, the dictionary `dev_agent_ind_act` is used. Its keys are the (strings containing the) actuator IDs, and the values are the indices of the corresponding agent within the list `dev_agents_act`. This way, it is possible to map the actuator ID to the correct device agent object.
+The proposed solution consists of storing the device agents in the list `dev_agents_act`, by appending them at initialization. To link them to the correct actuator, the dictionary `dev_agent_ind_act` is used. Its keys are the (strings containing the) actuator IDs, and the values are the indices of the corresponding agent within the list `dev_agents_act`. This way, it is possible to map the actuator ID to the correct device agent object.
 
 Notice that this solution is analogous to the one used for the sensors.
 
@@ -110,4 +110,20 @@ The following device agents have been provided:
 - BMP180: atmospheric pressure - [library](https://github.com/adafruit/Adafruit_Python_BMP) ~ DEPRECATED (sensor is not made anymore)
 - GY-30/BH1750: light sensor - [library](https://github.com/adafruit/Adafruit_CircuitPython_BH1750)
 
-Each agent was developed in such a way that the program can be ran in standalone mode as a way to test both the presence of the libraries and of the sensor
+The device agent programs can work even if the required libraries needed for the sensor are not available - in this case, they will work as random number generators.
+
+Each agent was developed in such a way that the program can be ran in standalone mode as a way to test both the presence of the libraries and of the sensor on the current system/venv/container.
+
+---
+
+## API
+
+The device connector provides the following ways to communicate:
+
+- To get the measurements of the sensors, it is needed to subscribe to the corresponding MQTT topics. Since there can be multiple sensors measuring the same quantity (as is the case with temperature), one can choose to either pick one measurement only, or to use MQTT topic wildcards.
+The general topic syntax is:
+
+    smartGreenhouse/*device_id*/*sensor_id*/*measured_quantity*
+
+  which means it is possible to subscribe to 'smartGreenhouse/1/*/temperature' in order to get all possible temperature measurements.
+- To submit commands to the actuators (water delivery strategy, illumination strategy)), it is needed to publish messages in the topics related to the actuators
