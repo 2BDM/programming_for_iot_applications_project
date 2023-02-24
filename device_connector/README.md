@@ -106,5 +106,8 @@ Here is reported the structure (keys) of the `.json` file containing the device 
 
 The following device agents have been provided:
 
-- DHT11: temperature and humidity sensor
-- BMP180: atmospheric pressure
+- DHT11: temperature and humidity sensor - [library](https://github.com/adafruit/Adafruit_Python_DHT) ~ DEPRECATED
+- BMP180: atmospheric pressure - [library](https://github.com/adafruit/Adafruit_Python_BMP) ~ DEPRECATED (sensor is not made anymore)
+- GY-30/BH1750: light sensor - [library](https://github.com/adafruit/Adafruit_CircuitPython_BH1750)
+
+Each agent was developed in such a way that the program can be ran in standalone mode as a way to test both the presence of the libraries and of the sensor

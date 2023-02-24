@@ -24,6 +24,8 @@ class BMP180_agent():
         file path (json) or the dictionary itself.
         """
         
+        ## NOTE: the configuration is not necessary since the sensor uses the I2C bus
+        # but still it's something nice to have
         if isinstance(conf, str):
             try:
                 with open(conf) as fp:
@@ -35,6 +37,8 @@ class BMP180_agent():
         elif isinstance(conf, dict):
             self.config = conf
 
+        # If the library was found, then we can access the 
+        # sensor to perform measurements
         if on_pi:
             self._sensor = Adafruit_BMP.BMP085.BMP085()
         else:
@@ -77,6 +81,8 @@ class BMP180_agent():
         while tries < max_tries and (meas_t is None or meas_h is None):
             tries += 1
 
+            # If the library was available, then the program can 
+            # perform the measurements
             if on_pi:
                 meas_t = self._sensor.read_temperature()
                 meas_p = self._sensor.read_pressure()
@@ -97,5 +103,20 @@ class BMP180_agent():
         return out
 
 
+### Program demo - can be used for testing
 if __name__ == "__main__":
-    pass
+    sample_conf = {
+        "name": "BMP180",
+        "dt": 3,
+        "sck": 5
+    }
+    
+    agent = BMP180_agent(sample_conf)
+
+    if agent._sensor is None:
+        print("Library not detected!")
+    else:
+        for meas in agent.measure():
+            print(f"{meas}")
+
+

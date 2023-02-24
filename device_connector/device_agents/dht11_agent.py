@@ -3,13 +3,13 @@ import time
 import random
 import sys
 
+# Allow the program to behave as a number generator if 
+# the library is not found
 try:
     import Adafruit_DHT
     on_pi = True
 except:
     on_pi = False
-
-# NOTE: this program can only run on the raspberry pi!
 
 class DHT11Agent:
     """

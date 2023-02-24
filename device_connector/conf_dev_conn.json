@@ -13,12 +13,12 @@
     "sens_pins": [
         {
             "name": "DHT11",
-            "dt": 8
+            "dt": 7
         },
         {
             "name": "BMP180",
-            "dt": 12,
-            "sck": 13
+            "dt": 3,
+            "sck": 5
         }
     ],
     "act_pins": []
