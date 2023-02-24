@@ -8,8 +8,9 @@ import warnings
 from sub.MyMQTT import MyMQTT
 
 from device_agents.dht11_agent import DHT11Agent
-
-# TODO: add libraries for sensors - need RPi
+from device_agents.bmp180_agent import BMP180Agent
+from device_agents.bh1750_agent import BH1750Agent
+from device_agents.keyes_srly_agent import KeyesSRLYAgent
 
 def searchListOfDict(lst, parameter, value):
     """
@@ -60,7 +61,7 @@ class DevConn:
             # Add the 'last measured' field
             # Iterate over the measure_type list
 
-            # Sensors can measure different quantities - each sensor is 
+            # Sensors can measure more than one quantity - each sensor is 
             # associated to a sub-list in `self.last_meas`.
             
             # `self.last_meas` follows the same indexing as `self.dev_agents_sens`
@@ -84,13 +85,13 @@ class DevConn:
                 # Append the current last measurement for the specified quantity 
                 # only if the same quantity is not already present in the sub list
                 ############## probably can be removed
+                # NOTE: different sublists can include the same measurement
                 if searchListOfDict(sens_meas_sublist, "n", curr_meas["n"]) is None:
                     sens_meas_sublist.append(curr_meas)
             
             self.last_meas.append(sens_meas_sublist)
 
             #####################################################
-            # TODO: initialize correct objects - need RPi
             # NOTE: Pin numbers are found in the configuration file
 
             if elem["device_name"] == "DHT11":
@@ -100,8 +101,9 @@ class DevConn:
 
                 # Check availability of conf information
                 found = False
+                dht_conf = None
                 for sens_conf in self.conf["sens_pins"]:
-                    if sens_conf["name"] == "DHT11":
+                    if sens_conf["id"] == elem["id"]:
                         dht_conf = sens_conf.copy()
                         found = True
                 
@@ -110,21 +112,46 @@ class DevConn:
                 else:
                     raise ValueError("The configuration file is missing DHT11 information!")
 
-            # TODO: same thing, but for all other sensors
-
             elif elem["device_name"] == "BMP180":
-                # self.dev_agent_ind_sens[str(elem["id"])] = count
-                # count += 1
-                # self.dev_agents_sens.append(BMP180())
-                pass
+                self.dev_agent_ind_sens[str(elem["id"])] = count
+                count += 1
+
+                # Check availability of conf information
+                found = False
+                bmp_conf = None
+                for sens_conf in self.conf["sens_pins"]:
+                    if sens_conf["id"] == elem["id"]:
+                        bmp_conf = sens_conf.copy()
+                        found = True
+
+                if found:
+                    self.dev_agents_sens.append(BMP180Agent(bmp_conf))
+                else:
+                    raise ValueError("The configuration file is missing DHT11 information!")
+            
+            elif elem["device_name"] == "BMP180":
+                self.dev_agent_ind_sens[str(elem["id"])] = count
+                count += 1
+
+                # Check availability of conf information
+                found = False
+                bmp_conf = None
+                for sens_conf in self.conf["sens_pins"]:
+                    if sens_conf["id"] == elem["id"]:
+                        bh_conf = sens_conf.copy()
+                        found = True
+
+                if found:
+                    self.dev_agents_sens.append(BH1750Agent(bh_conf))
+                else:
+                    raise ValueError("The configuration file is missing BH1750 information!")
             #####################################################
         
-        self.n_sens = count
+        self.n_sens = count     # Total number of sensors
 
         ################################################
         # Same thing but for actuators
         
-        ### NOTE:
         # Each actuator device agent is appended to the list self.dev_agents_act
         # The corresponding positional index is saved as the value of the key 
         # corresponding with the ID of the actuator
@@ -132,11 +159,24 @@ class DevConn:
         self.dev_agent_ind_act = {}
         count = 0
         for elem in self.whoami["resources"]["actuators"]:
-            # if elem["name"] == "ACT00":             
-                # self.dev_agent_ind_act[str(elem["id"])] = count
-                # count += 1                          
-                # self.dev_agents_act.append(ACT00())
-            pass
+            if elem["name"] == "Keyes_SRLY":             
+                self.dev_agent_ind_act[str(elem["id"])] = count
+                count += 1                          
+
+                # Check availability of conf information
+                # Fundamental, since multiple actuators can have 
+                # the same name, but must be on different pins
+                found = False
+                myact_conf = None
+                for act_conf in self.conf["act_pins"]:
+                    if act_conf["id"] == elem["id"]:
+                        myact_conf = sens_conf.copy()
+                        found = True
+
+                if found:
+                    self.dev_agents_act.append(KeyesSRLYAgent(conf=myact_conf))
+                else:
+                    raise ValueError("The configuration file is missing Keyes_SRLY information!")
 
         ################################################
 
@@ -451,7 +491,7 @@ class DevConn:
 
 if __name__ == "__main__":
     
-    myDevConn = DevConn("./conf_dev_conn.json", "./dev_info.json")
+    myDevConn = DevConn("conf_dev_conn.json", "dev_info.json")
     
     ############### Start operation ###############
 
