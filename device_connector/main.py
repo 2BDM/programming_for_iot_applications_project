@@ -26,7 +26,7 @@ def searchListOfDict(lst, parameter, value):
     return None
 
 
-### Define main class
+### Main class definition
 class DevConn:
     def __init__(self, conf_path, self_path):
         """
@@ -222,9 +222,10 @@ class DevConn:
                         for top in av_serv["topic"]:
                             act_topics.append(top)
                             self.mqtt_cli.mySubscribe(top)
-        
 
-    #TODO
+    ##################################################################
+    # Web service - REST methods definition
+
     ##################################################################
     def notify(self, topic, payload):
         """
@@ -271,8 +272,6 @@ class DevConn:
                     
                     # May need more customization, e.g., turn on for a specified period
                     # but this must be handled by the corresponding strategy
-                
-    ##################################################################
 
 
     def getBrokerInfo(self, max_tries=50):
@@ -327,9 +326,12 @@ class DevConn:
                 if r.ok:
                     self.dev_cat_info = r.json()
                     self.dev_cat_timestamp = time.time()
+                    tries += 1
+                    time.sleep(3)
                 else:
                     print(f"Error {r.status_code} - it was not possible to retrieve the device catalog info")
                     tries += 1
+                    time.sleep(3)
             except:
                 print("Tried to connect to services catalog - failed to establish a connection!")
                 tries += 1
@@ -529,7 +531,7 @@ class DevConn:
         # for a single parameter if it is measured by multiple sensors
 
 
-
+###############################################################################
 ### Main program - include loop
 
 if __name__ == "__main__":
@@ -578,7 +580,7 @@ if __name__ == "__main__":
         # No `elif` - upd_oper could have been updated
         if upd_oper == 0:
             # Cannot reach device catalog
-            print("Cannot reach device catalog!")
+            warnings.warn("Could not reach device catalog!")
             
             max_it = 5
             it = 0
