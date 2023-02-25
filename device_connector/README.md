@@ -73,7 +73,7 @@ Then, depending on the received command, the `notify()` callback, used by `MyMQT
 
 ---
 
-## Device information json file
+## Device information JSON file
 
 Here is reported the structure (keys) of the `.json` file containing the device connector information. An example is provided, called `device_info.json`.
 
@@ -99,6 +99,29 @@ Here is reported the structure (keys) of the `.json` file containing the device 
     - **available_services**: list of supported communication protocols for communicating (i.e., giving commands) to the actuator
     - **service_details**: additional information related to the specified communication protocols
 - **last_update**: timestamp (YYYY-MM-DD hh:mm:ss) the information was last updated
+
+---
+
+## Device connector configuration file
+
+Here is the structure of the configuration file for the device connector.
+
+- **project_name**: "commercial" name of the project
+- **project_owner**: owner(s)/organization name
+- **services_catalog**: services catalog (static) information - needed to register at startup
+  - **ip**
+  - **port**
+  - **methods**: supported REST methods
+- **sens_pins**: list of sensors and corresponding pins
+  - **id**: sensor ID - corresponding to the one found in the device info JSON file
+  - **name**: sensor name
+  - *Pins*:
+    - If I2C: **dt** (data connection) and **sck** (digital clock connection)
+    - Else: **out** - data transmission pin
+- **act_pins**: list of actuators and corresponding pins
+  - **id**: actuator ID - corresponding to the one found in the device info JSON file
+  - **name**: actuator name
+  - **out**: digital output pin
 
 ---
 

@@ -99,7 +99,7 @@
         "actuators": [
             {
                 "id": 1,
-                "device_name": "ACT00",
+                "device_name": "Keyes_SRLY",
                 "device_id": 1,
                 "available_services": [
                     "MQTT"
@@ -115,7 +115,7 @@
             },
             {
                 "id": 2,
-                "device_name": "ACT01",
+                "device_name": "Keyes_SRLY",
                 "device_id": 1,
                 "available_services": [
                     "MQTT"
