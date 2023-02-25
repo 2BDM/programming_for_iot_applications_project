@@ -2,7 +2,7 @@
     "project_name": "Smart greenhouse",
     "project_owner": "2BDM",
     "services_catalog": {
-        "ip": "127.0.0.1",
+        "ip": "100.127.117.69",
         "port": 2222,
         "methods": [
             "GET",
@@ -14,7 +14,7 @@
         {
             "id": 1,
             "name": "DHT11",
-            "out": 7
+            "out": 4
         },
         {
             "id": 2,
