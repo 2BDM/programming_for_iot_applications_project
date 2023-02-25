@@ -82,7 +82,7 @@ class BH1750Agent:
         msg_li["t"] = time.time()
         msg_li["v"] = meas_li
 
-        out = []
+        out = [msg_li]
 
         return out
     

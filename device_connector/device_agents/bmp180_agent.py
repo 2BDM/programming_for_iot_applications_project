@@ -6,7 +6,7 @@ import sys
 
 # The program will try to infer whether it is running on the RPi
 try:
-    import Adafruit_BMP
+    import Adafruit_BMP.BMP085 as BMP085
     on_pi = True
 except:
     on_pi = False
@@ -44,7 +44,7 @@ class BMP180Agent():
         # If the library was found, then we can access the 
         # sensor to perform measurements
         if on_pi:
-            self._sensor = Adafruit_BMP.BMP085.BMP085()
+            self._sensor = BMP085.BMP085()
         else:
             self._sensor = None
         
@@ -103,7 +103,7 @@ class BMP180Agent():
         msg_p["t"] = time.time()
         msg_p["v"] = meas_p
 
-        out = []
+        out = [msg_t, msg_p]
 
         return out
 

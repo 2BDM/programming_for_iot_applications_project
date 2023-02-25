@@ -77,10 +77,13 @@ class DHT11Agent:
         max_tries = 25
         tries = 0
         while tries < max_tries and (meas_t is None or meas_h is None):
+            if tries >= 1:
+                print(f"DHT11: Retrying - {tries}")
             tries += 1
             
             if on_pi:
                 meas_h, meas_t = Adafruit_DHT.read_retry(self._sensor, self._pin)
+                #print(f"Temperature: {meas_t}, humidity: {meas_h}")
             else:
                 meas_h = round(random.uniform(20, 60), 2)
                 meas_t = round(random.uniform(18, 35), 2)
@@ -93,7 +96,7 @@ class DHT11Agent:
         msg_h["t"] = time.time()
         msg_h["v"] = meas_h
 
-        out = []
+        out = [msg_t, msg_h]
 
         return out
     
