@@ -90,14 +90,14 @@ Here is reported the structure (keys) of the `.json` file containing the device 
     - **units**: units of measurement for the specified quantities
     - **device_id**: device to which the sensor is connected
     - **available_services**: list of possible communication protocols through which the measurements can be retrieved
-    - **service_details**: list containing additional information for each protocol specified among the available ones (e.g., 'topic': list of MQTT topics)
+    - **services_details**: list containing additional information for each protocol specified among the available ones (e.g., 'topic': list of MQTT topics)
     - **last_update**: timestamp (YYYY-MM-DD hh:mm:ss) for the last update
   - **actuators**: list of available actuators
     - **id**: actuator ID, unique for each actuator on the same device
     - **device_name**: actuator name
     - **device_id**: id of the device (raspberry) it is connected to
     - **available_services**: list of supported communication protocols for communicating (i.e., giving commands) to the actuator
-    - **service_details**: additional information related to the specified communication protocols
+    - **services_details**: additional information related to the specified communication protocols
 - **last_update**: timestamp (YYYY-MM-DD hh:mm:ss) the information was last updated
 
 ---
