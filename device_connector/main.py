@@ -414,7 +414,7 @@ class DevConn:
             return -1
 
 
-    def updateDevCat(self, max_tries = 50):
+    def updateDevCat(self, max_tries=25):
         """
         Update own information at device catalog
         ----------------------------------------------------------
@@ -570,7 +570,7 @@ if __name__ == "__main__":
     while True:
         print("\nlooping . . .")
         # Update info
-        upd_oper = myDevConn.updateDevCat()
+        upd_oper = myDevConn.updateDevCat(max_tries=10)
         
         if upd_oper == -1:
             # No dev cat info
@@ -582,12 +582,8 @@ if __name__ == "__main__":
             # Cannot reach device catalog
             warnings.warn("Could not reach device catalog!")
             
-            max_it = 5
-            it = 0
-            while upd_oper != 1 and it < max_it:
-                time.sleep(5)   # Wait 5s
-                upd_oper = myDevConn.updateDevCat()
-                it += 1
+            # It may be that the device catalog was moved - get new address
+            myDevConn.connectToServCat()
 
         # Make and publish measurements
         myDevConn.updateMeas()
