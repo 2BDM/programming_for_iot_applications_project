@@ -31,7 +31,9 @@
             "user_surname": "Smith",
             "email_addr": "uname@example.com",
             "telegram_id": "",
-            "greenhouse": 1,
+            "greenhouse": [
+                1
+            ],
             "last_update": "2020-03-30 12:00:00"
         }
     ],
