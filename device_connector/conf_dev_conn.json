@@ -14,7 +14,7 @@
         {
             "name": "DHT11",
             "id": 1,
-            "dt": 7
+            "out": 7
         },
         {
             "name": "BMP180",
@@ -33,12 +33,12 @@
         {
             "name": "Keyes_SRLY",
             "id": 1,
-            "dt": 21
+            "out": 21
         },
         {
             "name": "Keyes_SRLY",
             "id": 2,
-            "dt": 19
+            "out": 19
         }
     ]
 }
