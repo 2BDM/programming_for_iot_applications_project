@@ -27,7 +27,10 @@ class DeviceCatalog():
     catalog.
     """
 
-    def __init__(self, in_path, serv_catalog_info="serv_cat_info.json", out_path="dev_cat_updated.json"):
+    def __init__(self, in_path, out_path="dev_catalog_updated.json"):
+        # NOTE: this class does not need the static info about the services catalog
+        # since connection to the services catalog is handled by the web service
+        
         # Allow to use fac-simile catalog for testing
         try:
             self.cat = json.load(open(in_path))
@@ -154,7 +157,7 @@ class DeviceCatalogWebService():
 
     def __init__(self, catalog_path, serv_catalog_info="serv_cat_info.json", cmd_list_cat="cmd_list.json", output_cat_path="dev_catalog_updated.json"):
         self.API = json.load(open(cmd_list_cat))
-        self.catalog = DeviceCatalog(catalog_path, output_cat_path)
+        self.catalog = DeviceCatalog(in_path=catalog_path, out_path=output_cat_path)
         self.msg_ok = {"status": "SUCCESS", "msg": ""}
         self.msg_ko = {"status": "FAILURE", "msg": ""}
         self.timeout = 60          # seconds
@@ -231,7 +234,7 @@ class DeviceCatalogWebService():
     def PUT(self, *uri, **params):
         """
         Used to update existing records
-        Use it at refresh (when devices keep updated the register)
+        Use it at refresh (when devices keep the register updated)
         """
         body = json.loads(cherrypy.request.body.read())
 
@@ -239,7 +242,7 @@ class DeviceCatalogWebService():
             if (str(uri[0]) == "device"):
                 if self.catalog.updateDevice(body) != 0:
                     out = self.msg_ok.copy()
-                    out["msg"] = f"Device {body['id']} was updated"
+                    out["msg"] = f"Device {body['id']} was successfully updated"
                     self.catalog.saveAsJson()
                     cherrypy.response.status = 200
                     return json.dumps(out)
@@ -265,51 +268,89 @@ class DeviceCatalogWebService():
         print(f"\n%%%%%%%%%%%%%%%%%%%%\nRemoved {rem_d} device(s)\n%%%%%%%%%%%%%%%%%%%%\n")
 
     def registerAtCatalog(self):
+        """
+        This method is used to register the device catalog information
+        on the service catalog.
+        -----
+        Return values:
+        - 1: registration successful
+        - -1: information was already present - update was performed
+        - 0: update failed (unreachable server)
+        """
         max_tries = 10
         tries = 0
         while not self._registered_at_catalog and tries < max_tries:
-            reg = requests.post(self._serv_cat_addr + '/device_catalog', data=json.dumps(self.my_info))
-            print(f"Sent request to {self._serv_cat_addr}")
-            
-            if reg.status_code == 201:
-                self._registered_at_catalog = True
-                self._last_update_serv = time.time()
-                print("Registered at service catalog!")
-            elif reg.status_code == 400:
-                print("Device catalog already registered!")
-                self._registered_at_catalog = True
-
-            tries += 1
-            time.sleep(5)
+            try:
+                reg = requests.post(self._serv_cat_addr + '/device_catalog', data=json.dumps(self.my_info))
+                print(f"Sent request to {self._serv_cat_addr}")
+                
+                if reg.status_code == 201:
+                    self._registered_at_catalog = True
+                    self._last_update_serv = time.time()
+                    print("Successfully registered at service catalog!")
+                    return 1
+                elif reg.status_code == 400:
+                    print("Device catalog was already registered!")
+                    self._registered_at_catalog = True
+                    # Perform an update, to keep the last_update recent
+                    self.updateServiceCatalog()
+                    return -1
+            except:
+                print("Tried to connect to services catalog - failed to establish a connection!")
+                tries += 1
+                time.sleep(5)
+        
+        if not self._registered_at_catalog:
+            # If here, it was impossible to register/update info, hence the 
+            # server was unresponsive/unreachable
+            print("Maximum number of tries exceeded - server unreachable!")
+            return 0
 
     def updateServiceCatalog(self):
+        """
+        This ethod is used to update the information of the device catalog 
+        at the services catalog.
+        ------
+        Return values:
+        - 1: update successful
+        - -1: needed to register first
+        - 0: unable to reach server
+        """
         # Try refreshing info (PUT) - code 200
         # If it fails with code 400 -> cannot update
             # Perform POST
-
-        try1 = requests.put(self._serv_cat_addr + '/device_catalog', data=json.dumps(self.my_info))
 
         updated = False
         count_fail = 0
         max_tries = 10
 
         while not updated and count_fail < max_tries:
-            if try1.status_code == 200:
-                # Update successful
-                print("Update successful!")
-                self._last_update_serv = time.time()
-                return 1
-            elif try1.status_code == 400:
-                count_fail += 1
-                self._registered_at_catalog = False
-                self.registerAtCatalog()
-                if self._registered_at_catalog:
-                    updated = True
-            else:
+            try:
+                try1 = requests.put(self._serv_cat_addr + '/device_catalog', data=json.dumps(self.my_info))
+
+                # If here, it was possible to send the request to the server (reachable)
+                if try1.status_code == 200:
+                    # Update successful
+                    print("Information in the service catalog was successfully updated!")
+                    self._last_update_serv = time.time()
+                    return 1
+                elif try1.status_code == 400:
+                    print("Unable to update information at the service catalog ---> trying to register")
+                    count_fail += 1
+                    self._registered_at_catalog = False
+                    self.registerAtCatalog()
+                    if self._registered_at_catalog:
+                        updated = True
+                        return -1
+            except:
+                print("Tried to connect to services catalog - failed to establish a connection!")
                 count_fail += 1
                 time.sleep(5)
         
-        print("Program was unable to contact the service catalog!")
+        # If here, then it was not possible to update nor register information
+        # within the maximum number of iterations, which means it was not possible 
+        # to reach the server
+        print("Maximum number of tries exceeded - service catalog was unreachable!")
         return 0
 
     def startOperation(self, refresh_rate):
