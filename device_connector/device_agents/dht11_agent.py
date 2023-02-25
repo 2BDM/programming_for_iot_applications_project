@@ -42,7 +42,7 @@ class DHT11Agent:
             self._sensor = None
         
         self._name = self.config["name"]
-        self._pin = int(self.config["dt"])
+        self._pin = int(self.config["out"])
 
         # Temperature measurement: degrees Celsius
         self.temp_template = {

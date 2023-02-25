@@ -52,7 +52,7 @@ class KeyesSRLYAgent():
 
         # Select correct pin, from conf
         if on_pi:
-            self._pin = int(self.config["dt"])
+            self._pin = int(self.config["out"])
             GPIO.setup(self._pin, GPIO.OUT)
         else:
             self._pin = None
