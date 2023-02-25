@@ -30,13 +30,21 @@ def searchListOfDict(lst, parameter, value):
 class DevConn:
     def __init__(self, conf_path, self_path):
         """
+        Initialization procedure: 
+        - For each sensor, instantiate the sublists containing the latest measurements
+        - For each sensor, instantiate the device agent
+        - For each actuator, instantiate device agent
+        - Get broker information from services catalog
+        - Instantiate MyMQTT object
+        - Subscribe to the topics for the actuators
+        ---
         Input parameters:
         - Configuration file (with services catalog location)
         - Information about self
         """
         with open(conf_path) as f:
             self.conf = json.load(f)
-            self.sc_addr = self.conf["services_catalog"]["ip"] + str(self.conf["services_catalog"]["port"])
+            self.sc_addr = "http://" + self.conf["services_catalog"]["ip"] + ":" + str(self.conf["services_catalog"]["port"])
 
         with open(self_path) as f:
             self.whoami = json.load(f)
@@ -110,7 +118,7 @@ class DevConn:
                 if found:
                     self.dev_agents_sens.append(DHT11Agent(dht_conf))
                 else:
-                    raise ValueError("The configuration file is missing DHT11 information!")
+                    raise ValueError(f"The configuration file is missing sensor {elem['id']} - DHT11 - information!")
 
             elif elem["device_name"] == "BMP180":
                 self.dev_agent_ind_sens[str(elem["id"])] = count
@@ -127,9 +135,9 @@ class DevConn:
                 if found:
                     self.dev_agents_sens.append(BMP180Agent(bmp_conf))
                 else:
-                    raise ValueError("The configuration file is missing DHT11 information!")
+                    raise ValueError(f"The configuration file is missing sensor {elem['id']} - DHT11 - information!")
             
-            elif elem["device_name"] == "BMP180":
+            elif elem["device_name"] == "BH1750":
                 self.dev_agent_ind_sens[str(elem["id"])] = count
                 count += 1
 
@@ -144,7 +152,7 @@ class DevConn:
                 if found:
                     self.dev_agents_sens.append(BH1750Agent(bh_conf))
                 else:
-                    raise ValueError("The configuration file is missing BH1750 information!")
+                    raise ValueError(f"The configuration file is missing sensor {elem['id']} - BH1750 - information!")
             #####################################################
         
         self.n_sens = count     # Total number of sensors
@@ -159,7 +167,7 @@ class DevConn:
         self.dev_agent_ind_act = {}
         count = 0
         for elem in self.whoami["resources"]["actuators"]:
-            if elem["name"] == "Keyes_SRLY":             
+            if elem["device_name"] == "Keyes_SRLY":             
                 self.dev_agent_ind_act[str(elem["id"])] = count
                 count += 1                          
 
@@ -170,13 +178,13 @@ class DevConn:
                 myact_conf = None
                 for act_conf in self.conf["act_pins"]:
                     if act_conf["id"] == elem["id"]:
-                        myact_conf = sens_conf.copy()
+                        myact_conf = act_conf.copy()
                         found = True
 
                 if found:
                     self.dev_agents_act.append(KeyesSRLYAgent(conf=myact_conf))
                 else:
-                    raise ValueError("The configuration file is missing Keyes_SRLY information!")
+                    raise ValueError(f"The configuration file is missing actuator {elem['id']} - Keyes_SRLY - information!")
 
         ################################################
 
@@ -202,17 +210,19 @@ class DevConn:
         # Connect to the broker
         self.mqtt_cli.start()
 
+        time.sleep(5)   # Wait 5 seconds to allow clean connection
+
         # Subscribe to the topics used for control the actuators
         # The topics are stored in the list `act_topics`
         act_topics = []
         for elem in self.whoami["resources"]["actuators"]:
             if "MQTT" in elem["available_services"]:
-                for top in elem["service_details"]["topic"]:
-                    act_topics.append(top)
-                    self.mqtt_cli.mySubscribe(top)
+                for av_serv in elem["services_details"]:
+                    if av_serv["service_type"] == "MQTT":
+                        for top in av_serv["topic"]:
+                            act_topics.append(top)
+                            self.mqtt_cli.mySubscribe(top)
         
-
-
 
     #TODO
     ##################################################################
@@ -234,34 +244,35 @@ class DevConn:
             # Check MQTT is supported
             if "MQTT" in act["available_services"]:
                 # Check there are available topics (may be unnecessary, but prevent errors in conf)
-                if "topic" in act["service_details"].keys():
-                    # Find the actuator associated with the specified topic
-                    if topic == act["service_details"]["topic"]:
-                        
-                        # Locate the position of the correct device agent in the list
-                        # 'dev_agents_act' via the dictionary 'self_agent_ind_act'
+                for serv_det in act["services_details"]:
+                    if "topic" in serv_det.keys():
+                        # Find the actuator associated with the specified topic
+                        # NOTE: there is one topic per actuator ----- TODO: remove lists
+                        if topic == serv_det["topic"][0]:
+                            
+                            # Locate the position of the correct device agent in the list
+                            # 'dev_agents_act' via the dictionary 'self_agent_ind_act'
 
-                        # Payload may be either 'start' or 'stop' - this method will 
-                        # 'blindly' call the associated method on the device agent
-                        index = self.dev_agent_ind_act[str(act["id"])]
-                        if message["cmd"] == "start":
-                            if self.dev_agent[index].isOn() == False:
-                                self.dev_agent[index].start()
-                                print(f"Actuator {act['id']} was turmed on at time {message['t']}")
-                            else:
-                                print(f"Tried to turn on actuator {act['id']}, but it was on!")
-                        elif message["cmd"] == "stop":
-                            if self.dev_agent[index].isOn() == True:
-                                self.dev_agent[index].stop()
-                                print(f"Actuator {act['id']} was turmed off at time {message['t']}")
-                            else:
-                                print(f"Tried to turn off actuator {act['id']}, but it was off!")
+                            # Payload may be either 'start' or 'stop' - this method will 
+                            # 'blindly' call the associated method on the device agent
+                            index = self.dev_agent_ind_act[str(act["id"])]
+                            if message["cmd"] == "start":
+                                if self.dev_agents_act[index].isOn() == False:
+                                    self.dev_agents_act[index].start()
+                                    print(f"Actuator {act['id']} was turmed on at time {message['t']}")
+                                else:
+                                    print(f"Tried to turn on actuator {act['id']}, but it was on!")
+                            elif message["cmd"] == "stop":
+                                if self.dev_agents_act[index].isOn() == True:
+                                    self.dev_agents_act[index].stop()
+                                    print(f"Actuator {act['id']} was turmed off at time {message['t']}")
+                                else:
+                                    print(f"Tried to turn off actuator {act['id']}, but it was off!")
                     
                     # May need more customization, e.g., turn on for a specified period
                     # but this must be handled by the corresponding strategy
                 
     ##################################################################
-
 
 
     def getBrokerInfo(self, max_tries=50):
@@ -282,11 +293,12 @@ class DevConn:
         while tries <= max_tries and self.broker_info == {}:
             addr = self.sc_addr + "/broker"
             r = requests.get(addr)
-            if r.status_code == requests.code.ok:
+            if r.ok:
                 self.broker_info = r.json()
-                print("Device catalog info retrieved!")
+                print("Broker info retrieved!")
+                return 1
             else:
-                print(f"Error {r.status_code}")
+                print(f"Error {r.status_code} ☀︎")
         
         if self.broker_info != {}:
             return 1
@@ -308,19 +320,29 @@ class DevConn:
         - 0 if not
         """
         tries = 0
+        addr = self.sc_addr + "/device_catalog"
         while tries <= max_tries and self.dev_cat_info == {}:
-            addr = self.sc_addr + "/device_catalog"
-            r = requests.get(addr)
-            if r.status_code == requests.code.ok:
-                self.dev_cat_info = r.json()
-                self.dev_cat_timestamp = time.time()
-                print("Device catalog info retrieved!")
-            else:
-                print(f"Error {r.status_code}")
+            try:
+                r = requests.get(addr)
+                if r.ok:
+                    self.dev_cat_info = r.json()
+                    self.dev_cat_timestamp = time.time()
+                else:
+                    print(f"Error {r.status_code} - it was not possible to retrieve the device catalog info")
+                    tries += 1
+            except:
+                print("Tried to connect to services catalog - failed to establish a connection!")
+                tries += 1
+                time.sleep(3)
         
         if self.dev_cat_info != {}:
+            # It may be that the device catalog is not registered, hence the returned 
+            # dict is {} anyways
+            print("Device catalog info retrieved!")
+            print(json.dumps(self.dev_cat_info))
             return 1
         else:
+            print("Max. tries exceeded - it was not possible to retrieve the device catalog info")
             return 0
 
 
@@ -340,7 +362,7 @@ class DevConn:
         return 0        
 
 
-    def registerAtDevCat(self, max_tries=50):
+    def registerAtDevCat(self, max_tries=25):
         """
         Used to register at the device catalog
         ----------------------------------------------
@@ -354,16 +376,30 @@ class DevConn:
         """
         tries = 0
         if self.dev_cat_info != {}:
-            while tries <= max_tries and not self._registered_dev_cat:
-                addr_dev_cat = self.dev_cat_info["ip"] + str(self.dev_cat_info["port"])
-                addr = addr_dev_cat + "/device"
-                r = requests.post(addr, data=self.whoami)
-                if r.status_code == requests.code.ok:
-                    self.dev_cat_info = r.json()
-                    self._registered_dev_cat = True
-                    print("Registered!")
-                else:
-                    print(f"Error {r.status_code}")
+            addr_dev_cat = "http://" + self.dev_cat_info["ip"] + ":" + str(self.dev_cat_info["port"])
+            addr = addr_dev_cat + "/device"
+            while tries <= max_tries and not self._registered_dev_cat:  
+                try:
+                    r = requests.post(addr, data=json.dumps(self.whoami))
+                    if r.ok:
+                        # self.dev_cat_info = r.json()
+                        self._registered_dev_cat = True
+                        print("Registered!")
+                    elif r.status_code == 400:
+                        print("Device was already registered!\n↓")
+                        self._registered_dev_cat = True
+                        if self.updateDevCat() == 1:
+                            return 1
+                        else:
+                            print("Unable to update info")
+                    else:
+                        print(f"Error {r.status_code} - unable to update device information on device catalog")
+                    tries += 1
+                    time.sleep(3)
+                except:
+                    print("Tried to register at device catalog - failed to establish a connection!")
+                    tries += 1
+                    time.sleep(3)
             
             if self._registered_dev_cat:
                 # Success
@@ -394,22 +430,30 @@ class DevConn:
         tries = 0
         if self.dev_cat_info != {}:
             upd_succ = False
+            addr_dev_cat = "http://" + self.dev_cat_info["ip"] + ":" + str(self.dev_cat_info["port"])
+            addr = addr_dev_cat + "/device"
             while tries <= max_tries and not upd_succ:
-                addr_dev_cat = self.dev_cat_info["ip"] + str(self.dev_cat_info["port"])
-                addr = addr_dev_cat + "/device"
-                r = requests.put(addr, data=self.whoami)
-                if r.status_code == requests.code.ok:
-                    self.dev_cat_info = r.json()
-                    print("Registered!")
-                elif r.status_code == 400:  # From dev. cat.: if unable to update, the return code is 400
-                    # Try to POST
-                    self._registered_dev_cat = False
-                    if self.registerAtDevCat() == 1:
-                        print("Had to register!")
+                try:    
+                    r = requests.put(addr, data=json.dumps(self.whoami))
+                    if r.ok:
+                        # self.dev_cat_info = r.json()
+                        print("Information updated!")
                         return 1
-                else:
-                    print(f"Error {r.status_code}")
-            
+                    elif r.status_code == 400:  # From dev. cat.: if unable to update, the return code is 400
+                        # Try to POST
+                        self._registered_dev_cat = False
+                        if self.registerAtDevCat() == 1:
+                            print("→Had to register!")
+                            return 1
+                    else:
+                        print(f"Error {r.status_code}")
+                        tries += 1
+                        time.sleep(3)
+                except:
+                    print("Unable to reach device catalog to update information!")
+                    tries += 1
+                    time.sleep(3)
+
             if upd_succ:
                 # Success
                 return 1
@@ -426,7 +470,7 @@ class DevConn:
 
         for sens_id in self.dev_agent_ind_sens.keys():
             # sens_id is already a string
-
+            print(f"Measuring with sensor {sens_id}")
             # Each device agent must have a method 'measure()'
             # `curr_meas` is already a SenML-formatted Python dictionary
             # OR list of dictionaries
@@ -461,10 +505,9 @@ class DevConn:
         for sens in self.whoami["resources"]["sensors"]:
             if "MQTT" in sens["available_services"]:
                 # Retrieve last measurements via the name-index mapping
-                meas_lst = self.last_meas[self.dev_agent_ind_sens[int(sens["id"])]]
-
+                meas_lst = self.last_meas[self.dev_agent_ind_sens[str(sens["id"])]]
                 # Find available topics
-                for det in sens["service_details"]:
+                for det in sens["services_details"]:
                     if det["service_type"] == "MQTT":
                         topics_lst = det["topic"]
 
@@ -474,13 +517,13 @@ class DevConn:
                         # replaced by underscores
                         for meas in meas_lst:
                             meas_qty = meas["n"]
-                            
                             # Find topic - the last element in the topic URI must be the measure name 
                             # (lowercase, with '_' instead of ' ')
                             for top_iter in topics_lst:
                                 if top_iter.lower().endswith(meas_qty.lower().replace(' ', '_')):
                                     msg = {"bn":self.mqtt_bn, "e": [meas]}
                                     self.mqtt_cli.myPublish(topic=top_iter, msg=msg)
+                                    # print(f"Published in topic {top_iter}")
         
         # Keep in mind: can use wildcards (at subscriber) to obtain all measurements
         # for a single parameter if it is measured by multiple sensors
@@ -491,8 +534,11 @@ class DevConn:
 
 if __name__ == "__main__":
     
-    myDevConn = DevConn("conf_dev_conn.json", "dev_info.json")
+    myDevConn = DevConn("conf_dev_conn.json", "device_info.json")
     
+    ###############################################
+    # Launch web service
+
     ############### Start operation ###############
 
     ok = False
@@ -520,6 +566,7 @@ if __name__ == "__main__":
 
     ############### Working loop ###############
     while True:
+        print("\nlooping . . .")
         # Update info
         upd_oper = myDevConn.updateDevCat()
         
@@ -528,7 +575,7 @@ if __name__ == "__main__":
             myDevConn.connectToServCat()
             upd_oper = myDevConn.updateDevCat()
         
-        # No `elif` - upd_oper was updated
+        # No `elif` - upd_oper could have been updated
         if upd_oper == 0:
             # Cannot reach device catalog
             print("Cannot reach device catalog!")
@@ -543,6 +590,7 @@ if __name__ == "__main__":
         # Make and publish measurements
         myDevConn.updateMeas()
         myDevConn.publishLastMeas()
-
         # Clean possibly old info
         myDevConn.cleanupDevCat()
+
+        time.sleep(5)
