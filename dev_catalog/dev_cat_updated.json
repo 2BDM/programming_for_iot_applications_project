@@ -1,15 +1,1 @@
-{
-    "project_name": "Smart greenhouse",
-    "project_owner": "2BDM",
-    "device_catalog": {
-        "ip": "127.0.0.1",
-        "port": 8080,
-        "methods": [
-            "GET",
-            "POST",
-            "PUT"
-        ]
-    },
-    "devices": [],
-    "last_update": "2022-12-24 02:10:02"
-}
+{"project_name": "Smart greenhouse", "project_owner": "2BDM", "device_catalog": {"ip": "127.0.0.1", "port": 8080, "methods": ["GET", "POST", "PUT"]}, "devices": [], "last_update": "2023-02-25 11:49:22"}
