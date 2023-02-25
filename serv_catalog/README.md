@@ -65,41 +65,43 @@ This is  list of all methods defined for the ServicesCatalog class.
 
 The following is the structure of the catalog JSON file:
 
-* project_name
-* project_owner
-* services_catalog
+* project_name: name of the project
+* project_owner: owner(s)/organization
+* services_catalog: information about the services catalog (this element needs to be known by all microservices/entities in the application - hard-coded)
   * ip
   * port
-  * methods (list)
-* broker
+  * methods: list of supported REST methods
+* broker: information about the MQTT broker
   * ip
   * port
-* telegram
+* telegram: information about the telegram bot
   * telegram_token
-* device_catalog
+* device_catalog: informations about the device catalog (endpoints)
   * ip
   * port
-  * methods (list)
+  * methods: list of supported REST methods
+  * last_update: timestamp of last update
+* users: list of users with information
+  * id: **unique** identifier
+  * user_name: name of the user
+  * user_surname: surname of the user
+  * email_addr: email address of the user
+  * telegram_id: telegram name associated to the user (*to be reviewed*)
+  * greenhouse: list of the identifiers of the greenhouses (**can be more than one**)
   * last_update
-* users (list)
-  * id
-  * user_name
-  * user_surname
-  * email_addr
-  * telegram_id (?)
-  * greenhouse
-  * last_update
-* greenhouses
-  * id
-  * plant_id
-  * plant_type
+* greenhouses: greenhouse information
+  * id: greenhouse ID (**different from user ID**)
+  * user_id: associated user ID
+  * device_id: ID of the associated device (Raspberry PI) - one for each greenhouse
+  * plant_id: ID of the plant (one for each greenhouse) - used for customizing strategies
+  * plant_type: name of the plant
   * plant_needs (list)
     * ... (need to specify what kind of measurements - TODO)
   * last_update
-* services
-  * name
-  * endpoints
-  * endpoints_details
+* services: list of available services
+  * name: name of the service
+  * endpoints: list of supported M2M communication protocols
+  * endpoints_details: details about the protocols
     * endpoint
     * IF REST: address
     * IF MQTT: topic

@@ -44,7 +44,7 @@ class ServicesCatalog():
         self._dev_cat_params = ["ip", "port", "methods"]
         self._usr_params = ["id", "user_name", "user_surname", 
                     "email_addr", "greenhouse"]
-        self._greenhouse_params = ['id', 'plant_type', 'plant_needs']
+        self._greenhouse_params = ['id', 'user_id', 'device_id' 'plant_type', 'plant_needs']
         self._services_params = ['id', 'name', 'endpoints', 'endpoints_details']
 
         # Default empty device catalog
@@ -95,6 +95,11 @@ class ServicesCatalog():
 
     def getServices(self):
         return self.cat["services"]
+    
+    def getUserGreenhouses(self, userID):
+        for usrinfo in self.cat["users"]:
+            if usrinfo["id"] == int(userID):
+                return usrinfo["greenhouses"]
 
     # COUNTERS
     def countUsers(self):
@@ -441,7 +446,18 @@ class ServicesCatalogWebService():
                     raise cherrypy.HTTPError(400, "Missing/wrong parameters")
             
             elif (str(uri[0]) == "greenhouses"):
-                return json.dumps(self.catalog.getGreenhouses())
+                if len(params) == 0:
+                    return json.dumps(self.catalog.getGreenhouses())
+                else:
+                    if len(params) == 1 and str(params.keys()[0]) == 'id':
+                        usr_ID = int(params["id"])
+                        out_gh = self.catalog.getUserGreenhouses(usr_ID)
+                        if out_gh == {}:
+                            raise cherrypy.HTTPError(404, f"User {usr_ID} not found")
+                        else:
+                            return json.dumps(out_gh)
+                    else:
+                        raise cherrypy.HTTPError(400, "Missing/wrong parameters")
             elif (str(uri[0]) == "greenhouse"):
                 if "id" in params:
                     gh_ID = int(params["id"])
