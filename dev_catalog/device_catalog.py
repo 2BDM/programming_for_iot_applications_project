@@ -220,12 +220,14 @@ class DeviceCatalogWebService():
                 if self.catalog.addDevice(body) != 0:
                     out = self.msg_ok.copy()
                     out["msg"] = f"Device {body['id']} was added"
+                    print(out["msg"])
                     self.catalog.saveAsJson()
                     cherrypy.response.status = 201
                     return json.dumps(out)
                 else:
                     out = self.msg_ko.copy()
                     out["msg"] = "Unable to add device"
+                    print(out["msg"])
                     cherrypy.response.status = 400
                     return json.dumps(out)
         else:
@@ -243,12 +245,14 @@ class DeviceCatalogWebService():
                 if self.catalog.updateDevice(body) != 0:
                     out = self.msg_ok.copy()
                     out["msg"] = f"Device {body['id']} was successfully updated"
+                    print(out["msg"])
                     self.catalog.saveAsJson()
                     cherrypy.response.status = 200
                     return json.dumps(out)
                 else:
                     out = self.msg_ko.copy()
                     out["msg"] = "Unable to update device"
+                    print(out["msg"])
                     cherrypy.response.status = 400
                     return json.dumps(out)
         else:
@@ -295,6 +299,10 @@ class DeviceCatalogWebService():
                     # Perform an update, to keep the last_update recent
                     self.updateServiceCatalog()
                     return -1
+                else:
+                    print(f"Status code: {reg.status_code}")
+                time.sleep(5)
+
             except:
                 print("Tried to connect to services catalog - failed to establish a connection!")
                 tries += 1
