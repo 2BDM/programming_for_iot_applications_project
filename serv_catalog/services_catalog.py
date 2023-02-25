@@ -449,8 +449,8 @@ class ServicesCatalogWebService():
                 if len(params) == 0:
                     return json.dumps(self.catalog.getGreenhouses())
                 else:
-                    if len(params) == 1 and str(params.keys()[0]) == 'id':
-                        usr_ID = int(params["id"])
+                    if len(params) == 1 and str(params.keys()[0]) == 'usr_id':
+                        usr_ID = int(params["usr_id"])
                         out_gh = self.catalog.getUserGreenhouses(usr_ID)
                         if out_gh == {}:
                             raise cherrypy.HTTPError(404, f"User {usr_ID} not found")
@@ -506,13 +506,13 @@ class ServicesCatalogWebService():
             if (str(uri[0]) == "device_catalog"):
                 if self.catalog.addDevCat(body) != 0:
                     out = self.msg_ok.copy()
-                    out["msg"] = "Device catalog was added"
+                    out["msg"] = "Device catalog was successfully added!"
                     self.catalog.saveAsJson()
                     cherrypy.response.status = 201
                     return json.dumps(out)
                 else:
                     out = self.msg_ko.copy()
-                    out["msg"] = "Unable to add device catalog"
+                    out["msg"] = "Unable to add device catalog!"
                     cherrypy.response.status = 400
                     return json.dumps(out)
 
@@ -569,7 +569,7 @@ class ServicesCatalogWebService():
             if (str(uri[0]) == "device_catalog"):
                 if self.catalog.updateDevCat(body) != 0:
                     out = self.msg_ok.copy()
-                    out["msg"] = "Device catalog was updated"
+                    out["msg"] = "Device catalog was successfully updated!"
                     self.catalog.saveAsJson()
                     cherrypy.response.status = 200
                     return json.dumps(out)
