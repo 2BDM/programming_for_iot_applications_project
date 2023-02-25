@@ -119,3 +119,20 @@ The service catalog is a web service which is used to provide to every applicati
 The web service exploits a RESTful API.
 
 Additionally, every 30 seconds, the program performs a check on its records to delete elements older than 2 minutes.
+
+## Response codes
+
+Below are listed the **possible HTTP response codes** associated with each request.
+
+* GET:
+  * 200: object was correctly found and returned
+  * 400: missing parameters (for '*conditionsal*' get requests, e.g., searches)
+  * 404: object not found (parameter(s) pointed to a missing location)
+* POST:
+  * 201: element was added successfully
+  * 400: unable to add element
+* PUT:
+  * 200: successful update
+  * 400: unable to update element
+
+Whenever other status code are returned, especially in the case of 500, it means it was not possible to reach the server/*other things* went wrong.
