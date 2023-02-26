@@ -56,6 +56,18 @@ if __name__ == "__main__":
     out_path = "weather_train.csv"
 
     inputfilesList = [
+        "csv_ilMeteo/Torino-2020-01Gennaio.csv",
+        "csv_ilMeteo/Torino-2020-02Febbraio.csv",
+        "csv_ilMeteo/Torino-2020-03Marzo.csv",
+        "csv_ilMeteo/Torino-2020-04Aprile.csv",
+        "csv_ilMeteo/Torino-2020-05Maggio.csv",
+        "csv_ilMeteo/Torino-2020-06Giugno.csv",
+        "csv_ilMeteo/Torino-2020-07Luglio.csv",
+        "csv_ilMeteo/Torino-2020-08Agosto.csv",
+        "csv_ilMeteo/Torino-2020-09Settembre.csv",
+        "csv_ilMeteo/Torino-2020-10Ottobre.csv",
+        "csv_ilMeteo/Torino-2020-11Novembre.csv",
+        "csv_ilMeteo/Torino-2020-12Dicembre.csv",
         "csv_ilMeteo/Torino-2021-01Gennaio.csv",
         "csv_ilMeteo/Torino-2021-02Febbraio.csv",
         "csv_ilMeteo/Torino-2021-03Marzo.csv",
