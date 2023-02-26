@@ -178,4 +178,4 @@ tags
 [._]*.un~
 
 # Folder with data
-csv_ilMeteo
+csv_ilMeteo/
