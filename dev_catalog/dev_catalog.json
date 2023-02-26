@@ -40,6 +40,10 @@
                             "Temperature",
                             "Humidity"
                         ],
+                        "units": [
+                            "Cel",
+                            "RH"
+                        ],
                         "device_id": 1,
                         "available_services": [
                             "MQTT"
@@ -60,6 +64,9 @@
                         "device_name": "BMP180",
                         "measure_type": [
                             "Air pressure"
+                        ],
+                        "units": [
+                            "Bar"
                         ],
                         "device_id": 1,
                         "available_services": [

@@ -69,6 +69,7 @@ The following is the structure of the device catalog JSON file
       * id
       * device_name
       * measure_type (list)
+      * units
       * device_id
       * available_services (list)
       * services_details (list)

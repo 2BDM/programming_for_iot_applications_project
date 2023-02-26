@@ -160,9 +160,13 @@ class ServicesCatalog():
         if all(elem in device_catalog for elem in self._dev_cat_params):
             if self.cat["device_catalog"]["last_update"] == "":
                 # The object was not created yet
-                for key in self._default_dev_cat:
+                for key in self._default_dev_cat.keys():
                     # Doing this prevents to insert keys that are not the allowed ones
-                    self.cat["device_catalog"][key] = device_catalog[key]
+                    if key != "last_update":
+                        # Necessary - last_update is added after
+                        # If the device catalog was reset, the last_update key is present
+                        # but set to ""
+                        self.cat["device_catalog"][key] = device_catalog[key]
                 self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 self.cat["device_catalog"]["last_update"] = self.last_update
                 self.cat["last_update"] = self.last_update
@@ -189,7 +193,7 @@ class ServicesCatalog():
             if self.searchUser("id", new_id) == {}:
                 # not found
                 new_dict = {}
-                for key in self._usr_params:
+                for key in self._usr_params.keys():
                     new_dict[key] = newUsr[key]
                 self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 new_dict["last_update"] = self.last_update
@@ -217,7 +221,7 @@ class ServicesCatalog():
             new_id = newGH["id"]
             if self.searchGreenhouse("id", new_id) == {}:
                 new_dict = {}
-                for key in self._greenhouse_params:
+                for key in self._greenhouse_params.keys():
                     new_dict[key] = newGH[key]
                 self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 new_dict["last_update"] = self.last_update
@@ -264,7 +268,8 @@ class ServicesCatalog():
                 # The object already existed
                 for key in self._default_dev_cat:
                     # Doing this prevents to insert keys that are not the allowed ones
-                    self.cat["device_catalog"][key] = upd_info[key]
+                    if key != "last_update":
+                        self.cat["device_catalog"][key] = upd_info[key]
                 self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 self.cat["device_catalog"]["last_update"] = self.last_update
                 self.cat["last_update"] = self.last_update
@@ -328,7 +333,7 @@ class ServicesCatalog():
             # If unable to read timestamp it means it is empty
             return 0
         if curr_time - oldtime > timeout:
-            self.cat["device_catalog"] = self._default_dev_cat
+            self.cat["device_catalog"] = self._default_dev_cat.copy()
             self.cat["device_catalog"]["last_update"] = ""
             self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             self.cat["last_update"] = self.last_update
