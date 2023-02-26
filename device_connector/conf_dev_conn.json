@@ -10,6 +10,26 @@
             "POST"
         ]
     },
+    "device_connector": {
+        "endpoints": [
+            "REST",
+            "MQTT"
+        ],
+        "endpoints_details": [
+            {
+                "endpoint": "REST",
+                "ip": "100.70.41.23",
+                "port": 3030,
+                "methods": [
+                    "GET"
+                ]
+            },
+            {
+                "endpoint": "MQTT",
+                "bn": "RaspberryPi3_1"
+            }
+        ]
+    },
     "sens_pins": [
         {
             "id": 1,
@@ -25,6 +45,18 @@
         {
             "id": 3,
             "name": "BH1750",
+            "dt": 3,
+            "sck": 5
+        },
+        {
+            "id": 4,
+            "name": "chirp",
+            "dt": 3,
+            "sck": 5
+        },
+        {
+            "id": 5,
+            "name": "HX711",
             "dt": 3,
             "sck": 5
         }

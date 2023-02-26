@@ -11,6 +11,8 @@ from device_agents.dht11_agent import DHT11Agent
 from device_agents.bmp180_agent import BMP180Agent
 from device_agents.bh1750_agent import BH1750Agent
 from device_agents.keyes_srly_agent import KeyesSRLYAgent
+from device_agents.chirp_agent import ChirpAgent
+from device_agents.hx711_agent import HX711Agent
 
 def searchListOfDict(lst, parameter, value):
     """
@@ -28,6 +30,44 @@ def searchListOfDict(lst, parameter, value):
 
 ### Main class definition
 class DevConn:
+    """
+    Device connector class.
+    -----------------------------------------------------------------------------
+    Attributes:
+    - conf: configuration file including the static services catalog info and 
+    pin information about the available sensors and actuators
+    - sc_addr: services catalog static address
+    - whoami: dictionary including the information which is advertised by the 
+    device catalog
+    - dev_cat_info: dict containing the information about the device catalog 
+    (IP, port, ...). It is initialized and reset (timeout) as {}.
+    - dev_cat_timestamp: timestamp for the last device catalog update (at the 
+    device connector). Note: different from the one found in the non-empty 
+    device catalog info, since that one is set by the services catalog.
+    - dev_cat_timeout: timeout period for the device catalog information.
+    - _registered_dev_cat: flag indicating whether the device is registered 
+    at the device catalog
+    - last_meas: list of sub-lists containing all the llast good measureents 
+    from each sensor
+    - dev_agents_sens: list of device agents for the sensors
+    - dev_agent_ind_sens: dictionary to map the device ID to the associated 
+    elements in 'last_meas' and 'dev_agents_sens'
+    - all_meas_types: list containing all possible measurements that the 
+    device can provide
+    - n_sens: number of connected sensors
+    - dev_agents_act: list of device agents objects for actuators
+    - dev_agent_ind_act: dictionary used to map actuator IDs to the corresponding 
+    index in 'dev_agents_act'
+    - broker_info: dictionary containing the information of the MQTT broker, 
+    retrieved from the services catalog. Initialized as {}
+    - mqtt_bn: MQTT client identifier
+    - mqtt_cli: MyMQTT object used to create the MQTT client
+    - act_topics: list of topics associated with the actuators (to which the 
+    client is subscribed)
+    -----------------------------------------------------------------------------
+    """
+    exposed = True
+
     def __init__(self, conf_path, self_path):
         """
         Initialization procedure: 
@@ -64,6 +104,7 @@ class DevConn:
         self.last_meas = []
         self.dev_agents_sens = []
         self.dev_agent_ind_sens = {}
+        self.all_meas_types = []
         count = 0
         for elem in self.whoami["resources"]["sensors"]:            
             # Add the 'last measured' field
@@ -77,10 +118,9 @@ class DevConn:
             for ind in range(len(elem["measure_type"])):
                 # NOTE: SenML format
                 
-                # Is it?
-                """# Assume no sensors measure the same quantity 
-                # (if 2 sensors measure the same quantity, then
-                # one always covers the other)"""
+                meas_uri = elem["measure_type"][ind].lower().replace(' ', '_')
+                if meas_uri not in self.all_meas_types:
+                    self.all_meas_types.append(meas_uri)
 
                 curr_meas = {
                     "n": elem["measure_type"][ind], 
@@ -93,14 +133,13 @@ class DevConn:
                 # Append the current last measurement for the specified quantity 
                 # only if the same quantity is not already present in the sub list
                 ############## probably can be removed
-                # NOTE: different sublists can include the same measurement
+                # NOTE: different sublists still can include the same measurement
                 if searchListOfDict(sens_meas_sublist, "n", curr_meas["n"]) is None:
                     sens_meas_sublist.append(curr_meas)
             
             self.last_meas.append(sens_meas_sublist)
 
             #####################################################
-            # NOTE: Pin numbers are found in the configuration file
 
             if elem["device_name"] == "DHT11":
                 # EXAMPLE:
@@ -153,10 +192,48 @@ class DevConn:
                     self.dev_agents_sens.append(BH1750Agent(bh_conf))
                 else:
                     raise ValueError(f"The configuration file is missing sensor {elem['id']} - BH1750 - information!")
+
+            # Soil moisture sensor   
+            elif elem["device_name"] == "chirp":
+                self.dev_agent_ind_sens[str(elem["id"])] = count
+                count += 1
+
+                # Check availability of conf information
+                found = False
+                bmp_conf = None
+                for sens_conf in self.conf["sens_pins"]:
+                    if sens_conf["id"] == elem["id"]:
+                        bh_conf = sens_conf.copy()
+                        found = True
+
+                if found:
+                    self.dev_agents_sens.append(ChirpAgent(bh_conf))
+                else:
+                    raise ValueError(f"The configuration file is missing sensor {elem['id']} - chirp - information!")
+            
+            # Load cells
+            elif elem["device_name"] == "HX711":
+                self.dev_agent_ind_sens[str(elem["id"])] = count
+                count += 1
+
+                # Check availability of conf information
+                found = False
+                bmp_conf = None
+                for sens_conf in self.conf["sens_pins"]:
+                    if sens_conf["id"] == elem["id"]:
+                        bh_conf = sens_conf.copy()
+                        found = True
+
+                if found:
+                    self.dev_agents_sens.append(HX711Agent(bh_conf))
+                else:
+                    raise ValueError(f"The configuration file is missing sensor {elem['id']} - HX711 - information!")
             #####################################################
         
         self.n_sens = count     # Total number of sensors
 
+        print(self.all_meas_types)
+        
         ################################################
         # Same thing but for actuators
         
@@ -187,8 +264,6 @@ class DevConn:
                     raise ValueError(f"The configuration file is missing actuator {elem['id']} - Keyes_SRLY - information!")
 
         ################################################
-
-
         ######## MQTT client
         # Get broker information
         self.broker_info = {}           # No timestamp - suppose it does not change
@@ -198,7 +273,9 @@ class DevConn:
                 print("Cannot get broker info!")
 
         # MQTT publisher base name
-        self.mqtt_bn = self.whoami["name"] + '_' + str(self.whoami["id"])
+        for ed in self.conf["device_connector"]["endpoints_details"]:
+            if ed["endpoint"] == "MQTT":
+                self.mqtt_bn = ed["bn"]
 
         self.mqtt_cli = MyMQTT(
             clientID=self.mqtt_bn,    # Devices can have same name, but must not have same id
@@ -214,19 +291,148 @@ class DevConn:
 
         # Subscribe to the topics used for control the actuators
         # The topics are stored in the list `act_topics`
-        act_topics = []
+        self.act_topics = []
         for elem in self.whoami["resources"]["actuators"]:
             if "MQTT" in elem["available_services"]:
                 for av_serv in elem["services_details"]:
                     if av_serv["service_type"] == "MQTT":
                         for top in av_serv["topic"]:
-                            act_topics.append(top)
+                            self.act_topics.append(top)
                             self.mqtt_cli.mySubscribe(top)
 
     ##################################################################
     # Web service - REST methods definition
 
+    def GET(self, *uri, **params):
+        """
+        Used to get last measurements, depending on the URI and on the parameters
+        The URI specifies the measured quantity, while the parameters can be
+        used to select a specific sensor.
+        """
+        if len(uri) == 0:
+            # Return all measurements in a single list (flatten list of sublists)
+            if 'sens' in params:
+                # Need to filter by sensor as well
+                try:
+                    req_sens_id = int(params['sens'])     # If ok, the parameter is the ID
+                except:
+                    req_sens = str(params['sens'])
+                    req_sens_id = self.getSensID(req_sens)
+                
+                meas_lst = self.getMeasurements(type=None, sens=req_sens_id)
+                return json.dumps(meas_lst)
+            else:
+                # No sensor specified
+                return json.dumps(self.getMeasurements())
+            
+        elif len(uri) == 1:
+            # 'Switch' over measurements
+            if (str(uri[0]) in self.all_meas_types):
+                if 'sens' in params:
+                    # Need to filter by sensor as well
+                    try:
+                        req_sens_id = int(params['sens'])     # If ok, the parameter is the ID
+                    except:
+                        req_sens = str(params['sens'])
+                        req_sens_id = self.getSensID(req_sens)
+                    
+                    meas_lst = self.getMeasurements(type=str(uri[0]), sens=req_sens_id)
+                else:
+                    # No sensor specified
+                    meas_lst = self.getMeasurements(type=str(uri[0]))
+
+                return json.dumps(meas_lst)
+            
+            else:
+                raise cherrypy.HTTPError(404, f"Measurement {str(uri[0])} not found!")
+            
     ##################################################################
+    def getMeasurements(self, type=None, sens=None):
+        """
+        This method is used to retrieve the measurements stored in self.last_meas.
+        The search can be done by measurement type and/or by sensor name. If none 
+        is specified, the entire list of sub-lists is flattened and returned.
+        The returned value is always a string of dicts, all of which are in SenML
+        format.
+        ---------------------------------------------------------------------------
+        Input parameters:
+        - type: (default None) can be a list of strings or a single string, 
+        identifying the requested measurement types
+        - sens: (default None) can be a list of strings, a single string, a list 
+        of integers or a single integer identifying the requested sensors
+        ---------------------------------------------------------------------------
+        """
+        if sens is None:
+            # Flatten the whole list
+            flat_list = [el for sublist in self.last_meas for el in sublist]
+            if type is None:
+                return flat_list
+            elif isinstance(type, str):
+                # One measurement is required
+                out_list = []
+                for ms in flat_list:
+                    if ms["n"].lower().replace(' ', '_') == type:
+                        out_list.append(ms)
+                return out_list
+            elif isinstance(type, list):
+                # More htan 1 measurement types are required
+                out_list = []
+                for ms in flat_list:
+                    if ms["n"].lower().replace(' ', '_') in type:
+                        out_list.append(ms)
+                return out_list
+        else:
+            ## NOTE: sens can be a list of strings (sensor names) or of integer numbers (IDs)
+            # First, isolate sensor measurements by means of self.dev_agent
+            if isinstance(sens, str) or isinstance(sens, int):
+                sens = [sens]
+            
+            sel_list = []
+            for sn in sens:
+                if isinstance(sn, int):
+                    # Already have ID
+                    curr_id = sn
+                else:
+                    # Translate name into ID
+                    curr_id = self.getSensID(sn)
+                # Get corresponding sublist
+                curr_meas_sl = self.last_meas[self.dev_agent_ind_sens[str(curr_id)]]
+                # 'Append' sublist to the list of selected measurements
+                sel_list += curr_meas_sl
+            if type is not None:
+                # Filter the measurements according to type
+                if isinstance(type, str):
+                # One measurement is required
+                    out_list = []
+                    for ms in sel_list:
+                        if ms["n"].lower().replace(' ', '_') == type:
+                            out_list.append(ms)
+                    return out_list
+                elif isinstance(type, list):
+                    # More htan 1 measurement types are required
+                    out_list = []
+                    for ms in sel_list:
+                        if ms["n"].lower().replace(' ', '_') in type:
+                            out_list.append(ms)
+                    return out_list
+            
+            return sel_list
+
+
+    def getSensID(self, sensName):
+        """
+        Return the sensor ID given the name
+        ---
+        If found, the output is the sensor ID. If not, the output is -1.
+        """
+        for sns in self.whoami["resources"]["sensors"]:
+            if sns["device_name"] == sensName:
+                return sns["id"]
+        
+        # If here, sensor was not found
+        return -1
+
+
     def notify(self, topic, payload):
         """
         Callback for the MyMQTT object
@@ -490,14 +696,14 @@ class DevConn:
                 self.last_meas[self.dev_agent_ind_sens[sens_id]] = [curr_meas]
 
                 if curr_meas["v"] is None:
-                    raise warnings.warn(f"Null {curr_meas['n']} measurement at {curr_meas['t']}")
+                    warnings.warn(f"Null {curr_meas['n']} measurement at {curr_meas['t']}")
             
             elif isinstance(curr_meas, list):
                 self.last_meas[self.dev_agent_ind_sens[sens_id]] = curr_meas
 
                 for meas in curr_meas:
                     if meas["v"] is None:
-                        raise warnings.warn(f"Null {meas['n']} measurement at {meas['t']}")
+                        warnings.warn(f"Null {meas['n']} measurement at {meas['t']}")
 
     
     def publishLastMeas(self):
@@ -531,15 +737,35 @@ class DevConn:
         # for a single parameter if it is measured by multiple sensors
 
 
+    def getIP(self):
+        for ed in self.conf["device_connector"]["endpoints_details"]:
+            if ed["endpoint"] == "REST":
+                return ed["ip"]
+    
+
+    def getPort(self):
+        for ed in self.conf["device_connector"]["endpoints_details"]:
+            if ed["endpoint"] == "REST":
+                return ed["port"]
+
 ###############################################################################
 ### Main program - include loop
 
 if __name__ == "__main__":
-    
+    conf = {
+        '/': {
+        'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
+        'tools.sessions.on': True
+        }
+    }
+
     myDevConn = DevConn("conf_dev_conn.json", "device_info.json")
     
     ###############################################
     # Launch web service
+    cherrypy.tree.mount(myDevConn, '/', conf)
+    cherrypy.config.update({'server.socket_host': myDevConn.getIP()})
+    cherrypy.config.update({'server.socket_port': myDevConn.getPort()})
 
     ############### Start operation ###############
 
@@ -567,6 +793,11 @@ if __name__ == "__main__":
             time.sleep(10)
 
     ############### Working loop ###############
+    meas_timeout = 120          # Time for measurement update
+    t_last_meas = 0             # This triggers measurements in first loop
+
+    cherrypy.engine.start()
+
     while True:
         print("\nlooping . . .")
         # Update info
@@ -586,8 +817,11 @@ if __name__ == "__main__":
             myDevConn.connectToServCat()
 
         # Make and publish measurements
-        myDevConn.updateMeas()
-        myDevConn.publishLastMeas()
+        curr_time = time.time()
+        if curr_time - t_last_meas > meas_timeout:
+            myDevConn.updateMeas()
+            myDevConn.publishLastMeas()
+            t_last_meas = time.time()
         # Clean possibly old info
         myDevConn.cleanupDevCat()
 

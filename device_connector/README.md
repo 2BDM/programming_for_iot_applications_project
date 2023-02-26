@@ -5,6 +5,17 @@ This folder contains the main program, which runs the device connector for the r
 ## Working principle
 
 The device connector consists in a program which on one side interfaces with the sensors and actuators to either publish MQTT messages or react to them, on the other must interface with the registry system (service and device catalog) to always keep the information updated.
+The device connector also acts as HTTP server, by advertising the GET method, through which it is possible to retrieve the last valid measurements for any quantity and sensor.
+
+---
+
+## REST API
+
+The device connector only provides the GET method.
+
+The specified URI locates the desired measurement type, while the only valid parameter is `sens`, which must be set to either the sensor name or ID. If the URI is empty, all measurements will be provided (filtered by sensor, if provided).
+
+Measurements are returned as lists of Pythion dictionaries in SenML format (see ***Device agents API - sensors***).
 
 ---
 
@@ -14,9 +25,9 @@ The device connector consists in a program which on one side interfaces with the
 
 Device agents are implemented as pieces of software (classes) which are instantiated at initialization only if the device uses these objects.
 This mechanism is designed to guarantee transparent interoperability between the different possible sensors that can be used.
-At the initialization of the device connector, the program will iterate over the list of sensors and initialize the correct device agent, which will be appended to the `self.dev_agents_sens` list. To map the name of the sensor to the positional index within the list, the dict `self.dev_agent_ind_sens` is used (given the *sensor ID*, it returns the correct device agent).
+At the initialization of the device connector, the program will iterate over the list of sensors and initialize the correct device agent, which will be appended to the `self.dev_agents_sens` list. To map the name of the sensor to the positional index within the list, the dict `self.dev_agent_ind_sens` is used (given the *sensor ID*, it returns the correct index of the device agent).
 
-The same dictionaries can be used to access the attribute `se;f.last_meas`.
+The same dictionary (`dev_agent_ind_sens`) can be used to access the attribute `self.last_meas`.
 
 ### Device agents API - sensors
 

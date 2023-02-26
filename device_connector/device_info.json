@@ -8,7 +8,10 @@
     "endpoints_details": [
         {
             "endpoint": "REST",
-            "address": "http://100.70.41.23:8080"
+            "address": "http://100.70.41.23:3030",
+            "methods": [
+                "GET"
+            ]
         },
         {
             "endpoint": "MQTT",
@@ -33,9 +36,14 @@
                 ],
                 "device_id": 1,
                 "available_services": [
+                    "REST",
                     "MQTT"
                 ],
                 "services_details": [
+                    {
+                        "service_type": "REST",
+                        "uri": "http://100.70.41.23:8080?sens=1"
+                    },
                     {
                         "service_type": "MQTT",
                         "topic": [
@@ -59,9 +67,14 @@
                 ],
                 "device_id": 1,
                 "available_services": [
+                    "REST",
                     "MQTT"
                 ],
                 "services_details": [
+                    {
+                        "service_type": "REST",
+                        "uri": "http://100.70.41.23:8080?sens=2"
+                    },
                     {
                         "service_type": "MQTT",
                         "topic": [
@@ -83,14 +96,68 @@
                 ],
                 "device_id": 1,
                 "available_services": [
+                    "REST",
                     "MQTT"
                 ],
                 "services_details": [
+                    {
+                        "service_type": "REST",
+                        "uri": "http://100.70.41.23:8080?sens=3"
+                    },
                     {
                         "service_type": "MQTT",
                         "topic": [
                             "smartGreenhouse/1/BH1750/light_intensity"
                         ]
+                    }
+                ],
+                "last_update": "2020-03-30 12:00:00"
+            },
+            {
+                "id": 4,
+                "device_name": "chirp",
+                "measure_type": [
+                    "Soil Moisture"
+                ],
+                "units": [
+                    "%"
+                ],
+                "device_id": 1,
+                "available_services": [
+                    "REST",
+                    "MQTT"
+                ],
+                "services_details": [
+                    {
+                        "service_type": "REST",
+                        "uri": "http://100.70.41.23:8080?sens=4"
+                    },
+                    {
+                        "service_type": "MQTT",
+                        "topic": [
+                            "smartGreenhouse/1/chirp/soil_moisture"
+                        ]
+                    }
+                ],
+                "last_update": "2020-03-30 12:00:00"
+            },
+            {
+                "id": 5,
+                "device_name": "HX711",
+                "measure_type": [
+                    "Tank Weight"
+                ],
+                "units": [
+                    "g"
+                ],
+                "device_id": 1,
+                "available_services": [
+                    "REST"
+                ],
+                "services_details": [
+                    {
+                        "service_type": "REST",
+                        "uri": "http://100.70.41.23:8080?sens=5"
                     }
                 ],
                 "last_update": "2020-03-30 12:00:00"
