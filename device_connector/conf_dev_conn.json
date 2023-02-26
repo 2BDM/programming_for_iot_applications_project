@@ -11,6 +11,7 @@
         ]
     },
     "device_connector": {
+        "id": 1,
         "endpoints": [
             "REST",
             "MQTT"
