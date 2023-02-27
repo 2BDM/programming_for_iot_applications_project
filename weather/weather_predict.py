@@ -132,6 +132,7 @@ print(f"Accuracy - random forest on shuffled data: {acc_rfc}")
 # fundamental (probably)
 
 ### TODO: create one classifier per season
+# May need much more data...
 
 
 
