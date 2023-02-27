@@ -680,7 +680,8 @@ if __name__ == "__main__":
     cherrypy.config.update({'server.socket_host': WebService.getMyIP()})
     cherrypy.config.update({'server.socket_port': WebService.getMyPort()})
     cherrypy.engine.start()
-    WebService.cleanupLoop(30)
-    
-    # This part is not executed
-    cherrypy.engine.block()
+    try:
+        WebService.cleanupLoop(30)
+    except KeyboardInterrupt:
+        cherrypy.engine.stop()
+
