@@ -1,6 +1,8 @@
 import cherrypy
 import mongoDB_adaptor as mDB
 import json as js
+import requests
+import time
 
 class adaptor_mongo_interface(object):
     exposed = True
@@ -33,17 +35,17 @@ class adaptor_mongo_interface(object):
         self.addr_ser_cat = "http://" + self.conf_dict["services_catalog"]["ip"] + ":" + str(self.conf_dict["services_catalog"]["port"])
         
         # information of mongoDB
-        self.port = self.conf_dict["mongo_db"]["endpoints_details"]["port"]
-        self.ip = self.conf_dict["mongo_db"]["endpoints_details"]["ip"]
+        self.port = self.conf_dict["mongo_db"]["endpoints_details"][0]["port"]
+        self.ip = self.conf_dict["mongo_db"]["endpoints_details"][0]["ip"]
         self.addr = "http://" + str(self.ip) + ":" + str(self.port)
         
         #information of database
-        url = self.conf_dict["url_database"]
-        database_name = self.conf_dict["database_name"]
-        coll1_name = self.conf_dict["mongo_db"]["collections"][0]
-        coll2_name = self.conf_dict["mongo_db"]["collections"][1]
-        self.mongoP = mDB.mongoAdaptor(url,database_name,coll1_name)
-        self.mongoW = mDB.mongoAdaptor(url,database_name,coll2_name)
+        url = self.conf_dict["database"]["url_database"]
+        database_name = self.conf_dict["database"]["database_name"]
+        self.coll1_name = self.conf_dict["database"]["collections"][0]
+        self.coll2_name = self.conf_dict["database"]["collections"][1]
+        self.mongoP = mDB.mongoAdaptor(url,database_name,self.coll1_name)
+        self.mongoW = mDB.mongoAdaptor(url,database_name,self.coll2_name)
     
     def getPort(self):
         return self.port
@@ -53,7 +55,8 @@ class adaptor_mongo_interface(object):
     
     def GET(self, *uri, **params):
         value = params.keys()
-        if params['coll']==coll1_name:
+        print(self.coll1_name)
+        if params['coll']==self.coll1_name:
             if "id" in value:
                 return self.mongoP.find_by_id(int(params['id']))
             
@@ -74,7 +77,7 @@ class adaptor_mongo_interface(object):
             
             elif "moisture" in value and "N" in value:
                 return self.mongoP.find_by_moisture(int(params['moisture']),int(params['N']))
-        elif params['coll']==coll2_name:
+        elif params['coll']==self.coll2_name:
             if "date" in value:
                 return self.mongoW.find_by_timestamp(str(params['date']))
             elif "min_date" in value and "max_date" in value:
@@ -89,23 +92,24 @@ class adaptor_mongo_interface(object):
             self.mongoW.insert_one_dict(newDataDict)
             
     
-    def registerAtServCat(self,tries):
+    def registerAtServCat(self,max_tries=1):
         tries = 0
         # TODO --> ask for new ID
         if not self.own_ID:
             pass
         # I'm preparing the dictionary to send to the service catalog
         tmpDict = self.conf_dict["mongo_db"]
-        tmpDict.pop("ip",None)
-        tmpDict.pop("port",None)
-        
+        tmpdetails = tmpDict["endpoints_details"][0]
+        tmpdetails.pop('ip')
+        tmpdetails.pop('port')
+        tmpDict["endpoints_details"]=tmpdetails
+        print(js.dumps(tmpDict))
         if self.addr_ser_cat != {}:
-            addr = addr_dev_cat + "/service"
+            addr = self.addr_ser_cat + "/service"
             while tries <= max_tries and not self._registered_dev_cat:  
                 try:
-                    r = requests.post(addr, data=json.dumps(tmpDict))
+                    r = requests.post(addr, data=js.dumps(tmpDict))
                     if r.ok:
-                        # self.dev_cat_info = r.json()
                         self._registered_dev_cat = True
                         print("Registered!")
                     elif r.status_code == 400:
@@ -145,7 +149,7 @@ if __name__ == "__main__":
     }
     webService = adaptor_mongo_interface("mongo_conf.json", True)
     cherrypy.tree.mount(webService, '/', conf)
-    cherrypy.config.update({'server.socket_host': webService.getIP()})
+    #cherrypy.config.update({'server.socket_host': webService.getIP()})
     cherrypy.config.update({'server.socket_port': webService.getPort()})
     
      ############### Start operation ###############
@@ -155,8 +159,7 @@ if __name__ == "__main__":
     iter_init = 0
 
     while not ok:
-        init_status = webService.registerAtServCat(max_tries=100)
-
+        init_status = webService.registerAtServCat(max_tries=10)
         if init_status == 1:
             # Correctly registered
             ok = True
@@ -166,7 +169,7 @@ if __name__ == "__main__":
         if iter_init >= max_iter_init:
             # If too many tries - wait some time, then retry
             iter_init = 0
-            time.sleep(10)
+            time.sleep(1)
         
     cherrypy.engine.start()
     cherrypy.engine.block()
