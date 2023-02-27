@@ -103,6 +103,7 @@ If found, response code is 200, if not, 404 and if wrong parameters are passed i
 * `/devices`: return the full list containing all registered devices
 * `/device?id=...`: return the device given the specified ID, if found.
 * `/device?name=...`: return the device given the specified name, if found.
+* `/new_id`: returns a json containing as only element 'id', associated with the next available ID
 
 #### POST
 

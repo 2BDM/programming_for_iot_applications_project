@@ -165,10 +165,15 @@ class DeviceCatalogWebService():
         # Used for choosing when to try again to make POST to service catalog
         self.serv_timeout = 60
 
+        # Next device ID:
+        self._next_devID = 1
+        for dev in self.catalog.getDevices():
+            self._next_devID = dev['id'] + 1
+
         self.my_info = self.catalog.getDevCatInfo()
         print(f"I am {self.my_info}")
 
-        # TODO: Connect and register to service catalog
+        # Connect and register to service catalog
         # POST request
         try:
             self._serv_cat = json.load(open(serv_catalog_info))
@@ -206,6 +211,11 @@ class DeviceCatalogWebService():
                         raise cherrypy.HTTPError(404, f"Device {dev_name} not found!")
                 else:
                     raise cherrypy.HTTPError(400, f"Missing/wrong parameters")
+            elif (str(uri[0]) == "new_id"):
+                out = {}
+                out["id"] = self._next_devID
+                self._next_devID += 1
+                return json.dumps(out)
         else:
             return "Available commands: " + json.dumps(self.API["methods"][0])
 
