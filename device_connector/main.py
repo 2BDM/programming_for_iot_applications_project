@@ -864,7 +864,7 @@ class DevConn:
 ### Main program - include loop
 
 if __name__ == "__main__":
-    myDevConn = DevConn("conf_dev_conn.json", "device_info.json")
+    myDevConn = DevConn("conf_dev_conn.json", "device_info.json", own_ID=True)
 
     myDevConn.beginOperation()
 
