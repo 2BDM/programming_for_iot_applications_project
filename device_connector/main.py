@@ -599,7 +599,7 @@ class DevConn:
                         r_id = requests.get(id_addr)
 
                         if r_id.ok:
-                            myID = r_id.json['id']
+                            myID = r_id.json()['id']
                             self.whoami['id'] = myID
                             self._id_assigned = True
                         else:
