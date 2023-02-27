@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import Ridge
+from sklearn.ensemble import RandomForestClassifier
 
 """
 This program is used to make weather prediction using the sensor data and having
@@ -22,10 +23,14 @@ weather_df["target"] = weather_df.shift(-1)["FENOMENI"].ffill()
 print(weather_df)
 print(weather_df.corr())
 
-rr = Ridge(alpha=.1)
+#rr = Ridge(alpha=.1)
+rr = RandomForestClassifier()
 
-# Regressors
+# Regressors - labels of the columns used as regressors
 regressors = weather_df.columns[~weather_df.columns.isin(["target", "STAGIONE"])]
+
+#######################################################################################
+# Backtesting
 
 def backtest(weather, model, regressors, start=550, step=90):
     """
@@ -52,9 +57,9 @@ def backtest(weather, model, regressors, start=550, step=90):
 
     return pd.concat(all_predictions)
 
-predictions = backtest(weather_df, rr, regressors)
+predictions_backtested = backtest(weather_df, rr, regressors)
 
-print(predictions)
+print(predictions_backtested)
 
 # TODO: use a classifier on the "target" values.
 # TODO: try to find a way to only use the seasonal information as training set
@@ -62,3 +67,15 @@ print(predictions)
 
 ## It may be that, by not shuffling, the model can pick up patterns 
 # better among the data - will need to check
+
+# Accuracy
+miss = predictions_backtested['diff'].sum()/len(predictions_backtested.index)
+acc = 1 - miss
+
+print("Accuracy (backtesting): ", acc)
+
+#######################################################################################
+# Random split:
+
+# Shuffle data:
+
