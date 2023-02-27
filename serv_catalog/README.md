@@ -65,41 +65,43 @@ This is  list of all methods defined for the ServicesCatalog class.
 
 The following is the structure of the catalog JSON file:
 
-* project_name
-* project_owner
-* services_catalog
+* project_name: name of the project
+* project_owner: owner(s)/organization
+* services_catalog: information about the services catalog (this element needs to be known by all microservices/entities in the application - hard-coded)
   * ip
   * port
-  * methods (list)
-* broker
+  * methods: list of supported REST methods
+* broker: information about the MQTT broker
   * ip
   * port
-* telegram
+* telegram: information about the telegram bot
   * telegram_token
-* device_catalog
+* device_catalog: informations about the device catalog (endpoints)
   * ip
   * port
-  * methods (list)
+  * methods: list of supported REST methods
+  * last_update: timestamp of last update
+* users: list of users with information
+  * id: **unique** identifier
+  * user_name: name of the user
+  * user_surname: surname of the user
+  * email_addr: email address of the user
+  * telegram_id: telegram name associated to the user (*to be reviewed*)
+  * greenhouse: list of the identifiers of the greenhouses (**can be more than one**)
   * last_update
-* users (list)
-  * id
-  * user_name
-  * user_surname
-  * email_addr
-  * telegram_id (?)
-  * greenhouse
-  * last_update
-* greenhouses
-  * id
-  * plant_id
-  * plant_type
+* greenhouses: greenhouse information
+  * id: greenhouse ID (**different from user ID**)
+  * user_id: associated user ID
+  * device_id: ID of the associated device (Raspberry PI) - one for each greenhouse
+  * plant_id: ID of the plant (one for each greenhouse) - used for customizing strategies
+  * plant_type: name of the plant
   * plant_needs (list)
     * ... (need to specify what kind of measurements - TODO)
   * last_update
-* services
-  * name
-  * endpoints
-  * endpoints_details
+* services: list of available services
+  * name: name of the service
+  * endpoints: list of supported M2M communication protocols
+  * endpoints_details: details about the protocols
     * endpoint
     * IF REST: address
     * IF MQTT: topic
@@ -117,3 +119,70 @@ The service catalog is a web service which is used to provide to every applicati
 The web service exploits a RESTful API.
 
 Additionally, every 30 seconds, the program performs a check on its records to delete elements older than 2 minutes.
+
+## Response codes
+
+Below are listed the **possible HTTP response codes** associated with each request.
+
+* GET:
+  * 200: object was correctly found and returned
+  * 400: missing parameters (for '*conditionsal*' get requests, e.g., searches)
+  * 404: object not found (parameter(s) pointed to a missing location)
+* POST:
+  * 201: element was added successfully
+  * 400: unable to add element
+* PUT:
+  * 200: successful update
+  * 400: unable to update element
+
+Whenever other status code are returned, especially in the case of 500, it means it was not possible to reach the server/*other things* went wrong.
+
+---
+
+## Requests
+
+These are the possible request formats.
+
+### GET
+
+If the element is not found, error code 404. If the parameter is wrong (when searching by ID or name), the code is 400.
+
+* `/projectInfo`: returns the string containing the name of the project and the owner.
+* `/broker`: get the json containing the broker information.
+* `/telegram`: get the json containing the Telegram information.
+* `/device_catalog`: get the json containing the device catalog information.
+* `/users`: get full list of user jsons.
+* `/user?id=...`: get the information about the user given the ID.
+* `/greenhouses`: get full list of greenhouses jsons.
+* `/greenhouse?id=...`: get greenhouse, having specified the ID.
+* `/services`: get list of services.
+* `/service?id=...`: get service, specified the ID.
+* `/service?name=...`:  get service, specified the name (all lowercases and ' ' replaced by '_')
+
+If nothing else is specified, then a list of commands is specified.
+
+### POST
+
+If the post was successful (was able to create record), the code is 201, if it was not possible to add the record, the code is 400 (it can mean that the record already exists).
+
+When adding jsons, the program checks for all the fields to be present.
+
+* `/device_catalog` + json in body: add device catalog info.
+* `/user` + json in body: add user info.
+* `/greenhouse` + json in body: add greenhouse info.
+* `/service` + json in body: add service information.
+
+### PUT
+
+If the update is successful, the response code is 200, else, the code is 400.
+
+* `/device_catalog` + json in body: update device catalog info.
+* `/user` + json in body: update user info.
+* `/greenhouse` + json in body: update greenhouse info.
+* `/service` + json in body: update service information.
+
+---
+
+## Additional information
+
+For some useful methods to register at the service catalog/update information, look at the Device Catalog and Device Connector code.
