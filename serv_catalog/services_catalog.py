@@ -415,6 +415,24 @@ class ServicesCatalogWebService():
 
         self.my_info = self.catalog.getServCatInfo()
 
+        ###### Initialize IDs for each element 
+        # NOTE: the ID the services cat stores are the next ones that need to be assigned
+
+        # USER ID
+        self._next_userID = 1
+        for usr in self.catalog.getUsers():
+            self._next_userID = usr["id"] + 1
+        
+        # GREENHOUSE ID
+        self._next_ghID = 1
+        for gh in self.catalog.getGreenhouses():
+            self._next_ghID = gh["id"] + 1
+
+        # SERVICE ID
+        self._next_servID = 1
+        for serv in self.catalog.getServices():
+            self._next_servID = serv["id"] + 1
+
     def GET(self, *uri, **params):
 
         # Potential issue (2): when retrieving users, greenhouses or services, the returned
@@ -494,10 +512,31 @@ class ServicesCatalogWebService():
                     elif s_obj is not None:
                         # Object was understood but not found
                         raise cherrypy.HTTPError(404, f"Service {s_obj} not found")
-                
+
                 # Missing required params
                 else:
                     raise cherrypy.HTTPError(400, "Missing/wrong parameters")
+
+            elif (str(uri[0]) == "new_user_id"):
+                # Return next ID:
+                out = {}
+                out["id"] = self._next_userID
+                self._next_userID += 1
+                return json.dumps(out)
+            
+            elif (str(uri[0]) == "new_greenhouse_id"):
+                # Return next greenhouse ID:
+                out = {}
+                out["id"] = self._next_ghID
+                self._next_ghID += 1
+                return json.dumps(out)
+            
+            elif (str(uri[0]) == "new_serv_id"):
+                # Return next ID:
+                out = {}
+                out["id"] = self._next_servID
+                self._next_servID += 1
+                return json.dumps(out)
 
         else:       # Default case
             return "Available commands: " + json.dumps(self.API["methods"][0])
