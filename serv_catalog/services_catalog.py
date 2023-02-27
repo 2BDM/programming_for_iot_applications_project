@@ -410,7 +410,8 @@ class ServicesCatalogWebService():
         self.catalog = ServicesCatalog(catalog_path, output_cat_path)
         self.msg_ok = {"status": "SUCCESS", "msg": ""}
         self.msg_ko = {"status": "FAILURE", "msg": ""}
-        self.timeout = 120          # seconds
+        self._dev_cat_timeout = 120          # seconds
+        self._user_gh_timeout = 30*24*60*60          # seconds
 
         self.my_info = self.catalog.getServCatInfo()
 
@@ -631,10 +632,10 @@ class ServicesCatalogWebService():
         ## Check for old records (> 2 min)
         curr_time = time.time()
 
-        rem_d = self.catalog.cleanDevCat(curr_time, self.timeout)
-        rem_u = self.catalog.cleanUsers(curr_time, self.timeout)
-        rem_gh = self.catalog.cleanGreenhouses(curr_time, self.timeout)
-        rem_s = self.catalog.cleanServices(curr_time, self.timeout)
+        rem_d = self.catalog.cleanDevCat(curr_time, self._dev_cat_timeout)
+        rem_u = self.catalog.cleanUsers(curr_time, self._dev_cat_timeout)
+        rem_gh = self.catalog.cleanGreenhouses(curr_time, self._dev_cat_timeout)
+        rem_s = self.catalog.cleanServices(curr_time, self._dev_cat_timeout)
         
         if rem_d > 0 or rem_u > 0 or rem_gh > 0 or rem_s > 0:
             self.catalog.saveAsJson()
