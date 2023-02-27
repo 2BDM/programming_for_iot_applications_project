@@ -155,12 +155,12 @@ class DeviceCatalogWebService():
 
     exposed = True
 
-    def __init__(self, catalog_path, serv_catalog_info="serv_cat_info.json", cmd_list_cat="cmd_list.json", output_cat_path="dev_catalog_updated.json"):
+    def __init__(self, catalog_path, serv_catalog_info="serv_cat_info.json", cmd_list_cat="cmd_list.json", output_cat_path="dev_catalog_updated.json", dev_timeout=120):
         self.API = json.load(open(cmd_list_cat))
         self.catalog = DeviceCatalog(in_path=catalog_path, out_path=output_cat_path)
         self.msg_ok = {"status": "SUCCESS", "msg": ""}
         self.msg_ko = {"status": "FAILURE", "msg": ""}
-        self.timeout = 60          # seconds
+        self.timeout = dev_timeout          # seconds - device info timeout
         
         # Used for choosing when to try again to make POST to service catalog
         self.serv_timeout = 60
@@ -181,7 +181,7 @@ class DeviceCatalogWebService():
         
         # Register at the catalog
         self._registered_at_catalog = False
-        self.registerAtCatalog()
+        self.registerAtServiceCatalog()
     
         
     def GET(self, *uri, **params):
@@ -268,10 +268,9 @@ class DeviceCatalogWebService():
 
         if rem_d > 0:
             self.catalog.saveAsJson()
+            print(f"\n%%%%%%%%%%%%%%%%%%%%\nRemoved {rem_d} device(s)\n%%%%%%%%%%%%%%%%%%%%\n")
 
-        print(f"\n%%%%%%%%%%%%%%%%%%%%\nRemoved {rem_d} device(s)\n%%%%%%%%%%%%%%%%%%%%\n")
-
-    def registerAtCatalog(self):
+    def registerAtServiceCatalog(self, max_tries=10):
         """
         This method is used to register the device catalog information
         on the service catalog.
@@ -279,9 +278,8 @@ class DeviceCatalogWebService():
         Return values:
         - 1: registration successful
         - -1: information was already present - update was performed
-        - 0: update failed (unreachable server)
+        - 0: failed to add (unreachable server)
         """
-        max_tries = 10
         tries = 0
         while not self._registered_at_catalog and tries < max_tries:
             try:
@@ -314,7 +312,7 @@ class DeviceCatalogWebService():
             print("Maximum number of tries exceeded - server unreachable!")
             return 0
 
-    def updateServiceCatalog(self):
+    def updateServiceCatalog(self, max_tries=10):
         """
         This ethod is used to update the information of the device catalog 
         at the services catalog.
@@ -330,7 +328,6 @@ class DeviceCatalogWebService():
 
         updated = False
         count_fail = 0
-        max_tries = 10
 
         while not updated and count_fail < max_tries:
             try:
@@ -346,7 +343,7 @@ class DeviceCatalogWebService():
                     print("Unable to update information at the service catalog ---> trying to register")
                     count_fail += 1
                     self._registered_at_catalog = False
-                    self.registerAtCatalog()
+                    self.registerAtServiceCatalog()
                     if self._registered_at_catalog:
                         updated = True
                         return -1
@@ -405,4 +402,7 @@ if __name__ == "__main__":
     cherrypy.config.update({'server.socket_host': WebService.getMyIP()})
     cherrypy.config.update({'server.socket_port': WebService.getMyPort()})
     cherrypy.engine.start()
-    WebService.startOperation(30)
+    try:
+        WebService.startOperation(30)
+    except KeyboardInterrupt:
+        cherrypy.engine.stop()
