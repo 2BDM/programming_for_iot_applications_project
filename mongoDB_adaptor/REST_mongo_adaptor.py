@@ -96,14 +96,19 @@ class adaptor_mongo_interface(object):
         tries = 0
         # TODO --> ask for new ID
         if not self.own_ID:
-            pass
+            try:
+                id = requests.get(self.addr_ser_cat + "/new_serv_id")
+                self.conf_dict["id"]=id
+            except:
+                print("Connection not establish - no id retrieved")
+                    
         # I'm preparing the dictionary to send to the service catalog
         tmpDict = self.conf_dict["mongo_db"]
         tmpdetails = tmpDict["endpoints_details"][0]
         tmpdetails.pop('ip')
         tmpdetails.pop('port')
         tmpDict["endpoints_details"]=tmpdetails
-        print(js.dumps(tmpDict))
+ 
         if self.addr_ser_cat != {}:
             addr = self.addr_ser_cat + "/service"
             while tries <= max_tries and not self._registered_dev_cat:  
@@ -151,8 +156,6 @@ if __name__ == "__main__":
     cherrypy.tree.mount(webService, '/', conf)
     #cherrypy.config.update({'server.socket_host': webService.getIP()})
     cherrypy.config.update({'server.socket_port': webService.getPort()})
-    
-     ############### Start operation ###############
 
     ok = False
     max_iter_init = 10
@@ -169,7 +172,7 @@ if __name__ == "__main__":
         if iter_init >= max_iter_init:
             # If too many tries - wait some time, then retry
             iter_init = 0
-            time.sleep(1)
+            time.sleep(10)
         
     cherrypy.engine.start()
     cherrypy.engine.block()
