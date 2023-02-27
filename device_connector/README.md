@@ -7,6 +7,8 @@ This folder contains the main program, which runs the device connector for the r
 The device connector consists in a program which on one side interfaces with the sensors and actuators to either publish MQTT messages or react to them, on the other must interface with the registry system (service and device catalog) to always keep the information updated.
 The device connector also acts as HTTP server, by advertising the GET method, through which it is possible to retrieve the last valid measurements for any quantity and sensor.
 
+The device connector ID is not user-defined (despite the 'id' field being present in the initial device info). The first time, before registering to the device catalog, the connector will request a new (available) ID and use that one.
+
 ---
 
 ## REST API
