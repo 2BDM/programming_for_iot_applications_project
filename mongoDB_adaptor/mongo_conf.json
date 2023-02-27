@@ -1,0 +1,30 @@
+{
+	"project_name": "Smart greenhouse",
+    "project_owner": "2BDM",
+    "services_catalog": {
+        "ip": "100.127.117.69",
+        "port": 2222,
+        "methods": [
+            "GET",
+            "PUT",
+            "POST"
+        ]
+    },
+	"mongo_db": {
+        "id": '',
+        "endpoints": [
+            "REST"
+        ],
+        "endpoints_details": [
+            {
+                "endpoint": "REST",
+                "ip": "100.70.41.23",
+                "port": 8282,
+                "methods": [
+                    "GET"
+                ]
+            }
+        ]
+		url_database:
+    }
+}
