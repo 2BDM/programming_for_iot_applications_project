@@ -167,8 +167,6 @@ class DeviceCatalogWebService():
 
         # Next device ID:
         self._next_devID = 1
-        for dev in self.catalog.getDevices():
-            self._next_devID = dev['id'] + 1
 
         self.my_info = self.catalog.getDevCatInfo()
         print(f"I am {self.my_info}")
@@ -212,6 +210,7 @@ class DeviceCatalogWebService():
                 else:
                     raise cherrypy.HTTPError(400, f"Missing/wrong parameters")
             elif (str(uri[0]) == "new_id"):
+                self.checkUnusedID()
                 out = {}
                 out["id"] = self._next_devID
                 self._next_devID += 1
@@ -383,6 +382,21 @@ class DeviceCatalogWebService():
 
     def getMyPort(self):
         return self.my_info["port"]
+
+    def checkUnusedID(self):
+        """
+        Used to verify the current 'next id' is not taken already
+        """
+        # self._next_devID
+
+        # Get list of currently used IDs:
+        ids = []
+
+        for dev in self.catalog.getDevices():
+            ids.append(dev['id'])
+        
+        while self._next_devID in ids:
+            self._next_devID += 1
 
 #
 #

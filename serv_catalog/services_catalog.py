@@ -420,18 +420,12 @@ class ServicesCatalogWebService():
 
         # USER ID
         self._next_userID = 1
-        for usr in self.catalog.getUsers():
-            self._next_userID = usr["id"] + 1
         
         # GREENHOUSE ID
         self._next_ghID = 1
-        for gh in self.catalog.getGreenhouses():
-            self._next_ghID = gh["id"] + 1
 
         # SERVICE ID
         self._next_servID = 1
-        for serv in self.catalog.getServices():
-            self._next_servID = serv["id"] + 1
 
     def GET(self, *uri, **params):
 
@@ -519,6 +513,7 @@ class ServicesCatalogWebService():
 
             elif (str(uri[0]) == "new_user_id"):
                 # Return next ID:
+                self.checkUnusedUserID()
                 out = {}
                 out["id"] = self._next_userID
                 self._next_userID += 1
@@ -526,6 +521,7 @@ class ServicesCatalogWebService():
             
             elif (str(uri[0]) == "new_greenhouse_id"):
                 # Return next greenhouse ID:
+                self.checkUnusedGreenhouseID()
                 out = {}
                 out["id"] = self._next_ghID
                 self._next_ghID += 1
@@ -533,6 +529,7 @@ class ServicesCatalogWebService():
             
             elif (str(uri[0]) == "new_serv_id"):
                 # Return next ID:
+                self.checkUnusedServiceID()
                 out = {}
                 out["id"] = self._next_servID
                 self._next_servID += 1
@@ -686,13 +683,56 @@ class ServicesCatalogWebService():
             time.sleep(refresh_rate)
             self.cleanRecords()
 
-
     def getMyIP(self):
         return self.my_info["ip"]
 
     def getMyPort(self):
         return self.my_info["port"]
 
+    def checkUnusedUserID(self):
+        """
+        Used to verify the current 'next user id' is not taken already
+        """
+        # self._next_devID
+
+        # Get list of currently used IDs:
+        ids = []
+
+        for dev in self.catalog.getUsers():
+            ids.append(dev['id'])
+        
+        while self._next_userID in ids:
+            self._next_userID += 1
+
+    def checkUnusedGreenhouseID(self):
+        """
+        Used to verify the current 'next greenhouse id' is not taken already
+        """
+        # self._next_devID
+
+        # Get list of currently used IDs:
+        ids = []
+
+        for dev in self.catalog.getGreenhouses():
+            ids.append(dev['id'])
+        
+        while self._next_ghID in ids:
+            self._next_ghID += 1
+
+    def checkUnusedServiceID(self):
+        """
+        Used to verify the current 'next service id' is not taken already
+        """
+        # self._next_devID
+
+        # Get list of currently used IDs:
+        ids = []
+
+        for dev in self.catalog.getServices():
+            ids.append(dev['id'])
+        
+        while self._next_servID in ids:
+            self._next_servID += 1
 #
 #
 #
