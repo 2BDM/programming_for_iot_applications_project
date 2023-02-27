@@ -25,10 +25,10 @@ class adaptor_mongo_interface(object):
     # and not the full information. So, you should make two requests.                           #
     #############################################################################################
     
-    def __init__(self,conf_file):
+    def __init__(self,conf_file,own_ID = False):
         self._registered_dev_cat = False
-        f = open(conf_file,'r')
-        self.conf_dict = js.load(f)
+        self.own_ID = own_ID
+        self.conf_dict = js.load(open(conf_file))
         # information of service catalog
         self.addr_ser_cat = "http://" + self.conf_dict["services_catalog"]["ip"] + ":" + str(self.conf_dict["services_catalog"]["port"])
         
@@ -88,13 +88,12 @@ class adaptor_mongo_interface(object):
         if params['coll'] == "weather":
             self.mongoW.insert_one_dict(newDataDict)
             
-    def askID(self,tries):
-        
     
     def registerAtServCat(self,tries):
         tries = 0
-        # TODO --> control if the id is present. If not ask for it
-        
+        # TODO --> ask for new ID
+        if not self.own_ID:
+            pass
         # I'm preparing the dictionary to send to the service catalog
         tmpDict = self.conf_dict["mongo_db"]
         tmpDict.pop("ip",None)
@@ -144,7 +143,7 @@ if __name__ == "__main__":
             'tool.session.on': True
         }
     }
-    webService = adaptor_mongo_interface()
+    webService = adaptor_mongo_interface("mongo_conf.json", True)
     cherrypy.tree.mount(webService, '/', conf)
     cherrypy.config.update({'server.socket_host': webService.getIP()})
     cherrypy.config.update({'server.socket_port': webService.getPort()})
