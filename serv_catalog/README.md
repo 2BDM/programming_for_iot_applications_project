@@ -136,3 +136,53 @@ Below are listed the **possible HTTP response codes** associated with each reque
   * 400: unable to update element
 
 Whenever other status code are returned, especially in the case of 500, it means it was not possible to reach the server/*other things* went wrong.
+
+---
+
+## Requests
+
+These are the possible request formats.
+
+### GET
+
+If the element is not found, error code 404. If the parameter is wrong (when searching by ID or name), the code is 400.
+
+* `/projectInfo`: returns the string containing the name of the project and the owner.
+* `/broker`: get the json containing the broker information.
+* `/telegram`: get the json containing the Telegram information.
+* `/device_catalog`: get the json containing the device catalog information.
+* `/users`: get full list of user jsons.
+* `/user?id=...`: get the information about the user given the ID.
+* `/greenhouses`: get full list of greenhouses jsons.
+* `/greenhouse?id=...`: get greenhouse, having specified the ID.
+* `/services`: get list of services.
+* `/service?id=...`: get service, specified the ID.
+* `/service?name=...`:  get service, specified the name (all lowercases and ' ' replaced by '_')
+
+If nothing else is specified, then a list of commands is specified.
+
+### POST
+
+If the post was successful (was able to create record), the code is 201, if it was not possible to add the record, the code is 400 (it can mean that the record already exists).
+
+When adding jsons, the program checks for all the fields to be present.
+
+* `/device_catalog` + json in body: add device catalog info.
+* `/user` + json in body: add user info.
+* `/greenhouse` + json in body: add greenhouse info.
+* `/service` + json in body: add service information.
+
+### PUT
+
+If the update is successful, the response code is 200, else, the code is 400.
+
+* `/device_catalog` + json in body: update device catalog info.
+* `/user` + json in body: update user info.
+* `/greenhouse` + json in body: update greenhouse info.
+* `/service` + json in body: update service information.
+
+---
+
+## Additional information
+
+For some useful methods to register at the service catalog/update information, look at the Device Catalog and Device Connector code.

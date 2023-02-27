@@ -18,6 +18,8 @@ The constructor of this class requires:
 
 ### List of available methods
 
+Below is a list of methods for the DeviceCatalog class. Notice that this is not the class used as web service.
+
 * *saveAsJson*: stores the current catalog as a JSON file at the specified location (given at instantiation)
 
 #### **Getters**
@@ -85,6 +87,47 @@ The following is the structure of the device catalog JSON file
 The timestamps (`last_update`) follow this syntax:
 
     %Y-%m-%d %H:%M:%S
+
+## Device Catalog - Web service
+
+The DeviceCatalog class is used to create the web service which is used to allow device registration.
+
+### REST methods
+
+If the path is not specified, the program will return a list of supported operations.
+
+#### GET
+
+If found, response code is 200, if not, 404 and if wrong parameters are passed in the URI, the code is 400.
+
+* `/devices`: return the full list containing all registered devices
+* `/device?id=...`: return the device given the specified ID, if found.
+* `/device?name=...`: return the device given the specified name, if found.
+
+#### POST
+
+Method used to add new devices (not previously registered).
+The response code is 201 if the device was correctly added, else it is 400 (for any reason - may be that the device already exists).
+
+* `/device` + json in body: used to add a new device.
+
+#### PUT
+
+Method used to update devices (must be previously registered).
+The response code is 200 if the device was correctly updated, else it is 400 (for any reason - may be that the device has not already been added).
+
+* `/device` + json in body: used to update a new device.
+
+### Other methods
+
+The following methods are used in general to perform the operations which the catalog needs to do without being triggered by a HTTP request.
+
+* `cleanRecords`: performs cleanup, by deleting devices older than the timeout (120s, by default). It prints on the standard output the number of devices it removes everytime it is called, if the number is > 0.
+* `registerAtServiceCatalog`: performs registration at the service catalog. It returns 1 if the registration was successful, -1 if the information was already present (**an update is performed** by means of `updateServiceCatalog`) or 0 if it was not possible to add the information (server is unreachable).
+* `updateServiceCatalog`: it is used to perform a PUT request on the service catalog to update the information. It returns 1 if the update was successful, -1 if it was needed to register (useful if the device catalog crashes and it is needed to register again) or 0 if it was not possible to reach the service catalog server.
+* `startOperation`: used to launch the loop for the operation of the device catalog. Periodically (every 'refresh_rate') the program cleans the records and updates its info at the device catalog.
+* `getMyIP`: used to retrieve its own IP address.
+* `getMyPort`: used to retrieve its own port number.
 
 ## Working principle
 
