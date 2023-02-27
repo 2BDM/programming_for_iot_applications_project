@@ -24,24 +24,36 @@ class adaptor_mongo_interface(object):
     # All the requests (except for the ID) return N records of type [{"_id":id},{"name":name}]  #
     # and not the full information. So, you should make two requests.                           #
     #############################################################################################
+    
     def __init__(self,conf_file):
+        self._registered_dev_cat = False
         f = open(conf_file,'r')
         self.conf_dict = js.load(f)
         # information of service catalog
         self.addr_ser_cat = "http://" + self.conf_dict["services_catalog"]["ip"] + ":" + str(self.conf_dict["services_catalog"]["port"])
         
         # information of mongoDB
-        self.port = self.dict["mongoDB"]["endpoints_details"]["port"]
-        self.ip = self.dict["mongoDB"]["endpoints_details"]["ip"]
+        self.port = self.conf_dict["mongo_db"]["endpoints_details"]["port"]
+        self.ip = self.conf_dict["mongo_db"]["endpoints_details"]["ip"]
         self.addr = "http://" + str(self.ip) + ":" + str(self.port)
-        url = "mongodb+srv://2BDM:Gruppo17@2bdm.bxvbkre.mongodb.net/"
-        self.mongoP = mDB.mongoAdaptor(url,"IOT_project","plants")
-        self.mongoW = mDB.mongoAdaptor(url,"IOT_project","weather")
+        
+        #information of database
+        url = self.conf_dict["url_database"]
+        database_name = self.conf_dict["database_name"]
+        coll1_name = self.conf_dict["mongo_db"]["collections"][0]
+        coll2_name = self.conf_dict["mongo_db"]["collections"][1]
+        self.mongoP = mDB.mongoAdaptor(url,database_name,coll1_name)
+        self.mongoW = mDB.mongoAdaptor(url,database_name,coll2_name)
     
+    def getPort(self):
+        return self.port
+    
+    def getIP(self):
+        return self.ip
     
     def GET(self, *uri, **params):
         value = params.keys()
-        if params['coll']=="plants":
+        if params['coll']==coll1_name:
             if "id" in value:
                 return self.mongoP.find_by_id(int(params['id']))
             
@@ -62,7 +74,7 @@ class adaptor_mongo_interface(object):
             
             elif "moisture" in value and "N" in value:
                 return self.mongoP.find_by_moisture(int(params['moisture']),int(params['N']))
-        elif params['coll']=="weather":
+        elif params['coll']==coll2_name:
             if "date" in value:
                 return self.mongoW.find_by_timestamp(str(params['date']))
             elif "min_date" in value and "max_date" in value:
@@ -75,7 +87,53 @@ class adaptor_mongo_interface(object):
         newDataDict = js.loads(bodyAsString)
         if params['coll'] == "weather":
             self.mongoW.insert_one_dict(newDataDict)
+            
+    def askID(self,tries):
         
+    
+    def registerAtServCat(self,tries):
+        tries = 0
+        # TODO --> control if the id is present. If not ask for it
+        
+        # I'm preparing the dictionary to send to the service catalog
+        tmpDict = self.conf_dict["mongo_db"]
+        tmpDict.pop("ip",None)
+        tmpDict.pop("port",None)
+        
+        if self.addr_ser_cat != {}:
+            addr = addr_dev_cat + "/service"
+            while tries <= max_tries and not self._registered_dev_cat:  
+                try:
+                    r = requests.post(addr, data=json.dumps(tmpDict))
+                    if r.ok:
+                        # self.dev_cat_info = r.json()
+                        self._registered_dev_cat = True
+                        print("Registered!")
+                    elif r.status_code == 400:
+                        print("Device was already registered!\n↓")
+                        self._registered_dev_cat = True
+                        if self.updateDevCat() == 1:
+                            return 1
+                        else:
+                            print("Unable to update info")
+                    else:
+                        print(f"Error {r.status_code} - unable to update device information on device catalog")
+                    tries += 1
+                    time.sleep(3)
+                except:
+                    print("Tried to register at device catalog - failed to establish a connection!")
+                    tries += 1
+                    time.sleep(3)
+            
+            if self._registered_dev_cat:
+                # Success
+                return 1
+            else:
+                # Not registered
+                return 0
+        else: 
+            print("Missing information on service catalog!")
+            return -1
 
 
 if __name__ == "__main__":
@@ -88,6 +146,28 @@ if __name__ == "__main__":
     }
     webService = adaptor_mongo_interface()
     cherrypy.tree.mount(webService, '/', conf)
-    cherrypy.config.update({'server.socket_port': webService.})
+    cherrypy.config.update({'server.socket_host': webService.getIP()})
+    cherrypy.config.update({'server.socket_port': webService.getPort()})
+    
+     ############### Start operation ###############
+
+    ok = False
+    max_iter_init = 10
+    iter_init = 0
+
+    while not ok:
+        init_status = webService.registerAtServCat(max_tries=100)
+
+        if init_status == 1:
+            # Correctly registered
+            ok = True
+        elif init_status == 0:
+            iter_init += 1
+
+        if iter_init >= max_iter_init:
+            # If too many tries - wait some time, then retry
+            iter_init = 0
+            time.sleep(10)
+        
     cherrypy.engine.start()
     cherrypy.engine.block()

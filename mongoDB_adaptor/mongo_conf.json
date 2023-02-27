@@ -12,6 +12,7 @@
     },
 	"mongo_db": {
         "id": '',
+		"name": "mongoDB"
         "endpoints": [
             "REST"
         ],
@@ -20,11 +21,14 @@
                 "endpoint": "REST",
                 "ip": "100.70.41.23",
                 "port": 8282,
-                "methods": [
-                    "GET"
-                ]
+				"address":"http://100.70.41.23:8282"
             }
         ]
-		url_database:
+		"url_database": "mongodb+srv://2BDM:Gruppo17@2bdm.bxvbkre.mongodb.net/"
+		"database_name": "IOT_project"
+		"collections": [
+			"plants",
+			"weather"
+		]
     }
 }
