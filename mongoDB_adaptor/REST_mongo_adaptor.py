@@ -6,21 +6,24 @@ class adaptor_mongo_interface(object):
     exposed = True
     
     
-    #####################################################################################
-    # In this method each case is identified by different parameters:                   #
-    # - coll            --> to select the right collection                              #
-    #   - coll = "plants"                                                               #
-    #           - id                      --> to search by id                           #
-    #           - min_size, max_size, N   --> to search by size                         #
-    #           - category, N             --> to search by category                     #
-    #           - temperature, N          --> to search by temperature                  #
-    #           - humidity, N             --> to search by value of humidity            #
-    #           - lux, N                  --> to search by the value of light           #
-    #           - moisture, N             --> to search by moisture                     #
-    #   - coll = "weeather"                                                             #
-    #           - date                    --> to search by a specific date              #
-    #           - min_date, max_date      --> to search records in a interval of dates  #
-    #####################################################################################
+    #############################################################################################
+    # In this method each case is identified by different parameters:                           #
+    # - coll            --> to select the right collection                                      #
+    #   - coll = "plants"                                                                       #
+    #           - id                      --> to search by id                                   #
+    #           - min_size, max_size, N   --> to search by size                                 #
+    #           - category, N             --> to search by category                             #
+    #           - temperature, N          --> to search by temperature                          #
+    #           - humidity, N             --> to search by value of humidity                    #
+    #           - lux, N                  --> to search by the value of light                   #
+    #           - moisture, N             --> to search by moisture                             #
+    #   - coll = "weather"                                                                      #
+    #           - date                    --> to search by a specific date                      #
+    #           - min_date, max_date      --> to search records in a interval of dates          #
+    # VERY IMPORTANT:                                                                           #
+    # All the requests (except for the ID) return N records of type [{"_id":id},{"name":name}]  #
+    # and not the full information. So, you should make two requests.                           #
+    #############################################################################################
     def __init__(self):
         url = "mongodb+srv://2BDM:Gruppo17@2bdm.bxvbkre.mongodb.net/"
         self.mongoP = mDB.mongoAdaptor(url,"IOT_project","plants")
