@@ -47,7 +47,7 @@ class DevConn:
     - dev_cat_timeout: timeout period for the device catalog information.
     - _registered_dev_cat: flag indicating whether the device is registered 
     at the device catalog
-    - last_meas: list of sub-lists containing all the llast good measureents 
+    - last_meas: list of sub-lists containing all the last good measureents 
     from each sensor
     - dev_agents_sens: list of device agents for the sensors
     - dev_agent_ind_sens: dictionary to map the device ID to the associated 
@@ -93,6 +93,8 @@ class DevConn:
         self.dev_cat_timestamp = 0
         self.dev_cat_timeout = 120 #s
         self._registered_dev_cat = False
+
+        self._id_assigned = False       # To be set to True iff the new ID was retrieved from device catalog (register)
 
         # Read all available sensors from the 'whoami' dict, initialize suitable
         # device agents
@@ -585,6 +587,28 @@ class DevConn:
         tries = 0
         if self.dev_cat_info != {}:
             addr_dev_cat = "http://" + self.dev_cat_info["ip"] + ":" + str(self.dev_cat_info["port"])
+            
+            # Get ID
+            if not self._id_assigned:
+                id_addr = addr_dev_cat + "/new_id"
+
+                t = 0
+                while t <= max_tries and not self._id_assigned:
+                    
+                    try:
+                        r_id = requests.get(id_addr)
+
+                        if r_id.ok:
+                            myID = r_id.json['id']
+                            self.whoami['id'] = myID
+                            self._id_assigned = True
+                        else:
+                            print(f"Error {r_id.status_code} - unable to get ID")
+                    except:
+                        print("Tried to request ID - failed to establish a connection")
+                    
+                    time.sleep(3)
+            
             addr = addr_dev_cat + "/device"
             while tries <= max_tries and not self._registered_dev_cat:  
                 try:
