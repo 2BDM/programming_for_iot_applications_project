@@ -1,15 +1,6 @@
 import numpy as np
 import pandas as pd
 import random
-
-from sklearn.neural_network import MLPClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
-from sklearn.gaussian_process import GaussianProcessClassifier
-from sklearn.gaussian_process.kernels import RBF
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
-from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 
 """
@@ -17,130 +8,50 @@ This program is used to make weather prediction using the sensor data and having
 as training set the historical data about the weather
 """
 
-# TODO: use a classifier on the "target" values.
-# TODO: try to find a way to only use the seasonal information as training set
-# TODO: to perform validation, shuffle the data
-
 ## It may be that, by not shuffling, the model can pick up patterns 
 # better among the data - will need to check
 
-
-
-def bar2mb_sealevel(val_bar):
-    """
-    (Trivial) conversion from bar to millibar w.r.t. sea level atmospheric pressure
-    """
-    return (1000*val_bar) - 1013.25
-
-
 #######################################################################################
-# Backtesting
-
-def backtest(weather, model, regressors, start=550, step=90):
-    """
-    This function is used to perform cross-validation on 
-    time series (cannot use future data to predict past one...)
-    """
-    all_predictions = []
-
-    for i in range(start,  weather.shape[0], step):
-        train = weather.iloc[:i, :]
-        test = weather.iloc[i:(i+step), :]
-
-        model.fit(train[regressors], train["target"])
-
-        preds = model.predict(test[regressors])
-
-        preds = pd.Series(preds, index=test.index)
-        combined = pd.concat([test["target"], preds], axis=1)
-
-        combined.columns = ["actual", "prediction"]
-        combined["diff"] = (combined["prediction"] - combined["actual"]).abs()
-
-        all_predictions.append(combined)
-
-    return pd.concat(all_predictions)
-
-# predictions_backtested = backtest(weather_df, rfc, regressors)
-# print(predictions_backtested)
-
-# # Accuracy
-# miss = predictions_backtested['diff'].sum()/len(predictions_backtested.index)
-# acc = 1 - miss
-
-# print("Accuracy (backtesting) with random forest: ", acc)
-
-### COMMENTS
-# The accuracy is basically the same for the 2-class classifier, meaning backtesting is not
-# fundamental (probably)
 
 ### TODO: create one classifier per season
 # May need much more data...
 
-"""
-winter_df = train_set.loc[weather_df["STAGIONE"] == "winter"]
-winter_rfc = QuadraticDiscriminantAnalysis().fit(winter_df[regressors], winter_df["target"])
-
-spring_df = train_set.loc[weather_df["STAGIONE"] == "spring"]
-spring_rfc = QuadraticDiscriminantAnalysis().fit(spring_df[regressors], spring_df["target"])
-
-summer_df = train_set.loc[weather_df["STAGIONE"] == "summer"]
-summer_rfc = QuadraticDiscriminantAnalysis().fit(summer_df[regressors], summer_df["target"])
-
-fall_df = train_set.loc[weather_df["STAGIONE"] == "fall"]
-fall_rfc = QuadraticDiscriminantAnalysis().fit(fall_df[regressors], fall_df["target"])
-
-models_seasons = [winter_rfc, spring_rfc, summer_rfc, fall_rfc]
-
-def testBySeason(test_elem):
-    season_test = test_elem["STAGIONE"]
-    test_elem = test_elem.drop("STAGIONE")
-
-    if season_test == "winter":
-        pred = models_seasons[0].predict(test_elem.values.reshape(1, -1))
-    elif season_test == "spring":
-        pred = models_seasons[1].predict(test_elem.values.reshape(1, -1))
-    elif season_test == "summer":
-        pred = models_seasons[2].predict(test_elem.values.reshape(1, -1))
-    elif season_test == "fall":
-        pred = models_seasons[3].predict(test_elem.values.reshape(1, -1))
-
-    return pred
-
-test_set = test_set.reset_index()
-
-reg_new = weather_df.columns[~weather_df.columns.isin(["target", "LOCALITA"])]
-
-test_set_out = test_set[reg_new].apply(testBySeason, axis=1)
-
-compare = pd.concat([test_set["target"], test_set_out], axis=1)
-compare.columns = ["actual", "predicted"]
-
-print(compare)
-
-acc_seasons = (compare["actual"] == compare["predicted"]).sum()/n_test
-print(f"Accuracy with seasons: {acc_seasons}")
-
-################################################
-# Prediction of instant weather
-# Using
-
-"""
 ##########################################################################
 
-def futureRain(test_measurements, model=None):
-    """
-    Used to predict, season is a feature - test_measurements is a full DF of all test elements
-    """
+# TODO: add case model = None --> the model is evaluated on the 
+# historical data
+
+def futureRain(test_measurements, models_list=None):
+    curr_szn = test_measurements["STAGIONE"]
+    te_actual = test_measurements["target"]
     
-    pred_curr = model.predict(test_measurements)
+    test_nd = test_measurements.drop(["STAGIONE", "target"]).values.reshape(1, -1)
+
+    if curr_szn == "winter":
+        pred_curr = models_list[0].predict(test_nd)
+        return pred_curr
+    if curr_szn == "spring":
+        pred_curr = models_list[1].predict(test_nd)
+        return pred_curr
+    if curr_szn == "summer":
+        pred_curr = models_list[2].predict(test_nd)
+        return pred_curr
+    if curr_szn == "fall":
+        pred_curr = models_list[3].predict(test_nd)
+        return pred_curr
+    
+def futureRain_2(test_df, model=None):
+    """
+    Used to predict, season is a feature - test_measurements is 
+    a pd.Series object consisting in the tested element.
+
+    BEST FOR RAIN FORECASTING
+    """
+    pred_curr = model.predict(test_df.values.reshape(1, -1))
 
     pred_curr = pd.Series(pred_curr, index=["predicted"])
 
     return pred_curr
-    
-def futureRain_2(test_df, model):
-    pass
 
 def currWeather(test_measurements, models_list=None):
     """
@@ -151,6 +62,8 @@ def currWeather(test_measurements, models_list=None):
     'FENOMENI', 'STAGIONE'
 
     Accuracy: 0.821
+
+    BEST FOR CURRENT WEATHER PREDICTION
     """
     curr_szn = test_measurements["STAGIONE"]
     te_actual = test_measurements["FENOMENI"]
@@ -170,6 +83,16 @@ def currWeather(test_measurements, models_list=None):
         pred_curr = models_list[3].predict(test_nd)
         return pred_curr
 
+def currWeather_2(test_series, model=None):
+    """
+    Used to predict, season is a feature - test_measurements is 
+    a pd.Series object consisting in the tested element.
+    """
+    pred_curr = model.predict(test_series.values.reshape(1, -1))
+
+    pred_curr = pd.Series(pred_curr, index=["predicted"])
+
+    return pred_curr
 
 ##########################################################################
 
@@ -246,6 +169,38 @@ if __name__ == "__main__":
     print(f"Accuracy on current values (current weather prediction): {acc_te_1}")
 
 
+    # Use the season as an additional feature
+    attr_2 = tr_set_1.columns[~(tr_set_1.columns.isin(["FENOMENI", "STAGIONE"]))]
+
+    # Apply mapping on seasons:
+    mapping = {
+        'winter': 0,
+        'spring': 1,
+        'summer': 2,
+        'fall': 3
+    }
+
+    tr_set_1["STAGIONE_index"] = tr_set_1.loc[:, "STAGIONE"].map(mapping)
+
+    mod_1a = QuadraticDiscriminantAnalysis().fit(tr_set_1[attr_2].values, tr_set_1['FENOMENI'].values)
+
+    te_pred_1a = np.zeros((n_test, ))
+    te_label_1a = te_set_1["FENOMENI"].values
+    te_set_1a = te_set_1.copy()
+    te_set_1a["STAGIONE_index"] = te_set_1a.loc[:, "STAGIONE"].map(mapping)
+    te_set_1a = te_set_1a[attr_2]
+
+    for i in range(n_test):
+        curr_row = te_set_1a.iloc[i]
+
+        curr_pred = currWeather_2(curr_row, mod_1a)
+        
+        te_pred_1a[i] = curr_pred
+        
+    acc_te_1a = (te_pred_1a == te_label_1a).sum()/n_test    
+
+    print(f"Accuracy with season as a feature - current weather: {acc_te_1a}")
+
     ############### Future rain prediction:
     # Add 'target' column, to include the label to be predicted - i.e., the next day's precipitations
     # ---> Need to 'fill' the last element, which is NaN
@@ -285,9 +240,35 @@ if __name__ == "__main__":
 
     print(f"Accuracy on current values (future rain forecasting, by season): {acc_te_2}")
 
-    attr_2 = tr_set_2.columns[~(tr_set_2.columns.isin('target'))]
-    mod_2 = QuadraticDiscriminantAnalysis().fit(tr_set_2[attr_2], tr_set_2['target'])
+    attr_2 = tr_set_2.columns[~(tr_set_2.columns.isin(['target', "STAGIONE"]))]
 
-    
+    # Apply mapping on seasons:
+    mapping = {
+        'winter': 0,
+        'spring': 1,
+        'summer': 2,
+        'fall': 3
+    }
+
+    tr_set_2["STAGIONE_index"] = tr_set_2.loc[:, "STAGIONE"].map(mapping)
+
+    mod_2 = QuadraticDiscriminantAnalysis().fit(tr_set_2[attr_2].values, tr_set_2['target'].values)
+
+    te_pred_2a = np.zeros((n_test, ))
+    te_label_2a = te_set_2["target"].values
+    te_set_2a = te_set_2.copy()
+    te_set_2a["STAGIONE_index"] = te_set_2a.loc[:, "STAGIONE"].map(mapping)
+    te_set_2a = te_set_2a[attr_2]
+
+    for i in range(n_test):
+        curr_row = te_set_2a.iloc[i]
+
+        curr_pred = futureRain_2(curr_row, mod_2)
+        
+        te_pred_2a[i] = curr_pred
+        
+    acc_te_2a = (te_pred_2a == te_label_2a).sum()/n_test    
+
+    print(f"Accuracy with season as a feature - rain forecast: {acc_te_2a}")
     
 
