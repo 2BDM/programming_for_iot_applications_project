@@ -10,7 +10,7 @@ def make_json(csvFilePaths, outPath):
     for file in csvFilePaths:
         df_in = pd.read_csv(file, sep=";")
         
-        df_in = df_in.drop(columns=["LOCALITA", "PUNTORUGIADA °C", "VISIBILITA km",\
+        df_in = df_in.drop(columns=["PUNTORUGIADA °C", "VISIBILITA km",\
             "VENTOMEDIA km/h", "VENTOMAX km/h", "RAFFICA km/h", \
                 "PRESSIONEMEDIA mb", "PIOGGIA mm"])
 
@@ -56,6 +56,18 @@ if __name__ == "__main__":
     out_path = "weather_train.csv"
 
     inputfilesList = [
+        "csv_ilMeteo/Torino-2019-01Gennaio.csv",
+        "csv_ilMeteo/Torino-2019-02Febbraio.csv",
+        "csv_ilMeteo/Torino-2019-03Marzo.csv",
+        "csv_ilMeteo/Torino-2019-04Aprile.csv",
+        "csv_ilMeteo/Torino-2019-05Maggio.csv",
+        "csv_ilMeteo/Torino-2019-06Giugno.csv",
+        "csv_ilMeteo/Torino-2019-07Luglio.csv",
+        "csv_ilMeteo/Torino-2019-08Agosto.csv",
+        "csv_ilMeteo/Torino-2019-09Settembre.csv",
+        "csv_ilMeteo/Torino-2019-10Ottobre.csv",
+        "csv_ilMeteo/Torino-2019-11Novembre.csv",
+        "csv_ilMeteo/Torino-2019-12Dicembre.csv",
         "csv_ilMeteo/Torino-2020-01Gennaio.csv",
         "csv_ilMeteo/Torino-2020-02Febbraio.csv",
         "csv_ilMeteo/Torino-2020-03Marzo.csv",
