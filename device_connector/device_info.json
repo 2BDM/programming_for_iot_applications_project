@@ -15,6 +15,7 @@
         },
         {
             "endpoint": "MQTT",
+            "bn": "RaspberryPi3_1",
             "topic": [
                 "smartGreenhouse/1"
             ]
