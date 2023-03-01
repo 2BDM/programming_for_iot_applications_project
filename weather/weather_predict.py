@@ -8,48 +8,51 @@ This program is used to make weather prediction using the sensor data and having
 as training set the historical data about the weather
 """
 
-## It may be that, by not shuffling, the model can pick up patterns 
-# better among the data - will need to check
-
 #######################################################################################
 
-### TODO: create one classifier per season
-# May need much more data...
+COLS_CURRENT = ['TMEDIA °C', 'TMIN °C', 'TMAX °C', 'UMIDITA %', 'PRESSIONESLM mb', 'STAGIONE']
+COLS_FUTURE = ['TMEDIA °C', 'TMIN °C', 'TMAX °C', 'UMIDITA %', 'PRESSIONESLM mb', 'STAGIONE', 'FENOMENI']
+SEASON2INDEX = {
+        'winter': 0,
+        'spring': 1,
+        'summer': 2,
+        'fall': 3
+    }
 
-##########################################################################
-
-# TODO: add case model = None --> the model is evaluated on the 
-# historical data
+#######################################################################################
+### Exported methods
+#######################################################################################
 
 def futureRain(test_measurements, models_list=None):
+    """
+    Perform estimation of future precipitations
+    """
     curr_szn = test_measurements["STAGIONE"]
-    te_actual = test_measurements["target"]
     
-    test_nd = test_measurements.drop(["STAGIONE", "target"]).values.reshape(1, -1)
+    test_nd = test_measurements.drop(["STAGIONE"]).values.reshape(1, -1)
 
-    if curr_szn == "winter":
+    if curr_szn == "winter" or curr_szn == 0:
         pred_curr = models_list[0].predict(test_nd)
         return pred_curr
-    if curr_szn == "spring":
+    if curr_szn == "spring" or curr_szn == 1:
         pred_curr = models_list[1].predict(test_nd)
         return pred_curr
-    if curr_szn == "summer":
+    if curr_szn == "summer" or curr_szn == 2:
         pred_curr = models_list[2].predict(test_nd)
         return pred_curr
-    if curr_szn == "fall":
+    if curr_szn == "fall" or curr_szn == 3:
         pred_curr = models_list[3].predict(test_nd)
         return pred_curr
     
-def futureRain_2(test_df, model=None):
+def futureRain_2(test_df, model=None, index="predicted"):
     """
     Used to predict, season is a feature - test_measurements is 
     a pd.Series object consisting in the tested element.
-
-    BEST FOR RAIN FORECASTING
+    The index name of the prediction is "predicted".
     """
     pred_curr = model.predict(test_df.values.reshape(1, -1))
 
-    pred_curr = pd.Series(pred_curr, index=["predicted"])
+    pred_curr = pd.Series(pred_curr, index=[index])
 
     return pred_curr
 
@@ -59,42 +62,43 @@ def currWeather(test_measurements, models_list=None):
 
     test_measurements: single Index (row) object containing the features: 
     'TMEDIA °C', 'TMIN °C', 'TMAX °C', 'UMIDITA %', 'PRESSIONESLM mb', 
-    'FENOMENI', 'STAGIONE'
+    'STAGIONE'
 
     Accuracy: 0.821
 
     BEST FOR CURRENT WEATHER PREDICTION
     """
     curr_szn = test_measurements["STAGIONE"]
-    te_actual = test_measurements["FENOMENI"]
+    # te_actual = test_measurements["FENOMENI"]         # --> Should not be present at testing
     
-    test_nd = test_measurements.drop(["STAGIONE", "FENOMENI"]).values.reshape(1, -1)
+    test_nd = test_measurements.drop(["STAGIONE"]).values.reshape(1, -1)
 
-    if curr_szn == "winter":
+    if curr_szn == "winter" or curr_szn == 0:
         pred_curr = models_list[0].predict(test_nd)
         return pred_curr
-    if curr_szn == "spring":
+    if curr_szn == "spring" or curr_szn == 1:
         pred_curr = models_list[1].predict(test_nd)
         return pred_curr
-    if curr_szn == "summer":
+    if curr_szn == "summer" or curr_szn == 2:
         pred_curr = models_list[2].predict(test_nd)
         return pred_curr
-    if curr_szn == "fall":
+    if curr_szn == "fall" or curr_szn == 3:
         pred_curr = models_list[3].predict(test_nd)
         return pred_curr
 
-def currWeather_2(test_series, model=None):
+def currWeather_2(test_series, model=None, index="predicted"):
     """
-    Used to predict, season is a feature - test_measurements is 
+    Used to predict, season is a feature - test_series is 
     a pd.Series object consisting in the tested element.
+    The index name is "predicted".
     """
     pred_curr = model.predict(test_series.values.reshape(1, -1))
 
-    pred_curr = pd.Series(pred_curr, index=["predicted"])
+    pred_curr = pd.Series(pred_curr, index=[index])
 
     return pred_curr
 
-##########################################################################
+#######################################################################################
 
 if __name__ == "__main__":
     tr_set_file = "weather_data/weather_train.csv"
@@ -108,10 +112,7 @@ if __name__ == "__main__":
 
     # 'LOCALITA', 'TMEDIA °C', 'TMIN °C', 'TMAX °C', 'UMIDITA %', 'PRESSIONESLM mb', 'FENOMENI', 'STAGIONE'
 
-    # Count missing values:
-    # print("Fraction of missing values: ", weather_df.isnull().sum()/len(weather_df.index))
-
-    # Since few missing, fill them
+    # Since few missing, fill them and drop location
     weather_df = weather_df.ffill().drop(columns=["LOCALITA"])
 
     # Stats
@@ -122,7 +123,7 @@ if __name__ == "__main__":
     print(f"Number of rain records: {n_rain}\nNumber of no rain: {n_no_rain}")
     print(f"Fraction of no rain: {n_no_rain/n_tot}")
     
-    ############### Current weather prediction
+    ############### Current weather prediction ########################################
     # Predict 'FENOMENI'
     # Based on values of "STAGIONE"
 
@@ -136,6 +137,7 @@ if __name__ == "__main__":
     n_train = round(0.75*n_tot)
     n_test = n_tot - n_train
 
+    # Split
     tr_set_1 = sh_weather.iloc[:n_train]
     te_set_1 = sh_weather.iloc[n_train:]
 
@@ -156,9 +158,10 @@ if __name__ == "__main__":
 
     te_pred_1 = np.zeros((n_test,))
     te_label_1 = te_set_1["FENOMENI"].values
+    te_val_1 = te_set_1.drop(columns=["FENOMENI"])
 
     for i in range(n_test):
-        curr_row = te_set_1.iloc[i]
+        curr_row = te_val_1.iloc[i]
 
         curr_pred = currWeather(curr_row, models_list_1)
         
@@ -168,26 +171,21 @@ if __name__ == "__main__":
 
     print(f"Accuracy on current values (current weather prediction): {acc_te_1}")
 
+    ##### Alternative model: use the season as an additional feature
+    attr_2 = tr_set_1.columns[~(tr_set_1.columns.isin(["FENOMENI"]))]
 
-    # Use the season as an additional feature
-    attr_2 = tr_set_1.columns[~(tr_set_1.columns.isin(["FENOMENI", "STAGIONE"]))]
+    tr_set_1a = tr_set_1.copy()
 
-    # Apply mapping on seasons:
-    mapping = {
-        'winter': 0,
-        'spring': 1,
-        'summer': 2,
-        'fall': 3
-    }
+    # Map the month to the season index (need numerical features)
+    tr_set_1a["STAGIONE"] = tr_set_1a.loc[:, "STAGIONE"].map(SEASON2INDEX)
 
-    tr_set_1["STAGIONE_index"] = tr_set_1.loc[:, "STAGIONE"].map(mapping)
-
-    mod_1a = QuadraticDiscriminantAnalysis().fit(tr_set_1[attr_2].values, tr_set_1['FENOMENI'].values)
+    mod_1a = QuadraticDiscriminantAnalysis().fit(tr_set_1a[attr_2].values, tr_set_1a['FENOMENI'].values)
 
     te_pred_1a = np.zeros((n_test, ))
     te_label_1a = te_set_1["FENOMENI"].values
     te_set_1a = te_set_1.copy()
-    te_set_1a["STAGIONE_index"] = te_set_1a.loc[:, "STAGIONE"].map(mapping)
+    te_set_1a["STAGIONE"] = te_set_1a.loc[:, "STAGIONE"].map(SEASON2INDEX)
+    print(te_set_1a.columns)
     te_set_1a = te_set_1a[attr_2]
 
     for i in range(n_test):
@@ -201,13 +199,18 @@ if __name__ == "__main__":
 
     print(f"Accuracy with season as a feature - current weather: {acc_te_1a}")
 
-    ############### Future rain prediction:
+    ############### Future rain prediction: ##########################################################################################
     # Add 'target' column, to include the label to be predicted - i.e., the next day's precipitations
     # ---> Need to 'fill' the last element, which is NaN
     weather_df["target"] = weather_df.shift(-1)["FENOMENI"].ffill()
     
-    # 'LOCALITA', 'TMEDIA °C', 'TMIN °C', 'TMAX °C', 'UMIDITA %', 'PRESSIONESLM mb', 'FENOMENI', 'STAGIONE', 'target'
+    # Rearrange column order
+    # 'TMEDIA °C', 'TMIN °C', 'TMAX °C', 'UMIDITA %', 'PRESSIONESLM mb', 'FENOMENI', <---> 'STAGIONE', 'target'
+    cols = weather_df.columns.tolist()
+    cols = cols[:5] + [cols[6]] + [cols[5]] + [cols[7]]
+    weather_df = weather_df[cols]
 
+    # Shuffle cols
     sh_weather_2 = weather_df.iloc[sh_range]
 
     tr_set_2 = sh_weather_2.iloc[:n_train]
@@ -228,9 +231,10 @@ if __name__ == "__main__":
 
     te_pred_2 = np.zeros((n_test, ))
     te_label_2 = te_set_2["target"].values
+    te_feat_2 = te_set_2.drop(columns=["target"])
 
     for i in range(n_test):
-        curr_row = te_set_2.iloc[i]
+        curr_row = te_feat_2.iloc[i]
 
         curr_pred = futureRain(curr_row, models_list_2)
         
@@ -242,22 +246,24 @@ if __name__ == "__main__":
 
     attr_2 = tr_set_2.columns[~(tr_set_2.columns.isin(['target', "STAGIONE"]))]
 
-    # Apply mapping on seasons:
-    mapping = {
+    # Apply SEASON2INDEX on seasons:
+    SEASON2INDEX = {
         'winter': 0,
         'spring': 1,
         'summer': 2,
         'fall': 3
     }
 
-    tr_set_2["STAGIONE_index"] = tr_set_2.loc[:, "STAGIONE"].map(mapping)
+    tr_set_2["STAGIONE_index"] = tr_set_2.loc[:, "STAGIONE"].map(SEASON2INDEX)
+
+    print()
 
     mod_2 = QuadraticDiscriminantAnalysis().fit(tr_set_2[attr_2].values, tr_set_2['target'].values)
 
     te_pred_2a = np.zeros((n_test, ))
-    te_label_2a = te_set_2["target"].values
+    te_label_2a = te_label_2.copy()
     te_set_2a = te_set_2.copy()
-    te_set_2a["STAGIONE_index"] = te_set_2a.loc[:, "STAGIONE"].map(mapping)
+    te_set_2a["STAGIONE_index"] = te_set_2a.loc[:, "STAGIONE"].map(SEASON2INDEX)
     te_set_2a = te_set_2a[attr_2]
 
     for i in range(n_test):
@@ -270,5 +276,3 @@ if __name__ == "__main__":
     acc_te_2a = (te_pred_2a == te_label_2a).sum()/n_test    
 
     print(f"Accuracy with season as a feature - rain forecast: {acc_te_2a}")
-    
-
