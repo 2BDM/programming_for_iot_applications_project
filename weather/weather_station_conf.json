@@ -22,5 +22,9 @@
                 "address": "http://100.127.117.69:8083"
             }
         ]
+    },
+    "models_path": {
+        "today": "weather_data/weather_train.csv",
+        "tomorrow": "models/rain_tomorrow.sav"
     }
 }
