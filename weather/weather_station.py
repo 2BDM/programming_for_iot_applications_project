@@ -405,7 +405,8 @@ class WeatherStationWS():
 
     def __init__(self, conf_file="weather_station_conf.json", out_conf="weather_station_conf_updated.json", own_ID=False):
         """
-        
+        Web service for the weather station.
+
         """
 
         self._conf_path = conf_file
@@ -418,6 +419,10 @@ class WeatherStationWS():
 
         self._serv_cat_addr = "http://" + self._conf["services_catalog"]["ip"] + ":" + self._conf["services_catalog"]["port"]    # Address of services catalog
         self.whoami = self._conf["weather_station"]         # Own information - to be sent to the services catalog
+        
+        # Prediction model binary file paths
+        self.pred_model_today = self._conf["models_path"]["today"]
+        self.pred_model_tomorrow = self._conf["models_path"]["tomorrow"]
 
         if own_ID:
             self.id = self.whoami["id"]
@@ -433,9 +438,11 @@ class WeatherStationWS():
             }
         }
 
-        # Connect to the services catalog
+        # TODO: Connect to the services catalog
         
         self._mqtt_client = None
+
+        self._weather_station = WeatherStation()
 
     
     def notify(self):

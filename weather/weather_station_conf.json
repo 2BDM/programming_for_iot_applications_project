@@ -11,7 +11,7 @@
         ]
     },
     "weather_station": {
-        "id": 1,
+        "id": 6,
         "name": "weather_station",
         "endpoints": [
             "REST"
