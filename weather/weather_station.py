@@ -438,13 +438,46 @@ class WeatherStationWS():
             }
         }
 
-        # TODO: Connect to the services catalog
+        # Connect to the services catalog
+        self._registered_at_catalog = False
+        self._last_update_serv = 0
+        self.registerAtServiceCatalog(max_tries=25)
         
-        self._mqtt_client = None
+        ## Get broker information and initialize mqtt client
+        self._broker_info = {}           # No timestamp - suppose it does not change
+        
+        while self._broker_info == {}:
+            if self.getBrokerInfo(max_tries=100) != 1:
+                print("Cannot get broker info!")
 
-        self._weather_station = WeatherStation()
+        # MQTT publisher base name
+        for ed in self.whoami["endpoints_details"]:
+            if ed["endpoint"] == "MQTT":
+                self.mqtt_bn = ed["bn"]
 
-    
+        self.mqtt_cli = MyMQTT(
+            clientID=self.mqtt_bn,    # Devices can have same name, but must not have same id
+            broker=self._broker_info["ip"],
+            port=self._broker_info["port_n"],
+            notifier=self
+        )
+
+        # Connect to the broker
+        self.mqtt_cli.start()
+
+        self.weather_station = WeatherStation()
+        
+        self._dev_cat_info = {}
+        # The devices list consists of a dict with a list (actual list of devices 
+        # as stored in the devices catalog) and the last update field
+        self._devices = {
+            "list": [],
+            "last_update": 0
+        }
+
+
+################################################################
+
     def notify(self):
         """
         Callback for MyMQTT - at message reception
@@ -455,17 +488,210 @@ class WeatherStationWS():
         """
         pass
 
-    def registerAtServCat(self):
-        pass
+################################################################
 
-    def getDevCatInfo(self):
-        pass
-
-    def getListOfDevices(self):
+    def registerAtServiceCatalog(self, max_tries=10):
         """
+        This method is used to register the device catalog information
+        on the service catalog.
+        -----
+        Return values:
+        - 1: registration successful
+        - -1: information was already present - update was performed
+        - 0: failed to add (unreachable server)
+        """
+        tries = 0
+        while not self._registered_at_catalog and tries < max_tries:
+            # Probably will need to assign id here ...
+
+
+            try:
+                reg = requests.post(self._serv_cat_addr + '/service', data=json.dumps(self.whoami))
+                print(f"Sent request to {self._serv_cat_addr}")
+                
+                if reg.status_code == 201:
+                    self._registered_at_catalog = True
+                    self._last_update_serv = time.time()
+                    print("Successfully registered at service catalog!")
+                    return 1
+                elif reg.status_code == 400:
+                    print("Device catalog was already registered!")
+                    self._registered_at_catalog = True
+                    # Perform an update, to keep the last_update recent
+                    self.updateServiceCatalog()
+                    return -1
+                else:
+                    print(f"Status code: {reg.status_code}")
+                time.sleep(5)
+            except:
+                print("Tried to connect to services catalog - failed to establish a connection!")
+                tries += 1
+                time.sleep(5)
+
+    def updateServiceCatalog(self, max_tries=10):
+        """
+        This ethod is used to update the information of the device catalog 
+        at the services catalog.
+        ------
+        Return values:
+        - 1: update successful
+        - -1: needed to register first
+        - 0: unable to reach server
+        """
+        # Try refreshing info (PUT) - code 200
+        # If it fails with code 400 -> cannot update
+            # Perform POST
+
+        updated = False
+        count_fail = 0
+
+        while not updated and count_fail < max_tries:
+            try:
+                try1 = requests.put(self._serv_cat_addr + '/service', data=json.dumps(self.whoami))
+
+                # If here, it was possible to send the request to the server (reachable)
+                if try1.status_code == 200:
+                    # Update successful
+                    print("Information in the service catalog was successfully updated!")
+                    self._last_update_serv = time.time()
+                    return 1
+                elif try1.status_code == 400:
+                    print("Unable to update information at the service catalog ---> trying to register")
+                    count_fail += 1
+                    self._registered_at_catalog = False
+                    self.registerAtServiceCatalog()
+                    if self._registered_at_catalog:
+                        updated = True
+                        return -1
+            except:
+                print("Tried to connect to services catalog - failed to establish a connection!")
+                count_fail += 1
+                time.sleep(5)
+        
+        # If here, then it was not possible to update nor register information
+        # within the maximum number of iterations, which means it was not possible 
+        # to reach the server
+        print("Maximum number of tries exceeded - service catalog was unreachable!")
+        return 0
+
+    def getBrokerInfo(self, max_tries=50):
+        """
+        Obtain the broker information from the services catalog.
+        ----------------------------------------------------------
+        Need to specify the maximum number of tries (default 50).
+        ----------------------------------------------------------
+        Return values:
+        - 1: information was correctly retrieved and is stored in
+        attribute self._broker_info
+        - 0: the information was not received (for how the 
+        services catalog is implemented, it means that it was not
+        possible to reach it)
+        ----------------------------------------------------------
+        Note that the broker information is supposed unchanged
+        during the use of the application.
+        """
+        tries = 0
+        while tries <= max_tries and self._broker_info == {}:
+            addr = self._serv_cat_addr + "/broker"
+            r = requests.get(addr)
+            if r.ok:
+                self._broker_info = r.json()
+                print("Broker info retrieved!")
+                return 1
+            else:
+                print(f"Error {r.status_code} ☀︎")
+        
+        if self._broker_info != {}:
+            return 1
+        else:
+            return 0
+
+    def getDevCatInfo(self, max_tries=25):
+        """
+        Obtain the device catalog information from the services
+        catalog.
+        ----------------------------------------------------------
+        Need to specify the maximum number of tries (default 50).
+        ----------------------------------------------------------
+        Return values:
+        - 1: information was correctly retrieved and is stored in
+        attribute self._dev_cat_info
+        - 0: the information was not received (for how the 
+        services catalog is implemented, it means that it was not
+        possible to reach it)
+        ----------------------------------------------------------
+        """
+        tries = 0
+        while self._dev_cat_info == {} and tries < max_tries:
+            addr = self._serv_cat_addr + "/device_catalog"
+            try:
+                r = requests.get(addr)
+                if r.ok:
+                    self._dev_cat_info = r.json()
+                    self._dev_cat_info["last_update"] = time.time()
+                    print("Device catalog info retrieved!")
+                    return 1
+                else:
+                    print(f"Error {r.status_code}")
+                    time.sleep(5)
+            except:
+                print("Unable to reach services catalog - retrying")
+                time.sleep(5)
+        
+        if self._dev_cat_info != {}:
+            return 1
+        else:
+            return 0
+
+    def cleanupDevCatInfo(self, timeout=240):
+        """
+        Check age of device catalog information - if old, clean it.
+
+        The max age is 'timeout' (default 240s - 4 min).
+        """
+        if self._dev_cat_info != {}:
+            curr_time = time.time()
+            if (curr_time - self._dev_cat_info["last_update"]) > timeout:
+                self._dev_cat_info = {}
+
+    def getListOfDevices(self, max_tries=25, info_timeout=120):
+        """
+        Get the list of connected devices from the device catalog.
+        
         Need to check carefully the response code! (The devices list may be empty)
+        ---
+        Return values:
+        - 1: success
+        - 0: Unable to get list of devices
+        - -1: Unable to get device catalog info
         """
-        pass
+        
+        # CHeck device cat info exists:
+        if self._dev_cat_info == {}:
+            if self.getDevCatInfo() == 0:
+                print("Unable to get device catalog info")
+                return -1
+        
+        # The retrieval is done only if the current info is more then 'info_timeout' seconds old
+        if (time.time() - self._devices["last_update"]) > info_timeout:
+            tries = 0
+            dc_addr = "http://" + self.dev_cat_info["ip"] + ":" + str(self.dev_cat_info["port"]) + "/devices"
+            while tries < max_tries:
+                try:
+                    r = requests.get(dc_addr)
+                    if r.ok:
+                        # The response is the list
+                        # TODO
+                        pass
+                    else:
+                        print(f"Error {r.status_code}")
+                        time.sleep(5)
+
+                except:
+                    print("Unable to reach device catalog!")
+                    time.sleep(5)
+
+
 
     def subscribeToTopics(self):
         """
@@ -479,7 +705,13 @@ class WeatherStationWS():
         """
         pass
         
+        def startup(self):
+            # This method performs:
+                # Serv. cat. update
+                # Dev. list retrieval
+                # Topic subscription
 
+            pass
 
         
 
