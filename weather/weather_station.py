@@ -66,27 +66,27 @@ def bar2mb_sealevel(val_bar):
 class WeatherStation():
 
     def __init__(self):
-        self.meas_timeout = 24*60*60        # Timeout for forgetting the measurements, in seconds
+        self.meas_timeout = 24*60*60        # Timeout for forgetting the measurements, in seconds (24 h)
         self.execution_time = "22:00"
         self.current_datetime = datetime.now()                          # !!! datetime object
         self.current_timestamp = time.mktime(self.current_datetime.timetuple())
         self.current_time = self.current_datetime.strftime("%H:%M")     # String
         self.current_date = self.current_datetime.strftime("%Y-%m-%d")  # String (compliant with timestamps)
-        self.current_season = MONTH2SEASON[str(datetime2monthNumber(self.current_date))]    # String
+        self.current_season = MONTH2SEASON[str(datetime2monthNumber(self.current_datetime))]    # String
 
 
         # Relevant measurements: the ones for which measurements are needed
         self.relevant_meas_short = [
             "temperature",
             "humidity",
-            "air_pressure",
+            "pressure",
             "light_intensity"
         ]
 
         self.relevant_meas = {
             "Temperature",
             "Humidity",
-            "Air Pressure",
+            "Pressure",
             "Light Intensity"
         }
 
@@ -114,7 +114,6 @@ class WeatherStation():
         """
         self.devices_meas = {}
 
-
     def updateTime(self):
         """
         Automatically update current time, date and season
@@ -123,20 +122,19 @@ class WeatherStation():
         self.current_timestamp = time.mktime(self.current_datetime.timetuple())
         self.current_time = self.current_datetime.strftime("%H:%M")
         self.current_date = self.current_datetime.strftime("%Y-%m-%d")
-        self.current_season = MONTH2SEASON[str(datetime2monthNumber(self.current_date))]
-
+        self.current_season = MONTH2SEASON[str(datetime2monthNumber(self.current_datetime))]
 
     def addMeasurement(self, newSenML, dev_id=None):
         """
         Add a new measurement in the local list of measurements.
-
+        ---
         newSenML is the senML-compliant message directly obtained via MQTT 
-        (payload) - the device ID must be specified by the user (look at the topic of the rx message)
-
-        If not specified, the device ID is inferred from the base name in the senML message
-
+        (payload) - the device ID must be specified by the user (look at the topic of the rx message).
+    
+        If not specified, the device ID is inferred from the base name in the senML message.
+        
         If the insertion is successful, the return value is 1, else it is 0
-        (meaning the attempt generated a python error)
+        (meaning the attempt generated a python error).
         """
         # First, need to check whether the measurement belongs to the ones 
         # needed - do we? We should only subscribe to topics of useful measurements
@@ -150,23 +148,29 @@ class WeatherStation():
         else:
             id = str(dev_id)
 
-        try:
-            meas_type = newSenML['e']['n']
-            
-            meas = {            # To be appended in dict
-                'v': newSenML['e']['v'],
-                'u': newSenML['e']['u'],
-                't': newSenML['e']['t']
-            }
+        #try:
+        meas_type = newSenML['e'][0]['n']
+        
+        meas = {            # To be appended in dict
+            'v': newSenML['e'][0]['v'],
+            'u': newSenML['e'][0]['u'],
+            't': newSenML['e'][0]['t']
+        }
 
-            # Insert meas:
-            self.devices_meas[id][meas_type].append(meas)
+        # Insert meas:
+        if id not in self.devices_meas.keys():
+            self.devices_meas[id] = {}
+            self.devices_meas[id][meas_type] = []
+        else:
+            if meas_type not in self.devices_meas[id].keys():
+                self.devices_meas[id][meas_type] = []
+        
+        self.devices_meas[id][meas_type].append(meas)
 
-            return 1
-        except:
+        return 1
+        #except:
             # Hopefully never...
-            return 0
-
+         #   return 0
 
     def cleanupMeas(self):
         """
@@ -188,24 +192,23 @@ class WeatherStation():
         n_del = 0
 
         for id in self.devices_meas.keys():
-            for n in id.keys():
+            for n in self.devices_meas[id].keys():
                 # Iterate over the list
                 stop = False
                 i = 0
-                while i < len(id[n]) and stop == False:
+                while i < len(self.devices_meas[id][n]) and stop == False:
                     ## TODO: test this - pointers should do the job
                     
                     # NOTE: the index is actually always 0, since we remove from the 1st element
                     # It is needed in the case the list is completely emptied
-                    if (ts - id[n][i]['t']) > to:
+                    if (ts - self.devices_meas[id][n][i]['t']) > to:
                         # Old --> remove it
-                        id[n].pop(i)
+                        self.devices_meas[id][n].pop(i)
                         n_del += 1
                     else:
                         stop = True
 
         return n_del
-
 
     def evalMeasPrediction(self, time_range, dev_id):
         """
@@ -263,7 +266,7 @@ class WeatherStation():
         h_mean = sum(taken_cat["Humidity"])/len(taken_cat["Humidity"])
 
         # Mean pressure:
-        p_mean = sum(taken_cat["Air Pressure"])/len(taken_cat["Air Pressure"])
+        p_mean = sum(taken_cat["Pressure"])/len(taken_cat["Pressure"])
 
         # Season:
         seas = MONTH2SEASON[str(datetime2monthNumber(self.current_datetime))]
@@ -273,8 +276,7 @@ class WeatherStation():
         
         return out
 
-
-    def estCurrWeather(self, device_id, time_range=7400, test_el=None, model=None, model_path="models/weather_today.sav"):
+    def estCurrWeather(self, device_id=None, time_range=7200, test_el=None, model=None, model_path="models/weather_today.sav"):
         """
         Estimate the current weather from data obtained by the sensors.
         The considered data is given by the maximum age of specified in
@@ -305,6 +307,7 @@ class WeatherStation():
         - -1, 'day': cloudy, tested with light intensity
         - 1, 'night'
         - 0, 'night'
+        - None, '': ERROR
         """
         # The sklearn model is used to estimate the presence of rain. This 
         # estimate is then compared with the measurements about the light 
@@ -314,9 +317,33 @@ class WeatherStation():
 
         self.updateTime()
 
+        if device_id is None and len(self.devices_meas) > 0:
+            # Find 'first' device for which ALL the measurements lists are not empty
+            # This prevents to choose devices which may have disconnected
+            i = 0
+            ok = False
+            while i < len(self.devices_meas) and not ok:
+                k = list(self.devices_meas.keys())[i]
+                i += 1
+                ok = True
+                for m in self.devices_meas[k].keys():
+                    if self.devices_meas[k][m] == []:
+                        ok = False
+            
+            if i <= len(self.devices_meas):
+                device_id = k            
+            else:
+                print("Unable to get measurements - no complete set!")
+        else:
+            print("No available measurements to be used!")
+            return None, ''
+
         if test_el is None:
-            # If here, the device ID MUST BE PRESENT
-            test_el = self.evalMeasPrediction(time_range, device_id)
+            # try:
+                test_el = self.evalMeasPrediction(time_range, device_id)
+            # except:
+            #     print("Unable to get measurements!")
+            #     return None, ''
 
         if model is None:
             # Extract model:
@@ -334,7 +361,7 @@ class WeatherStation():
         curr_hour = int(self.current_time.split(':')[0])
 
         light_lst = []
-        for meas in self.devices_meas[device_id]["Light Intensity"]:
+        for meas in self.devices_meas[str(device_id)]["Light Intensity"]:
             # The light measurements which are the ones less old than half an hour
             # ALWAYS
             if (self.current_timestamp - meas['t']) < 1800:
@@ -358,7 +385,6 @@ class WeatherStation():
         else:
             return pred_weather.values, 'night'
 
-
     def estFutureWeather(self, device_id, time_range=24*3600, test_el=None, model=None, model_path="models/weather_today.sav"):
         """
         Perform estimation of precipitations for the next day, given the values gathered in the
@@ -380,8 +406,26 @@ class WeatherStation():
 
         self.updateTime()
 
-        if test_el is None:
-            test_el = self.evalMeasPrediction(time_range, device_id)
+        if device_id is None and len(self.devices_meas) > 0:
+            # Find 'first' device for which ALL the measurements lists are not empty
+            # This prevents to choose devices which may have disconnected
+            i = 0
+            ok = False
+            while i < len(self.devices_meas) and not ok:
+                k = list(self.devices_meas.keys())[i]
+                i += 1
+                ok = True
+                for m in self.devices_meas[k].keys():
+                    if self.devices_meas[k][m] == []:
+                        ok = False
+            
+            if i <= len(self.devices_meas):
+                device_id = k            
+            else:
+                print("Unable to get measurements - no complete set!")
+        else:
+            print("No available measurements to be used!")
+            return None, ''
 
         if model is None:
             # Extract model:
@@ -399,14 +443,26 @@ class WeatherStation():
 
         return pred_tomorrow_rain.values
 
-
+#
 
 class WeatherStationWS():
+    """
+    Web service for the weather station.
+    """
+    exposed = True
 
     def __init__(self, conf_file="weather_station_conf.json", out_conf="weather_station_conf_updated.json", own_ID=False):
         """
-        Web service for the weather station.
-
+        Initialization procedure:
+        - Import conf file
+        - Create service catalog address and save in one variable the data to be uploaded 
+        on the services catalog (weather station info)
+        - Extract the locations (paths) of the prediction models used in the algorithms (weather evaluation and forecasting)
+        - If manually assigned, set ID (else None)
+        - Attempt registration at services catalog (uploading self information)
+        - Get broker
+        - Initialize and launch MQTT client
+        - Instantiate weather station and initialize empty devices list catalog
         """
 
         self._conf_path = conf_file
@@ -417,8 +473,13 @@ class WeatherStationWS():
             with open("weather/" + conf_file) as f:
                 self._conf = json.load(f)
 
-        self._serv_cat_addr = "http://" + self._conf["services_catalog"]["ip"] + ":" + self._conf["services_catalog"]["port"]    # Address of services catalog
+        self._serv_cat_addr = "http://" + self._conf["services_catalog"]["ip"] + ":" + str(self._conf["services_catalog"]["port"])    # Address of services catalog
         self.whoami = self._conf["weather_station"]         # Own information - to be sent to the services catalog
+        
+        for ed in self.whoami["endpoints_details"]:
+            if ed["endpoint"] == "REST":
+                self.ip = ed["address"].split(':')[1].split('//')[1]
+                self.port = int(ed["address"].split(':')[-1])
         
         # Prediction model binary file paths
         self.pred_model_today = self._conf["models_path"]["today"]
@@ -449,6 +510,7 @@ class WeatherStationWS():
         while self._broker_info == {}:
             if self.getBrokerInfo(max_tries=100) != 1:
                 print("Cannot get broker info!")
+                time.sleep(10)
 
         # MQTT publisher base name
         for ed in self.whoami["endpoints_details"]:
@@ -461,6 +523,8 @@ class WeatherStationWS():
             port=self._broker_info["port_n"],
             notifier=self
         )
+        # List of topics to subscribe to as the weather
+        self.topics_list = []
 
         # Connect to the broker
         self.mqtt_cli.start()
@@ -470,25 +534,73 @@ class WeatherStationWS():
         self._dev_cat_info = {}
         # The devices list consists of a dict with a list (actual list of devices 
         # as stored in the devices catalog) and the last update field
+        # NOTE: last_update is an Unix timestamp
         self._devices = {
             "list": [],
             "last_update": 0
         }
 
+    ################################################################
+    # REST methods
+    
+    def GET(self, *uri, **params):
+        # Can get: curr_weather, tomorrow_rain
+        if len(uri) > 0:
+            if str(uri[0]) == "curr_weather":
+                # Retrieve the current weather (from values of last hour)
+                self.weather_station.cleanupMeas()
+                if len(params) > 0 and str(params.keys(0)) == "id":
+                    curr_weather, val = self.weather_station.estCurrWeather(int(params["id"]), model_path=self.pred_model_today)
+                else:
+                    curr_weather, val = self.weather_station.estCurrWeather(model_path=self.pred_model_today)
 
-################################################################
+                if curr_weather == 1:
+                    return "rain"
+                elif curr_weather == 0 and val == 'day':
+                    return "sun"
+                elif curr_weather == 0 and val == 'night':
+                    return "clear"      # No rain at night
+                elif curr_weather == -1:
+                    return "clouds"
+                
+            elif str(uri[0]) == "will_it_rain":
+                # Anticipate tomorrow's weather given the last 24 hours
+                self.weather_station.cleanupMeas()
+                if len(params) > 0 and str(params.keys(0)) == "id":
+                    next_rain, val = self.weather_station.estFutureWeather(int(params["id"]), model_path=self.pred_model_today)
+                else:
+                    next_rain, val = self.weather_station.estFutureWeather(model_path=self.pred_model_today)
+                
+                if next_rain == 1:
+                    return "yes"
+                elif next_rain == 0:
+                    return "no"
+        
+        return "Available uri:\n/curr_weather\n/tomorrow_rain"
 
-    def notify(self):
+    ################################################################
+
+    def notify(self, topic, payload):
         """
         Callback for MyMQTT - at message reception
         ---
-        What to do: 
-        - Extract measurement
-        - Store it in current device information
+        As the message is received, it is passed to the method 
+        self.weather_station.addMeasurement alongside with the device ID.
+        
+        The device ID is inferred from the topic, as it is 
+        designed to follow a standard syntax.
         """
-        pass
+        print(f"Received message in {topic}")
+        
+        id = int(topic.split('/')[1])
+        
+        if self.weather_station.addMeasurement(json.loads(payload), dev_id=id) == 0:
+            print(f"Unable to add measurement!\n{payload}")
+        
+        # Also perform cleanup of the records
+        self.weather_station.cleanupMeas()
 
-################################################################
+    ################################################################
 
     def registerAtServiceCatalog(self, max_tries=10):
         """
@@ -643,7 +755,7 @@ class WeatherStationWS():
         else:
             return 0
 
-    def cleanupDevCatInfo(self, timeout=240):
+    def cleanupDevCatInfo(self, timeout=120):
         """
         Check age of device catalog information - if old, clean it.
 
@@ -673,27 +785,48 @@ class WeatherStationWS():
                 return -1
         
         # The retrieval is done only if the current info is more then 'info_timeout' seconds old
-        if (time.time() - self._devices["last_update"]) > info_timeout:
-            tries = 0
-            dc_addr = "http://" + self.dev_cat_info["ip"] + ":" + str(self.dev_cat_info["port"]) + "/devices"
+        # Need to call this method periodically (main loop)     
+    
+        tries = 0
+        try:
+            dc_addr = "http://" + self._dev_cat_info["ip"] + ":" + str(self._dev_cat_info["port"]) + "/devices"
             while tries < max_tries:
                 try:
                     r = requests.get(dc_addr)
                     if r.ok:
                         # The response is the list
-                        # TODO
-                        pass
+                        self._devices["list"] = r.json()
+                        self._devices["last_update"] = time.time()
+                        print("Obtained updated devices list")
+                        return 1
                     else:
                         print(f"Error {r.status_code}")
                         time.sleep(5)
-
                 except:
                     print("Unable to reach device catalog!")
                     time.sleep(5)
+            
+            print("Unable to retrieve devices list")
+        except:
+            print("No device catalog found at services catalog!")
+        return 0
+    
+    def clearDevicesList(self, info_timeout=120):
+        """
+        Reset the information about the devices - reset devices list
+        ---
+        Input parameter:
+        - info_timeout: maximum age of information in seconds
+        """
+        if (time.time() - self._devices["last_update"]) > info_timeout:
+            self._devices = {
+                "list": [],
+                "last_update": 0
+            }
+            return 1
+        return 0
 
-
-
-    def subscribeToTopics(self):
+    def subscribeToTopics(self, info_timeout=120):
         """
         Need to read list of devices (from getListOfDevices) and for each sensor get the topics.
         - Check for each topic not to be among the topics we are already subbed to
@@ -702,20 +835,90 @@ class WeatherStationWS():
         - Add the topic to the list of ones to which we are subscribed
 
         To be ran periodically
+        ---
+        The returned value is the number of new topics to which the program subscribed
         """
-        pass
+        # First, check the devices list is empty or outdated
+        if self._devices["list"] == [] or (time.time() - self._devices["last_update"]) > info_timeout:
+            # Attempt to retrieve info
+            self.getListOfDevices()
+
+        if self._devices["list"] != []:
+            # Iterate over the list of sensors and get topics
+            # Before subbing, check the topic is not already in the list of topics
+            # self.topics_list and only sub if the last element in the topic 
+            # is an element of self.weather_station.relevant_meas_short
+
+            # Reach the topics list
+            n_sub = 0
+            for dev in self._devices["list"]:
+                for sens in dev["resources"]["sensors"]:
+                    if "MQTT" in sens["available_services"]:
+                        for det in sens["services_details"]:
+                            if det["service_type"] == "MQTT":
+                                for top in det["topic"]:
+                                    if top.split('/')[-1] in self.weather_station.relevant_meas_short and top not in self.topics_list:
+                                        # Sub to the topic
+                                        self.mqtt_cli.mySubscribe(top)
+                                        # Add topic to the list
+                                        self.topics_list.append(top)
+                                        n_sub += 1
+            
+            return n_sub
+
+    def postToMongoDB(self):
+        # Get mongoDB info from serv cat
+        print("Posted!")
+
+    def launch(self):
+        """
+        Launch the web service.
+        """
+        cherrypy.tree.mount(self, '/', self._http_conf)
+        cherrypy.config.update({'server.socket_host': self.ip})
+        cherrypy.config.update({'server.socket_port': self.port})
+        cherrypy.engine.start()
+      
+    def mainLoop(self, hour_update):
+        # This method performs:
+            # Serv. cat. update
+            # Dev. list retrieval
+            # Topic subscription
+            # Update of the weather to MongoDB every 24 hours (at 11 pm)
         
-        def startup(self):
-            # This method performs:
-                # Serv. cat. update
-                # Dev. list retrieval
-                # Topic subscription
+        sent_flg = False
+        while True:
+            time.sleep(5)
 
-            pass
+            # Send data to mongoDB now
+            curr_hour = int(datetime.now().strftime("%H"))
+            if curr_hour >= hour_update or curr_hour < ((hour_update+1)%24) and not sent_flg:
+                # Will be activated the first iteration after 23:00
+                self.postToMongoDB()
+                sent_flg = True
+            elif curr_hour <= hour_update and curr_hour > ((hour_update+1)%24) and sent_flg:
+                # Reset the flag to 
+                sent_flg = False
 
-        
+            self.updateServiceCatalog()
+            self.getDevCatInfo()
+            self.getListOfDevices()
+            self.subscribeToTopics()
+            
+            # These 2 will work iff the weather station is not able 
+            # to update the info for some time
+            self.cleanupDevCatInfo()
+            self.clearDevicesList()
 
-
+#       
+#
+#
 
 if __name__ == "__main__":
-    pass
+    my_weather_station = WeatherStationWS(own_ID=True)
+    my_weather_station.launch()
+
+    try:
+        my_weather_station.mainLoop(hour_update=23)
+    except KeyboardInterrupt:
+        cherrypy.engine.stop()
