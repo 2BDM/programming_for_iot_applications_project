@@ -60,7 +60,7 @@
                 "device_name": "BMP180",
                 "measure_type": [
                     "Temperature",
-                    "Air Pressure"
+                    "Pressure"
                 ],
                 "units": [
                     "Cel",
@@ -80,7 +80,7 @@
                         "service_type": "MQTT",
                         "topic": [
                             "smartGreenhouse/1/BMP180/temperature",
-                            "smartGreenhouse/1/BMP180/air_pressure"
+                            "smartGreenhouse/1/BMP180/pressure"
                         ]
                     }
                 ],

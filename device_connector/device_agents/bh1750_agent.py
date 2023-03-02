@@ -49,7 +49,7 @@ class BH1750Agent:
 
         # Light intensity measurement: Lux
         self.light_template = {
-            "n": "Light Instensity",
+            "n": "Light Intensity",
             "u": "Lux",
             "t": 0,
             "v": 0
