@@ -14,12 +14,18 @@
         "id": 6,
         "name": "weather_station",
         "endpoints": [
-            "REST"
+            "REST",
+            "MQTT"
         ],
         "endpoints_details": [
             {
                 "endpoint": "REST",
                 "address": "http://100.127.117.69:8083"
+            },
+            {
+                "endpoint": "MQTT",
+                "bn": "weather_station_6",
+                "topics": []
             }
         ]
     },
