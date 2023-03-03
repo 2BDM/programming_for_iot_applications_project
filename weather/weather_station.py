@@ -2,13 +2,14 @@ import cherrypy
 import json
 import time
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import sys
 from sub.MyMQTT import MyMQTT
 import requests
 import warnings
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 import pickle
+import traceback
 
 from weather_predict import COLS_CURRENT, COLS_FUTURE
 from weather_predict import currWeather_2, futureRain_2
@@ -274,6 +275,12 @@ class WeatherStation():
         seas_id = SEASON2ID[seas]
 
         out = pd.Series([t_mean, t_min, t_max, h_mean, p_mean, seas_id], index=COLS_CURRENT)
+
+        for k, v in out.items():
+            # print(f"------> k = {k}, v = {v}")
+            assert (v is not None), f"k = {k}, v = {v}"    
+            assert (isinstance(v, float)), f"k = {k}, v = {v}"    
+        assert (not out.isnull().values.any()), "NaN in out (evalMeasPrediction)"
         
         return out
 
@@ -318,33 +325,34 @@ class WeatherStation():
 
         self.updateTime()
 
-        if device_id is None and len(self.devices_meas) > 0:
-            # Find 'first' device for which ALL the measurements lists are not empty
-            # This prevents to choose devices which may have disconnected
-            i = 0
-            ok = False
-            while i < len(self.devices_meas) and not ok:
-                k = list(self.devices_meas.keys())[i]
-                i += 1
-                ok = True
-                for m in self.devices_meas[k].keys():
-                    if self.devices_meas[k][m] == []:
-                        ok = False
-            
-            if i <= len(self.devices_meas):
-                device_id = k            
+        if device_id is None:
+            if len(self.devices_meas) > 0:
+                # Find 'first' device for which ALL the measurements lists are not empty
+                # This prevents to choose devices which may have disconnected
+                i = 0
+                ok = False
+                while i < len(self.devices_meas) and not ok:
+                    k = list(self.devices_meas.keys())[i]
+                    i += 1
+                    ok = True
+                    for m in self.devices_meas[k].keys():
+                        if self.devices_meas[k][m] == []:
+                            ok = False
+                
+                if i <= len(self.devices_meas):
+                    device_id = k            
+                else:
+                    print("Unable to get measurements - no complete set!")
             else:
-                print("Unable to get measurements - no complete set!")
-        else:
-            print("No available measurements to be used!")
-            return None, ''
+                print("No available measurements to be used!")
+                return None, ''
 
         if test_el is None:
-            # try:
+            try:
                 test_el = self.evalMeasPrediction(time_range, device_id)
-            # except:
-            #     print("Unable to get measurements!")
-            #     return None, ''
+            except:
+                print("Unable to get measurements!")
+                return None, ''
 
         if model is None:
             # Extract model:
@@ -386,7 +394,7 @@ class WeatherStation():
         else:
             return pred_weather.values, 'night'
 
-    def estFutureWeather(self, device_id, time_range=24*3600, test_el=None, model=None, model_path="models/weather_today.sav"):
+    def estFutureWeather(self, device_id=None, time_range=24*3600, test_el=None, model=None, model_path="models/rain_tomorrow.sav"):
         """
         Perform estimation of precipitations for the next day, given the values gathered in the
         last 'time_range' (default 24 hours) and today's precipitations.
@@ -407,26 +415,38 @@ class WeatherStation():
 
         self.updateTime()
 
-        if device_id is None and len(self.devices_meas) > 0:
-            # Find 'first' device for which ALL the measurements lists are not empty
-            # This prevents to choose devices which may have disconnected
-            i = 0
-            ok = False
-            while i < len(self.devices_meas) and not ok:
-                k = list(self.devices_meas.keys())[i]
-                i += 1
-                ok = True
-                for m in self.devices_meas[k].keys():
-                    if self.devices_meas[k][m] == []:
-                        ok = False
-            
-            if i <= len(self.devices_meas):
-                device_id = k            
+        if device_id is None:
+            if len(self.devices_meas) > 0:
+                # Find 'first' device for which ALL the measurements lists are not empty
+                # This prevents to choose devices which may have disconnected
+                i = 0
+                ok = False
+                while i < len(self.devices_meas) and not ok:
+                    k = list(self.devices_meas.keys())[i]
+                    i += 1
+                    ok = True
+                    for m in self.devices_meas[k].keys():
+                        if self.devices_meas[k][m] == []:
+                            ok = False
+                
+                if i <= len(self.devices_meas):
+                    device_id = k            
+                else:
+                    print("Unable to get measurements - no complete set!")
             else:
-                print("Unable to get measurements - no complete set!")
-        else:
-            print("No available measurements to be used!")
-            return None, ''
+                print("No available measurements to be used!")
+                return None, ''
+        
+        assert (device_id is not None), "Invalid device_id"
+        
+        if test_el is None:
+            try:
+                test_el = self.evalMeasPrediction(time_range, device_id)
+            except:
+                print("Unable to get measurements!")
+                return None, ''
+
+        assert (not test_el.isnull().values.any()), "NaN detected"
 
         if model is None:
             # Extract model:
@@ -436,6 +456,12 @@ class WeatherStation():
             load_model = model
         
         pred_today_rain = self.estCurrWeather(device_id, time_range, test_el)[0]
+        
+        assert (pred_today_rain is not None),  "pred_today_rain"
+
+        # Make output either 1 (rain) or 0 (no rain)
+        if pred_today_rain != 1:
+            pred_today_rain = 0
 
         new_test = test_el.copy()
         new_test["FENOMENI"] = pred_today_rain
@@ -568,16 +594,19 @@ class WeatherStationWS():
                 # Anticipate tomorrow's weather given the last 24 hours
                 self.weather_station.cleanupMeas()
                 if len(params) > 0 and str(params.keys(0)) == "id":
-                    next_rain, val = self.weather_station.estFutureWeather(int(params["id"]), model_path=self.pred_model_today)
+                    next_rain = self.weather_station.estFutureWeather(int(params["id"]), model_path=self.pred_model_tomorrow)
                 else:
-                    next_rain, val = self.weather_station.estFutureWeather(model_path=self.pred_model_today)
+                    ### HERE
+                    next_rain = self.weather_station.estFutureWeather(model_path=self.pred_model_tomorrow)
                 
+                assert (next_rain is not None), f"Value: {next_rain}"
+
                 if next_rain == 1:
                     return "yes"
                 elif next_rain == 0:
                     return "no"
-        
-        return "Available uri:\n/curr_weather\n/tomorrow_rain"
+        else:
+            return "Available uri:\n/curr_weather\n/tomorrow_rain"
 
     ################################################################
 
@@ -867,12 +896,14 @@ class WeatherStationWS():
             
             return n_sub
 
-    def postToMongoDB(self, max_tries=20):
+    def postToMongoDB(self, max_tries=2):
         # Get mongoDB info from serv cat
         mdb_info = {}
         tries = 0
         addr = self._serv_cat_addr + '/service?name=mongoDB'
         while mdb_info == {} and tries < max_tries:
+            tries += 1
+            
             try:
                 r = requests.get(addr)
                 mdb_info = r.json()
@@ -882,7 +913,7 @@ class WeatherStationWS():
                     print("Unable to get mongoDB info")
                     time.sleep(3)
             except:
-                print("Unable to reach services catalog to get MongoDb info!")
+                print("Unable to reach services catalog to get MongoDB info!")
                 time.sleep(3)
         
         if mdb_info == {}:
@@ -910,15 +941,19 @@ class WeatherStationWS():
             
             # Having filled the dict, we can send it to MongoDB
             addr_mdb = mdb_info["endpoints_details"][0]["address"]
-            try:
-                r_up = requests.post(addr_mdb, json.dumps(tbs))
-                if r_up.ok:
-                    print("Posted!")
-                    return 1
-                else:
-                    print("Unsuccessful POST")
-            except:
-                print("Unable to reach MongoDB adaptor")
+            
+            tries = 0
+            while tries < max_tries:
+                tries += 1
+                try:
+                    r_up = requests.post(addr_mdb, json.dumps(tbs))
+                    if r_up.ok:
+                        print("Posted!")
+                        return 1
+                    else:
+                        print("Unsuccessful POST")
+                except:
+                    print("Unable to reach MongoDB adaptor")
 
         else:
             print("No devices to get the measurements from!")
@@ -940,24 +975,43 @@ class WeatherStationWS():
             # Topic subscription
             # Update of the weather to MongoDB every 24 hours (at 11 pm)
         
-        sent_flg = False
+        already_sent_flg = False
+
+        timeout = time.time() + 10
+
+        datetime_now = datetime.fromtimestamp(time.time())
+        datetime_tonight = datetime(datetime_now.year, datetime_now.month, datetime_now.day, 20, 00)
+        
+        print(datetime_now)
+        print(datetime_tonight)
+
+        timeout = datetime_tonight.timestamp()
+
         while True:
             time.sleep(5)
 
             # Send data to mongoDB now
             curr_hour = int(datetime.now().strftime("%H"))
-            if curr_hour >= hour_update or curr_hour < ((hour_update+1)%24) and not sent_flg:
+            if curr_hour >= hour_update or curr_hour < ((hour_update+1)%24) and not already_sent_flg:
                 # Will be activated the first iteration after 23:00
-                self.postToMongoDB()
-                sent_flg = True
-            elif curr_hour <= hour_update and curr_hour > ((hour_update+1)%24) and sent_flg:
+                
+                already_sent_flg = True
+            elif curr_hour <= hour_update and curr_hour > ((hour_update+1)%24) and already_sent_flg:
                 # Reset the flag to 
-                sent_flg = False
+                already_sent_flg = False
 
             self.updateServiceCatalog()
             self.getDevCatInfo()
             self.getListOfDevices()
             self.subscribeToTopics()
+            
+            if time.time() > timeout:
+                print(datetime.fromtimestamp(time.time()))
+                self.postToMongoDB()
+
+                # datetime_tonight = datetime_tonight.timedelta(days=1)
+                datetime_tonight += timedelta(minutes=4)
+                timeout = datetime_tonight.timestamp()
             
             # These 2 will work iff the weather station is not able 
             # to update the info for some time
@@ -976,3 +1030,5 @@ if __name__ == "__main__":
         my_weather_station.mainLoop(hour_update=23)
     except KeyboardInterrupt:
         cherrypy.engine.stop()
+        traceback.print_exc()
+        sys.exit(1)

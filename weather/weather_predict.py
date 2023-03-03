@@ -50,7 +50,17 @@ def futureRain_2(test_df, model=None, index="predicted"):
     a pd.Series object consisting in the tested element.
     The index name of the prediction is "predicted".
     """
-    pred_curr = model.predict(test_df.values.reshape(1, -1))
+    X = test_df.values.reshape(1, -1)
+
+    print(X)
+
+    #assert (len(X) == 7), f"Len of X: {len(X)}"
+
+    pred_curr = model.predict(X)
+
+    # C: ndarray of shape (n_samples,)
+
+    assert (isinstance(pred_curr, np.ndarray)), f"{type(pred_curr)}"
 
     pred_curr = pd.Series(pred_curr, index=[index])
 

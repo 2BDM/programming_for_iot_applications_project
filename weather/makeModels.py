@@ -60,7 +60,14 @@ features_2_slide = training_features_2.copy()
 features_2_slide["TARGET"] = features_2_slide.shift(-1)["FENOMENI"].ffill()
 training_labels_2 = features_2_slide["TARGET"]
 
+print(training_features_2)
+print(training_labels_2)
+
+assert ((training_features_2["STAGIONE"] != 0).sum() > 0), "All winter"
+
 print(f"\n##################################################\nFeatures - rain prediction: {training_features_2.columns.to_list()}\n##################################################\n")
+
+assert (training_features_2.values.shape[1] == 7), f"Not 7 elements - {training_features_2.values.shape[1]}"
 
 model_2 = QuadraticDiscriminantAnalysis().fit(training_features_2.values, training_labels_2.values)
 
