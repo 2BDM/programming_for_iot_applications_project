@@ -86,11 +86,14 @@ class mongoAdaptor():
         dict = json.loads(val)
         needs_dict = {"needs":[]}
         listKeys = dict.keys()
+        listKeys=list(listKeys)
         tmpDict = {"measurement":"","unit":""}
+        print(listKeys[10:16])
         for i in range(13,len(listKeys)):
+            
             needs_dict["needs"].append({listKeys[i]:dict[listKeys[i]],"unit":""})
         measure_unit=["lumen","°C","g/m3"]
-        for i in range(len(needs_dict["needs"]))
+        for i in range(len(needs_dict["needs"])):
             if i<2:
                 needs_dict["needs"][i]["unit"]=measure_unit[0]
             elif i<4:
