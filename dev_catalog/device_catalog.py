@@ -165,10 +165,13 @@ class DeviceCatalogWebService():
         # Used for choosing when to try again to make POST to service catalog
         self.serv_timeout = 60
 
+        # Next device ID:
+        self._next_devID = 1
+
         self.my_info = self.catalog.getDevCatInfo()
         print(f"I am {self.my_info}")
 
-        # TODO: Connect and register to service catalog
+        # Connect and register to service catalog
         # POST request
         try:
             self._serv_cat = json.load(open(serv_catalog_info))
@@ -206,6 +209,12 @@ class DeviceCatalogWebService():
                         raise cherrypy.HTTPError(404, f"Device {dev_name} not found!")
                 else:
                     raise cherrypy.HTTPError(400, f"Missing/wrong parameters")
+            elif (str(uri[0]) == "new_id"):
+                self.checkUnusedID()
+                out = {}
+                out["id"] = self._next_devID
+                self._next_devID += 1
+                return json.dumps(out)
         else:
             return "Available commands: " + json.dumps(self.API["methods"][0])
 
@@ -373,6 +382,21 @@ class DeviceCatalogWebService():
 
     def getMyPort(self):
         return self.my_info["port"]
+
+    def checkUnusedID(self):
+        """
+        Used to verify the current 'next id' is not taken already
+        """
+        # self._next_devID
+
+        # Get list of currently used IDs:
+        ids = []
+
+        for dev in self.catalog.getDevices():
+            ids.append(dev['id'])
+        
+        while self._next_devID in ids:
+            self._next_devID += 1
 
 #
 #

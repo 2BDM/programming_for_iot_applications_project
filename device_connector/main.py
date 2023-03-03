@@ -47,7 +47,7 @@ class DevConn:
     - dev_cat_timeout: timeout period for the device catalog information.
     - _registered_dev_cat: flag indicating whether the device is registered 
     at the device catalog
-    - last_meas: list of sub-lists containing all the llast good measureents 
+    - last_meas: list of sub-lists containing all the last good measureents 
     from each sensor
     - dev_agents_sens: list of device agents for the sensors
     - dev_agent_ind_sens: dictionary to map the device ID to the associated 
@@ -68,7 +68,7 @@ class DevConn:
     """
     exposed = True
 
-    def __init__(self, conf_path, self_path):
+    def __init__(self, conf_path, self_path, own_ID=False):
         """
         Initialization procedure: 
         - For each sensor, instantiate the sublists containing the latest measurements
@@ -93,6 +93,20 @@ class DevConn:
         self.dev_cat_timestamp = 0
         self.dev_cat_timeout = 120 #s
         self._registered_dev_cat = False
+
+        # NOTE: it can be useful to statically assign device IDs - if the flag own_ID
+        # is true, the device will use the ID specified in the conf file
+        if not own_ID:
+            self._id_assigned = False       # To be set to True iff the new ID was retrieved from device catalog (register)
+        else: 
+            self._id_assigned = True
+
+        self._http_conf = {
+                '/': {
+                'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
+                'tools.sessions.on': True
+                }
+            }
 
         # Read all available sensors from the 'whoami' dict, initialize suitable
         # device agents
@@ -585,6 +599,29 @@ class DevConn:
         tries = 0
         if self.dev_cat_info != {}:
             addr_dev_cat = "http://" + self.dev_cat_info["ip"] + ":" + str(self.dev_cat_info["port"])
+            
+            # Get ID
+            if not self._id_assigned:
+                id_addr = addr_dev_cat + "/new_id"
+
+                t = 0
+                while t <= max_tries and not self._id_assigned:
+                    
+                    try:
+                        r_id = requests.get(id_addr)
+
+                        if r_id.ok:
+                            myID = r_id.json()['id']
+                            self.whoami['id'] = myID
+                            self._id_assigned = True
+                            print(f"Received ID {myID}")
+                        else:
+                            print(f"Error {r_id.status_code} - unable to get ID")
+                    except:
+                        print("Tried to request ID - failed to establish a connection")
+                    
+                    time.sleep(3)
+            
             addr = addr_dev_cat + "/device"
             while tries <= max_tries and not self._registered_dev_cat:  
                 try:
@@ -747,82 +784,88 @@ class DevConn:
         for ed in self.conf["device_connector"]["endpoints_details"]:
             if ed["endpoint"] == "REST":
                 return ed["port"]
+            
+    def beginOperation(self):
+        
+        ###############################################
+        # Launch web service
+        cherrypy.tree.mount(self, '/', self._http_conf)
+        cherrypy.config.update({'server.socket_host': self.getIP()})
+        cherrypy.config.update({'server.socket_port': self.getPort()})
+
+        ############### Start operation ###############
+
+        ok = False
+        max_iter_init = 10
+        iter_init = 0
+
+        try:
+            while not ok:
+                self.connectToServCat(max_tries=100)
+                init_status = self.registerAtDevCat(max_tries=100)
+
+                if init_status == 1:
+                    # Correctly registered
+                    ok = True
+                elif init_status == 0:
+                    iter_init += 1
+                elif init_status == -1:
+                    # No dev. cat. info
+                    iter_init += 1
+                    self.connectToServCat()
+
+                if iter_init >= max_iter_init:
+                    # If too many tries - wait some time, then retry
+                    iter_init = 0
+                    time.sleep(10)
+        except KeyboardInterrupt:
+            pass    # May need to disconnect from broker
+
+    def workingLoop(self):
+        ############### Working loop ###############
+        meas_timeout = 120          # Time for measurement update
+        t_last_meas = 0             # This triggers measurements in first loop
+
+        cherrypy.engine.start()
+
+        try:
+            while True:
+                print("\nlooping . . .")
+                # Update info
+                upd_oper = self.updateDevCat(max_tries=10)
+                
+                if upd_oper == -1:
+                    # No dev cat info
+                    self.connectToServCat()
+                    upd_oper = self.updateDevCat()
+                
+                # No `elif` - upd_oper could have been updated
+                if upd_oper == 0:
+                    # Cannot reach device catalog
+                    warnings.warn("Could not reach device catalog!")
+                    
+                    # It may be that the device catalog was moved - get new address
+                    self.connectToServCat()
+
+                # Make and publish measurements
+                curr_time = time.time()
+                if curr_time - t_last_meas > meas_timeout:
+                    self.updateMeas()
+                    self.publishLastMeas()
+                    t_last_meas = time.time()
+                # Clean possibly old info
+                self.cleanupDevCat()
+
+                time.sleep(5)
+        except KeyboardInterrupt:
+            cherrypy.engine.stop()
 
 ###############################################################################
 ### Main program - include loop
 
 if __name__ == "__main__":
-    conf = {
-        '/': {
-        'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
-        'tools.sessions.on': True
-        }
-    }
+    myDevConn = DevConn("conf_dev_conn.json", "device_info.json", own_ID=True)
 
-    myDevConn = DevConn("conf_dev_conn.json", "device_info.json")
-    
-    ###############################################
-    # Launch web service
-    cherrypy.tree.mount(myDevConn, '/', conf)
-    cherrypy.config.update({'server.socket_host': myDevConn.getIP()})
-    cherrypy.config.update({'server.socket_port': myDevConn.getPort()})
+    myDevConn.beginOperation()
 
-    ############### Start operation ###############
-
-    ok = False
-    max_iter_init = 10
-    iter_init = 0
-
-    while not ok:
-        myDevConn.connectToServCat(max_tries=100)
-        init_status = myDevConn.registerAtDevCat(max_tries=100)
-
-        if init_status == 1:
-            # Correctly registered
-            ok = True
-        elif init_status == 0:
-            iter_init += 1
-        elif init_status == -1:
-            # No dev. cat. info
-            iter_init += 1
-            myDevConn.connectToServCat()
-
-        if iter_init >= max_iter_init:
-            # If too many tries - wait some time, then retry
-            iter_init = 0
-            time.sleep(10)
-
-    ############### Working loop ###############
-    meas_timeout = 120          # Time for measurement update
-    t_last_meas = 0             # This triggers measurements in first loop
-
-    cherrypy.engine.start()
-
-    while True:
-        print("\nlooping . . .")
-        # Update info
-        upd_oper = myDevConn.updateDevCat(max_tries=10)
-        
-        if upd_oper == -1:
-            # No dev cat info
-            myDevConn.connectToServCat()
-            upd_oper = myDevConn.updateDevCat()
-        
-        # No `elif` - upd_oper could have been updated
-        if upd_oper == 0:
-            # Cannot reach device catalog
-            warnings.warn("Could not reach device catalog!")
-            
-            # It may be that the device catalog was moved - get new address
-            myDevConn.connectToServCat()
-
-        # Make and publish measurements
-        curr_time = time.time()
-        if curr_time - t_last_meas > meas_timeout:
-            myDevConn.updateMeas()
-            myDevConn.publishLastMeas()
-            t_last_meas = time.time()
-        # Clean possibly old info
-        myDevConn.cleanupDevCat()
-
-        time.sleep(5)
+    myDevConn.workingLoop()

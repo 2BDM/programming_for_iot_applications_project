@@ -158,6 +158,9 @@ If the element is not found, error code 404. If the parameter is wrong (when sea
 * `/services`: get list of services.
 * `/service?id=...`: get service, specified the ID.
 * `/service?name=...`:  get service, specified the name (all lowercases and ' ' replaced by '_')
+* `/new_user_id`: return the ID for a new user registering
+* `/new_greenhouse_id`: return the ID for a new greenhouse registering
+* `/new_serv_id`: return the ID for a new service registering
 
 If nothing else is specified, then a list of commands is specified.
 
