@@ -176,3 +176,6 @@ Sessionx.vim
 tags
 # Persistent undo
 [._]*.un~
+
+# Folder with data
+csv_ilMeteo/

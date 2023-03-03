@@ -1,0 +1,36 @@
+{
+    "project_name": "Smart greenhouse",
+    "project_owner": "2BDM",
+    "services_catalog": {
+        "ip": "100.127.117.69",
+        "port": 2222,
+        "methods": [
+            "GET",
+            "PUT",
+            "POST"
+        ]
+    },
+    "weather_station": {
+        "id": 6,
+        "name": "weather_station",
+        "endpoints": [
+            "REST",
+            "MQTT"
+        ],
+        "endpoints_details": [
+            {
+                "endpoint": "REST",
+                "address": "http://100.127.117.69:8083"
+            },
+            {
+                "endpoint": "MQTT",
+                "bn": "weather_station_6",
+                "topics": []
+            }
+        ]
+    },
+    "models_path": {
+        "today": "models/weather_today.sav",
+        "tomorrow": "models/rain_tomorrow.sav"
+    }
+}

@@ -1,0 +1,6 @@
+pandas
+numpy
+scikit-learn
+paho-mqtt
+cherrypy
+requests

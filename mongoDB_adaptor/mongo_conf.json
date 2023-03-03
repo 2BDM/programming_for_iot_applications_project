@@ -1,5 +1,5 @@
 {
-	"project_name": "Smart greenhouse",
+    "project_name": "Smart greenhouse",
     "project_owner": "2BDM",
     "services_catalog": {
         "ip": "100.127.117.69",
@@ -10,45 +10,31 @@
             "POST"
         ]
     },
-	"mongo_db": {
-<<<<<<< HEAD
-        "id": '',
-=======
+    "mongo_db": {
         "id": 5,
-		"name": "mongoDB",
->>>>>>> 583d61605f2d88d498c5316b11d6d6a2b9691e34
+        "name": "mongoDB",
         "endpoints": [
             "REST"
         ],
         "endpoints_details": [
             {
                 "endpoint": "REST",
-                "ip": "100.70.41.23",
+                "ip": "100.127.117.69",
                 "port": 8282,
-<<<<<<< HEAD
-                "methods": [
-                    "GET"
-                ]
+                "address": "http://100.127.117.69:8282"
             }
         ]
-		url_database:
-    }
-=======
-				"address":"http://100.70.41.23:8282"
-            }
-        ]
-	},
-	"database":{
-		"url_database": "mongodb+srv://2BDM:Gruppo17@2bdm.bxvbkre.mongodb.net/",
-		"database_name": "IOT_project",
-		"collections": [
-			"plants",
-			"weather"
-		]
     },
-	"charts":{
-			"url_temp":"https://charts.mongodb.com/charts-project-0-vfxkj/embed/charts?id=6401a417-5156-4f02-8567-205c3c89be6b&maxDataAge=3600&theme=light&autoRefresh=true"
-			"url_precipitations":"https://charts.mongodb.com/charts-project-0-vfxkj/embed/charts?id=6401a6f3-a93b-4731-8e8c-d09e095de7bd&maxDataAge=3600&theme=light&autoRefresh=true"
-	}
->>>>>>> 583d61605f2d88d498c5316b11d6d6a2b9691e34
+    "database": {
+        "url_database": "mongodb+srv://2BDM:Gruppo17@2bdm.bxvbkre.mongodb.net/",
+        "database_name": "IOT_project",
+        "collections": [
+            "plants",
+            "weather"
+        ]
+    },
+    "charts": {
+        "url_temp": "https://charts.mongodb.com/charts-project-0-vfxkj/embed/charts?id=6401a417-5156-4f02-8567-205c3c89be6b&maxDataAge=3600&theme=light&autoRefresh=true",
+        "url_precipitations": "https://charts.mongodb.com/charts-project-0-vfxkj/embed/charts?id=6401a6f3-a93b-4731-8e8c-d09e095de7bd&maxDataAge=3600&theme=light&autoRefresh=true"
+    }
 }

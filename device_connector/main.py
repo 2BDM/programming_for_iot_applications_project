@@ -823,7 +823,7 @@ class DevConn:
 
     def workingLoop(self):
         ############### Working loop ###############
-        meas_timeout = 120          # Time for measurement update
+        meas_timeout = 20          # Time for measurement update
         t_last_meas = 0             # This triggers measurements in first loop
 
         cherrypy.engine.start()

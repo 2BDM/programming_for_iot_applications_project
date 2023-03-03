@@ -125,6 +125,10 @@ Here is the structure of the configuration file for the device connector.
   - **ip**
   - **port**
   - **methods**: supported REST methods
+- **device_connector**: information about the device connector needed at setup
+  - **id**: device ID
+  - **endpoints**: supported M2M communication protocols
+  - **endpoints_details**: for each of the previously specified endpoints, the details about the protocol (e.g., IP and port for REST/base name for MQTT)
 - **sens_pins**: list of sensors and corresponding pins
   - **id**: sensor ID - corresponding to the one found in the device info JSON file
   - **name**: sensor name
