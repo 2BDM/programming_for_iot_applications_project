@@ -867,9 +867,62 @@ class WeatherStationWS():
             
             return n_sub
 
-    def postToMongoDB(self):
+    def postToMongoDB(self, max_tries=20):
         # Get mongoDB info from serv cat
-        print("Posted!")
+        mdb_info = {}
+        tries = 0
+        addr = self._serv_cat_addr + '/service?name=mongoDB'
+        while mdb_info == {} and tries < max_tries:
+            try:
+                r = requests.get(addr)
+                mdb_info = r.json()
+                if r.ok:
+                    print("MongoDB info retrieved")
+                else:
+                    print("Unable to get mongoDB info")
+                    time.sleep(3)
+            except:
+                print("Unable to reach services catalog to get MongoDb info!")
+                time.sleep(3)
+        
+        if mdb_info == {}:
+            print("Could not get MongoDB info")
+            return 0
+        
+        # We need to post the data for the whole day:
+
+        # Check there are available devices:
+        if len(self._devices["list"]) > 0:
+            # Data series
+            my_id = self._devices["list"][0]["id"]
+            dataSeries = self.weather_station.evalMeasPrediction(time_range=24*3600, dev_id=my_id)
+            today_wttr, ddd = self.weather_station.estCurrWeather(device_id=my_id, time_range=24*3600, )
+
+            tbs = {}
+            for k in COLS_FUTURE:
+                if k != "FENOMENI":
+                    tbs[k] = dataSeries[k]
+                else:
+                    if today_wttr == 1:
+                        tbs[k] = 1
+                    else:
+                        tbs[k] = 0
+            
+            # Having filled the dict, we can send it to MongoDB
+            addr_mdb = mdb_info["endpoints_details"][0]["address"]
+            try:
+                r_up = requests.post(addr_mdb, json.dumps(tbs))
+                if r_up.ok:
+                    print("Posted!")
+                    return 1
+                else:
+                    print("Unsuccessful POST")
+            except:
+                print("Unable to reach MongoDB adaptor")
+
+        else:
+            print("No devices to get the measurements from!")
+            return 0
 
     def launch(self):
         """
