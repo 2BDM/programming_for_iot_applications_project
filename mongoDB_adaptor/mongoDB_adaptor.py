@@ -76,6 +76,37 @@ class mongoAdaptor():
             val = val.replace('\'','\"')
         return val
         
+    
+    #################################################################################
+    # This method returns the needs of a plant given the ID                         #
+    #################################################################################
+    def find_by_id_needs(self,id):
+        myquery = { "_id": id }        
+        cur=self.mycol.find(myquery)
+        for doc in cur:
+            val = str(doc)
+            val = val.replace('\'','\"') 
+        # val it's a string so we have to change it to dictionary
+        dict = json.loads(val)
+        needs_dict = {"needs":[]}
+        listKeys = dict.keys()
+        listKeys=list(listKeys)
+        
+        # cicle to fill the main key and its value
+        for i in range(13,len(listKeys)):
+            needs_dict["needs"].append({listKeys[i]:dict[listKeys[i]],"unit":""})
+        measure_unit=["lumen","°C","g/m3"]
+        
+        # cicle for to fill the unit field of the dictionary
+        for i in range(len(needs_dict["needs"])):
+            if i<2:
+                needs_dict["needs"][i]["unit"]=measure_unit[0]
+            elif i<4:
+                needs_dict["needs"][i]["unit"]=measure_unit[1]
+            else:
+                needs_dict["needs"][i]["unit"]=measure_unit[2]
+        return json.dumps(needs_dict)
+
         
     #################################################################################
     # It searchs the first N plants that belong to the specified category           #
