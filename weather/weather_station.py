@@ -7,6 +7,7 @@ import sys
 from sub.MyMQTT import MyMQTT
 import requests
 import warnings
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 import pickle
 
 from weather_predict import COLS_CURRENT, COLS_FUTURE
