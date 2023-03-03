@@ -30,7 +30,7 @@
         ]
     },
     "models_path": {
-        "today": "weather_data/weather_train.csv",
+        "today": "models/weather_today.sav",
         "tomorrow": "models/rain_tomorrow.sav"
     }
 }
