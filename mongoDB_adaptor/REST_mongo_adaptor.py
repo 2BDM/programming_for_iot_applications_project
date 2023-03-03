@@ -12,6 +12,7 @@ class adaptor_mongo_interface(object):
     # In this method each case is identified by different parameters:                           #
     # - coll            --> to select the right collection                                      #
     #   - coll = "plants"                                                                       #
+    #           - id, needs=1             --> to have the list of needs of a plant (given ID)   #
     #           - id                      --> to search by id                                   #
     #           - min_size, max_size, N   --> to search by size                                 #
     #           - category, N             --> to search by category                             #
