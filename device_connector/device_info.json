@@ -64,7 +64,7 @@
                 ],
                 "units": [
                     "Cel",
-                    "Bar"
+                    "Pa"
                 ],
                 "device_id": 1,
                 "available_services": [

@@ -63,6 +63,9 @@ def bar2mb_sealevel(val_bar):
     """
     return (1000*float(val_bar)) - 1013.25
 
+def pa2mb_sealevel(val_pa):
+    return (float(val_pa)/100)
+
 ##########################################################################################################
 
 class WeatherStation():
@@ -248,10 +251,14 @@ class WeatherStation():
             for meas in self.devices_meas[id][n]:
                 if (self.current_timestamp - meas['t']) <= time_range:
                     # Keep measurement
-                    if n == "Air Pressure" and meas['u'] == "Bar":
+                    if n == "Pressure" and meas['u'] == "Bar":
                         # Need to obtain the barometric pressure in mb 
                         # relative to sea level
                         taken_meas = bar2mb_sealevel(meas['v'])
+                    elif n == "Pressure" and meas['u'] == "Pa":
+                        # Need to obtain the barometric pressure in mb 
+                        # relative to sea level
+                        taken_meas = pa2mb_sealevel(meas['v'])
                     else:
                         taken_meas = float(meas['v'])
 
@@ -936,7 +943,23 @@ class WeatherStationWS():
             
             return n_sub
 
-    def postToMongoDB(self, max_tries=2):
+    def postToMongoDB(self, max_tries=10):
+        """
+        ## postToMongoDB
+
+        Post to MongoDB the daily weather data (daily statistics).
+
+        The format is JSON.
+
+        ### Procedure
+
+        - Get MongoDB service information
+        - Check there are available devices to get the needed measurements from
+        - Evaluate the statistics
+        - Determine today's weather to be included in the information
+        - Upload this data to MongoDB via HTTP POST
+        """
+        
         # Get mongoDB info from serv cat
         mdb_info = {}
         tries = 0
@@ -957,43 +980,56 @@ class WeatherStationWS():
                 time.sleep(3)
         
         if mdb_info == {}:
-            print("Could not get MongoDB info")
+            warnings.warn("It was not possible to get MongoDB info")
             return 0
         
         # We need to post the data for the whole day:
 
         # Check there are available devices:
-        if len(self._devices["list"]) > 0:
+        if len(self._devices["list"]) > 0 and self.weather_station.devices_meas != {}:
+            # Additional check: all sublist of measurements should be non empty
+
+
             # Data series
             my_id = self._devices["list"][0]["id"]
-            dataSeries = self.weather_station.evalMeasPrediction(time_range=24*3600, dev_id=my_id)
-            today_wttr, ddd = self.weather_station.estCurrWeather(device_id=my_id, time_range=24*3600, )
+            try:
+                dataSeries = self.weather_station.evalMeasPrediction(time_range=24*3600, dev_id=my_id)
+                # print(dataSeries)
+                today_wttr, ddd = self.weather_station.estCurrWeather(device_id=my_id, time_range=24*3600, test_el=dataSeries, model_path=self.pred_model_today)
 
-            tbs = {}
-            for k in COLS_FUTURE:
-                if k != "FENOMENI":
-                    tbs[k] = dataSeries[k]
-                else:
-                    if today_wttr == 1:
-                        tbs[k] = 1
+                # The data structure accepted by MongoDB is JSON
+                
+                # The JSON file contains as keys the same ones used for the weather prediction
+                tbs = {}
+                for k in COLS_FUTURE:
+                    if k != "FENOMENI":
+                        tbs[k] = dataSeries[k]
                     else:
-                        tbs[k] = 0
-            
-            # Having filled the dict, we can send it to MongoDB
-            addr_mdb = mdb_info["endpoints_details"][0]["address"]
-            
-            tries = 0
-            while tries < max_tries:
-                tries += 1
-                try:
-                    r_up = requests.post(addr_mdb, json.dumps(tbs))
-                    if r_up.ok:
-                        print("Posted!")
-                        return 1
-                    else:
-                        print("Unsuccessful POST")
-                except:
-                    print("Unable to reach MongoDB adaptor")
+                        if today_wttr == 1:
+                            tbs[k] = 1
+                        else:
+                            tbs[k] = 0
+                
+                # Having filled the dict, we can send it to MongoDB
+                addr_mdb = mdb_info["endpoints_details"]["address"]
+                addr_mdb_post = addr_mdb + '?coll=weather'
+
+                tries = 0
+                while tries < max_tries:
+                    tries += 1
+                    try:
+                        r_up = requests.post(addr_mdb_post, json.dumps(tbs))
+                        if r_up.ok:
+                            print("Posted!")
+                            return 1
+                        else:
+                            print("Unsuccessful POST")
+                            time.sleep(3)
+                    except:
+                        print("Unable to reach MongoDB adaptor")
+                        time.sleep(3)
+            except:
+                print("Missing values!")
 
         else:
             print("No devices to get the measurements from!")
@@ -1014,13 +1050,14 @@ class WeatherStationWS():
             # Dev. list retrieval
             # Topic subscription
             # Update of the weather to MongoDB every 24 hours (at 11 pm)
+            # Records cleanup
         
         already_sent_flg = False
 
         timeout = time.time() + 10
 
         datetime_now = datetime.fromtimestamp(time.time())
-        datetime_tonight = datetime(datetime_now.year, datetime_now.month, datetime_now.day, 20, 00)
+        datetime_tonight = datetime(datetime_now.year, datetime_now.month, datetime_now.day, int(hour_update), 00)
         
         print(datetime_now)
         print(datetime_tonight)
@@ -1029,6 +1066,7 @@ class WeatherStationWS():
 
         while True:
             time.sleep(5)
+            print('')
 
             # Send data to mongoDB now
             curr_hour = int(datetime.now().strftime("%H"))
@@ -1047,11 +1085,11 @@ class WeatherStationWS():
             
             if time.time() > timeout:
                 print(datetime.fromtimestamp(time.time()))
-                self.postToMongoDB()
-
-                # datetime_tonight = datetime_tonight.timedelta(days=1)
-                datetime_tonight += timedelta(minutes=4)
-                timeout = datetime_tonight.timestamp()
+                
+                if self.postToMongoDB() == 1:
+                    # datetime_tonight = datetime_tonight.timedelta(days=1)
+                    datetime_tonight += timedelta(hours=24)
+                    timeout = datetime_tonight.timestamp()
             
             # These 2 will work iff the weather station is not able 
             # to update the info for some time
@@ -1070,5 +1108,6 @@ if __name__ == "__main__":
         my_weather_station.mainLoop(hour_update=23)
     except KeyboardInterrupt:
         cherrypy.engine.stop()
+        my_weather_station.mqtt_cli.stop()
         traceback.print_exc()
         sys.exit(1)
