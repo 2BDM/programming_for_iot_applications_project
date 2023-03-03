@@ -34,7 +34,7 @@
 		]
     },
 	"charts":{
-			"url_temp":"https://charts.mongodb.com/charts-project-0-vfxkj/embed/charts?id=6401a417-5156-4f02-8567-205c3c89be6b&maxDataAge=3600&theme=light&autoRefresh=true"
+			"url_temp":"https://charts.mongodb.com/charts-project-0-vfxkj/embed/charts?id=6401a417-5156-4f02-8567-205c3c89be6b&maxDataAge=3600&theme=light&autoRefresh=true",
 			"url_precipitations":"https://charts.mongodb.com/charts-project-0-vfxkj/embed/charts?id=6401a6f3-a93b-4731-8e8c-d09e095de7bd&maxDataAge=3600&theme=light&autoRefresh=true"
 	}
 }
