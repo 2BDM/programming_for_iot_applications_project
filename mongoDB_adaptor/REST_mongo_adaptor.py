@@ -22,6 +22,8 @@ class adaptor_mongo_interface(object):
     #   - coll = "weather"                                                                      #
     #           - date                    --> to search by a specific date                      #
     #           - min_date, max_date      --> to search records in a interval of dates          #
+    #           - chart_temp              --> to have the chart of min, max and mean temperature#
+    #           - chart_prec              --> to have the chart of precipitations               #
     # VERY IMPORTANT:                                                                           #
     # All the requests (except for the ID) return N records of type [{"_id":id},{"name":name}]  #
     # and not the full information. So, you should make two requests.                           #
@@ -46,6 +48,10 @@ class adaptor_mongo_interface(object):
         self.coll2_name = self.conf_dict["database"]["collections"][1]
         self.mongoP = mDB.mongoAdaptor(url,database_name,self.coll1_name)
         self.mongoW = mDB.mongoAdaptor(url,database_name,self.coll2_name)
+        
+        #information of charts
+        self.url_chart_temp = self.conf_dict["charts"]["url_temp"]
+        self.url_chart_prec = self.conf_dict["charts"]["url_precipitations"]
     
     def getPort(self):
         return self.port
@@ -77,13 +83,18 @@ class adaptor_mongo_interface(object):
             
             elif "moisture" in value and "N" in value:
                 return self.mongoP.find_by_moisture(int(params['moisture']),int(params['N']))
+                
         elif params['coll']==self.coll2_name:
             if "date" in value:
                 return self.mongoW.find_by_timestamp(str(params['date']))
             elif "min_date" in value and "max_date" in value:
                 return self.mongoW.find_by_timestamp(str(params['min_date']),str(params['max_date']))
+            elif "chart_temp" in value:
+                return self.chart_temp
+            elif "chart_prec" in value:
+                return self.chart_prec
         else:
-            return "error"   
+            return "Check the introduced parameters - no match found"   
     
     def POST(self,**params):
         bodyAsString = cherrypy.request.body.read()
