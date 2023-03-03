@@ -517,6 +517,7 @@ class WeatherStationWS():
         else:
             # If the ID was not manually assigned (in the conf), the initial value is set to None
             self.id = None
+            self.getServiceID()
 
         # HTTP conf
         self._http_conf = {
@@ -632,6 +633,37 @@ class WeatherStationWS():
 
     ################################################################
 
+    def getServiceID(self, max_tries=20):
+        """
+        Request ID from service catalog.
+
+        The method returns 1 if the ID is assigned, else 0
+        """
+        tries = 0
+        serv_cat_id = self._serv_cat_addr + '/new_serv_id'
+        while self.id is None and tries < 2*max_tries:
+            tries += 1
+            try:
+                r_id = requests.get(serv_cat_id)
+                if r_id.ok:
+                    self.id = r_id.json()
+                    self.whoami["id"] = self.id
+                    return 1
+                else:
+                    # Should not happen
+                    print("Error - unable to get ID from server!")
+                    time.sleep(3)
+            except:
+                print("Unable to reach service catalog to retrieve ID")
+                time.sleep(3)
+
+        if self.id is not None:
+            print("ID already assigned")
+            return 1
+        else:
+            warnings.warn("It was not possible to retrieve the service ID")
+            return 0
+
     def registerAtServiceCatalog(self, max_tries=10):
         """
         This method is used to register the device catalog information
@@ -642,11 +674,14 @@ class WeatherStationWS():
         - -1: information was already present - update was performed
         - 0: failed to add (unreachable server)
         """
+
+        if self.id is None:
+            self.getServiceID()
+
+        # Actual
         tries = 0
-        while not self._registered_at_catalog and tries < max_tries:
-            # Probably will need to assign id here ...
-
-
+        while not self._registered_at_catalog and tries < max_tries and self.id is not None:            
+            tries += 1
             try:
                 reg = requests.post(self._serv_cat_addr + '/service', data=json.dumps(self.whoami))
                 print(f"Sent request to {self._serv_cat_addr}")
@@ -667,7 +702,6 @@ class WeatherStationWS():
                 time.sleep(5)
             except:
                 print("Tried to connect to services catalog - failed to establish a connection!")
-                tries += 1
                 time.sleep(5)
 
     def updateServiceCatalog(self, max_tries=10):
@@ -683,6 +717,9 @@ class WeatherStationWS():
         # Try refreshing info (PUT) - code 200
         # If it fails with code 400 -> cannot update
             # Perform POST
+
+        if self.id is None:
+            self.getServiceID()
 
         updated = False
         count_fail = 0
@@ -734,6 +771,7 @@ class WeatherStationWS():
         """
         tries = 0
         while tries <= max_tries and self._broker_info == {}:
+            tries += 1
             addr = self._serv_cat_addr + "/broker"
             r = requests.get(addr)
             if r.ok:
@@ -764,8 +802,9 @@ class WeatherStationWS():
         ----------------------------------------------------------
         """
         tries = 0
+        addr = self._serv_cat_addr + "/device_catalog"
         while self._dev_cat_info == {} and tries < max_tries:
-            addr = self._serv_cat_addr + "/device_catalog"
+            tries += 1
             try:
                 r = requests.get(addr)
                 if r.ok:
@@ -817,10 +856,11 @@ class WeatherStationWS():
         # The retrieval is done only if the current info is more then 'info_timeout' seconds old
         # Need to call this method periodically (main loop)     
     
-        tries = 0
         try:
+            tries = 0
             dc_addr = "http://" + self._dev_cat_info["ip"] + ":" + str(self._dev_cat_info["port"]) + "/devices"
             while tries < max_tries:
+                tries += 1
                 try:
                     r = requests.get(dc_addr)
                     if r.ok:
