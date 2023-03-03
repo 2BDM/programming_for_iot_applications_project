@@ -165,12 +165,12 @@ if __name__ == "__main__":
     conf = {
         '/': {
             'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
-            'tool.session.on': True
+            'tools.sessions.on': True
         }
     }
     webService = adaptor_mongo_interface("mongo_conf.json", True)
     cherrypy.tree.mount(webService, '/', conf)
-    #cherrypy.config.update({'server.socket_host': webService.getIP()})
+    cherrypy.config.update({'server.socket_host': webService.getIP()})
     cherrypy.config.update({'server.socket_port': webService.getPort()})
 
     ok = False
