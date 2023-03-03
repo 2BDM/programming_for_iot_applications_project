@@ -1,0 +1,5 @@
+paho-mqtt
+cherrypy
+requests
+Adafruit_BMP
+Adafruit_DHT
