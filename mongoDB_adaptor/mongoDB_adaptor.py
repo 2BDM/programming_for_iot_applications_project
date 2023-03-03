@@ -2,9 +2,6 @@ import pymongo
 import json
 import datetime  
 
-# ??????? MY QUESTIONS ????????
-# the research in the database is sequential --> it returns the first plants with an high probability
-# we want to generate a random sequence?
 
 class mongoAdaptor():
     
