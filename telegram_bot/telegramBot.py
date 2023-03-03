@@ -26,7 +26,6 @@ class RESTBot:
                         "IP": self.myIP}
         #requests.post("http://" + self.catalogIP + "/service", json = self.myDict)
         MessageLoop(self.bot, {'chat': self.on_chat_message}).run_as_thread()
-        self.greenhouseCount = 0
 
 
     def on_chat_message(self, msg):
@@ -38,18 +37,24 @@ class RESTBot:
 
 
 
+        #########
+        # START #                                                                                      
+        #########
         if command == "/start":
             self.bot.sendMessage(chat_ID, text="Hi, welcome to the GreenHouse application.\nHere you will be able to manage your plants \
 and your greenhouses. Moreover we will warn you when the water in the tank is low and you should refill it. Here's the list of command \
 you can use, if you need information about how to use a command, just write the command itself and press send, you will be given clear \
 instructions:\n/addUser\n/addGreenhouse\n/getPlantList")
-
-
-
+            
+        
+            
+        ############
+        # ADD USER #                                                                                      
+        ############
         elif command == "/addUser":
             if len(lines) == 1:
-                self.bot.sendMessage(chat_ID, text="To add a user send a message\
- with the following format:\n/addUser\n<user_name>\n<user_surname>\n<email_address>")
+                self.bot.sendMessage(chat_ID, text="To add a user send a message \
+with the following format:\n/addUser\n<user_name>\n<user_surname>\n<email_address>")
             elif len(lines) == 4:
                 myDictionary = {"id": chat_ID, 
                                 "user_name": lines[1].replace(" ",""), 
@@ -58,19 +63,23 @@ instructions:\n/addUser\n/addGreenhouse\n/getPlantList")
                                 "telegram_id": chat_ID, 
                                 "greenhouse": list(), 
                                 "last_update": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-                resp = requests.post("http://"+self.catalogIP+"/user", json = myDictionary)  
-                if resp.status_code == 200:
+                resp = requests.post("http://"+self.catalogIP+"/user", json.dumps(myDictionary))  
+                if resp.status_code == 201:
                     self.bot.sendMessage(chat_ID, text='User added correctly!')
                     self.users[chat_ID] = myDictionary
-                else:
+                elif resp.status_code == 400:
                     self.bot.sendMessage(chat_ID, text='Error, try again.') 
+                else:
+                    self.bot.sendMessage(chat_ID, text='The server is not responding, please try again later.')
 
             else:
-                self.bot.sendMessage(chat_ID, text="Wrong format for adding a user. To add a user send a\
- message with the following format:\n/addUser\n<user_name>\n<user_surname>\n<email_address>")
+                self.bot.sendMessage(chat_ID, text="Wrong format for adding a user. To add a user send a \
+message with the following format:\n/addUser\n<user_name>\n<user_surname>\n<email_address>")
                 
 
-        
+        ##################
+        # ADD GREENHOUSE #                                                                                      
+        ##################
         elif command == "/addGreenhouse":
             if len(lines) == 1:
                 self.bot.sendMessage(chat_ID, text="To add a greenhouse send a message with the following format:\
@@ -78,25 +87,28 @@ instructions:\n/addUser\n/addGreenhouse\n/getPlantList")
 
             elif len(lines) == 3:
                 plantID = lines[2]
-                needs = requests.get("http://" + self.databaseIP + "?coll=plants&id="+plantID).json()
-                myDictionary = {"id": self.greenhouseCount, 
-                                "name": lines[1], 
-                                "plantID": lines[2],
-                                "plantNeeds": needs}
-                resp = requests.post("http://" + self.catalogIP + "/greenhouse", json = myDictionary) 
+                needs = requests.get("http://" + self.databaseIP + "?coll=plants&id="+plantID+"needs=1").json()["needs"]
+                myDictionary = {"id": lines[1].replace(" ",""),  
+                                "user_id": chat_ID,
+                                "plant_type": lines[2].replace(" ",""),
+                                "plant_needs": needs}
+                resp = requests.post("http://" + self.catalogIP + "/greenhouse", json.dumps(myDictionary)) 
 
-                if resp.status_code == 200:
+                if resp.status_code == 201:
                     self.bot.sendMessage(chat_ID, text='GreenHouse added correctly!')
-                    self.greenhouseCount = self.greenhouseCount + 1
-                else:
+                elif resp.status_code == 400:
                     self.bot.sendMessage(chat_ID, text='Error, try again.') 
+                else:
+                    self.bot.sendMessage(chat_ID, text='The server is not responding, please try again later.')
 
             else:
                 self.bot.sendMessage(chat_ID, text="Wrong format for adding a greenhouse. To add a greenhouse send a message with the \
 following format:\n/addGreenhouse\n<greenhouse_id>\n<plant_id>\n")
                 
 
-                
+        ##################
+        # GET PLANT LIST #                                                                                      
+        ##################        
         elif command == "/getPlantList":
             if len(lines) == 1:
                 self.bot.sendMessage(chat_ID, text="")
@@ -107,41 +119,44 @@ following format:\n/addGreenhouse\n<greenhouse_id>\n<plant_id>\n")
                     plantID = lines[1].split(":")[1].replace(" ","")
                     needs = requests.get("http://" + self.databaseIP + "?coll=plants&id="+plantID).json()
 
-
-
             else:
                 self.bot.sendMessage(chat_ID, text="Wrong format for searching a plant. To add a greenhouse send a message with the \
 following format:")
 
-            
+
+        
+        ###################
+        # GET PLANT NEEDS #                                                                                      
+        ###################
+        elif command == "/getPlantInformation":
+            if len(lines) == 1:
+                self.bot.sendMessage(chat_ID, text="To get the informations about a plant, send a message with the following format: \
+\n/getPlantInformation\n<plant_id>")
+            elif len(lines) == 2:
+                pass
+            else:
+                self.bot.sendMessage(chat_ID, text="Wrong format for getting plant information. To get a plant information \
+send a message with thefollowing format:\n/getPlantInformation\n<plant_id>")
 
 
 
-
-
-
+        ####################
+        # IN CASE OF ERROR #                                                                                      
+        ####################
         else:
             self.bot.sendMessage(chat_ID, text="The command you sent is not in our list. Check again the list of possible commands. \
 \n/addUser\n/addGreenhouse\n/getPlantList")
+            
+    
+
+    def POST(self, *param):
+        greenhouseID = param[0]
+        
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+""" 
+MAIN
+"""
 
 if __name__ == "__main__":
     #conf = json.load(open("settings.json"))
