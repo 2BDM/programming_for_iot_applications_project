@@ -53,6 +53,12 @@ class adaptor_mongo_interface(object):
         #information of charts
         self.url_chart_temp = self.conf_dict["charts"]["url_temp"]
         self.url_chart_prec = self.conf_dict["charts"]["url_precipitations"]
+
+        tmpDict = self.conf_dict["mongo_db"]
+        tmpdetails = tmpDict["endpoints_details"][0]
+        tmpdetails.pop('ip')
+        tmpdetails.pop('port')
+        tmpDict["endpoints_details"]=tmpdetails
     
     def getPort(self):
         return self.port
@@ -120,10 +126,7 @@ class adaptor_mongo_interface(object):
                     
         # I'm preparing the dictionary to send to the service catalog
         tmpDict = self.conf_dict["mongo_db"]
-        tmpdetails = tmpDict["endpoints_details"][0]
-        tmpdetails.pop('ip')
-        tmpdetails.pop('port')
-        tmpDict["endpoints_details"]=tmpdetails
+        print(tmpDict)
  
         if self.addr_ser_cat != {}:
             addr = self.addr_ser_cat + "/service"
@@ -136,7 +139,7 @@ class adaptor_mongo_interface(object):
                     elif r.status_code == 400:
                         print("Device was already registered!\n↓")
                         self._registered_dev_cat = True
-                        if self.updateDevCat() == 1:
+                        if self.updateServCat() == 1:
                             return 1
                         else:
                             print("Unable to update info")
@@ -158,6 +161,54 @@ class adaptor_mongo_interface(object):
         else: 
             print("Missing information on service catalog!")
             return -1
+
+    def updateServCat(self, max_tries=10):
+        """
+        This ethod is used to update the information of the device catalog 
+        at the services catalog.
+        ------
+        Return values:
+        - 1: update successful
+        - -1: needed to register first
+        - 0: unable to reach server
+        """
+        # Try refreshing info (PUT) - code 200
+        # If it fails with code 400 -> cannot update
+            # Perform POST
+
+        updated = False
+        count_fail = 0
+
+        tmpDict = self.conf_dict["mongo_db"]
+
+        while not updated and count_fail < max_tries:
+            try:
+                try1 = requests.put(self.addr_ser_cat + '/service', data=js.dumps(tmpDict))
+
+                # If here, it was possible to send the request to the server (reachable)
+                if try1.status_code == 200:
+                    # Update successful
+                    print("Information in the service catalog was successfully updated!")
+                    self._last_update_serv = time.time()
+                    return 1
+                elif try1.status_code == 400:
+                    print("Unable to update information at the service catalog ---> trying to register")
+                    count_fail += 1
+                    self._registered_dev_cat = False
+                    self.registerAtServiceCatalog()
+                    if self._registered_dev_cat:
+                        updated = True
+                        return -1
+            except:
+                print("Tried to connect to services catalog - failed to establish a connection!")
+                count_fail += 1
+                time.sleep(5)
+        
+        # If here, then it was not possible to update nor register information
+        # within the maximum number of iterations, which means it was not possible 
+        # to reach the server
+        print("Maximum number of tries exceeded - service catalog was unreachable!")
+        return 0
 
 
 if __name__ == "__main__":
@@ -189,6 +240,12 @@ if __name__ == "__main__":
             # If too many tries - wait some time, then retry
             iter_init = 0
             time.sleep(10)
-        
+    
     cherrypy.engine.start()
-    cherrypy.engine.block()
+
+    try:
+        while True:
+            time.sleep(5)
+            webService.updateServCat()
+    except KeyboardInterrupt:
+        cherrypy.engine.stop()
