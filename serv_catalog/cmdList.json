@@ -10,6 +10,7 @@
                 "/users",
                 "/user?id=",
                 "/greenhouses",
+                "/greenhouses?usr_id",
                 "/greenhouse?id=",
                 "/services",
                 "/service?id=",
