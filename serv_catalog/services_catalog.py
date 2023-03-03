@@ -44,7 +44,7 @@ class ServicesCatalog():
         self._dev_cat_params = ["ip", "port", "methods"]
         self._usr_params = ["id", "user_name", "user_surname", 
                     "email_addr", "greenhouse"]
-        self._greenhouse_params = ['id', 'plant_type', 'plant_needs']
+        self._greenhouse_params = ['id', 'user_id', 'device_id' 'plant_type', 'plant_needs']
         self._services_params = ['id', 'name', 'endpoints', 'endpoints_details']
 
         # Default empty device catalog
@@ -95,6 +95,11 @@ class ServicesCatalog():
 
     def getServices(self):
         return self.cat["services"]
+    
+    def getUserGreenhouses(self, userID):
+        for usrinfo in self.cat["users"]:
+            if usrinfo["id"] == int(userID):
+                return usrinfo["greenhouses"]
 
     # COUNTERS
     def countUsers(self):
@@ -155,9 +160,13 @@ class ServicesCatalog():
         if all(elem in device_catalog for elem in self._dev_cat_params):
             if self.cat["device_catalog"]["last_update"] == "":
                 # The object was not created yet
-                for key in self._default_dev_cat:
+                for key in self._default_dev_cat.keys():
                     # Doing this prevents to insert keys that are not the allowed ones
-                    self.cat["device_catalog"][key] = device_catalog[key]
+                    if key != "last_update":
+                        # Necessary - last_update is added after
+                        # If the device catalog was reset, the last_update key is present
+                        # but set to ""
+                        self.cat["device_catalog"][key] = device_catalog[key]
                 self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 self.cat["device_catalog"]["last_update"] = self.last_update
                 self.cat["last_update"] = self.last_update
@@ -184,7 +193,7 @@ class ServicesCatalog():
             if self.searchUser("id", new_id) == {}:
                 # not found
                 new_dict = {}
-                for key in self._usr_params:
+                for key in self._usr_params.keys():
                     new_dict[key] = newUsr[key]
                 self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 new_dict["last_update"] = self.last_update
@@ -212,7 +221,7 @@ class ServicesCatalog():
             new_id = newGH["id"]
             if self.searchGreenhouse("id", new_id) == {}:
                 new_dict = {}
-                for key in self._greenhouse_params:
+                for key in self._greenhouse_params.keys():
                     new_dict[key] = newGH[key]
                 self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 new_dict["last_update"] = self.last_update
@@ -259,7 +268,8 @@ class ServicesCatalog():
                 # The object already existed
                 for key in self._default_dev_cat:
                     # Doing this prevents to insert keys that are not the allowed ones
-                    self.cat["device_catalog"][key] = upd_info[key]
+                    if key != "last_update":
+                        self.cat["device_catalog"][key] = upd_info[key]
                 self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 self.cat["device_catalog"]["last_update"] = self.last_update
                 self.cat["last_update"] = self.last_update
@@ -323,7 +333,7 @@ class ServicesCatalog():
             # If unable to read timestamp it means it is empty
             return 0
         if curr_time - oldtime > timeout:
-            self.cat["device_catalog"] = self._default_dev_cat
+            self.cat["device_catalog"] = self._default_dev_cat.copy()
             self.cat["device_catalog"]["last_update"] = ""
             self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             self.cat["last_update"] = self.last_update
@@ -400,9 +410,22 @@ class ServicesCatalogWebService():
         self.catalog = ServicesCatalog(catalog_path, output_cat_path)
         self.msg_ok = {"status": "SUCCESS", "msg": ""}
         self.msg_ko = {"status": "FAILURE", "msg": ""}
-        self.timeout = 120          # seconds
+        self._dev_cat_timeout = 120          # seconds - for device catalog and services list
+        self._user_gh_timeout = 30*24*60*60          # seconds - for users and greenhouses
 
         self.my_info = self.catalog.getServCatInfo()
+
+        ###### Initialize IDs for each element 
+        # NOTE: the ID the services cat stores are the next ones that need to be assigned
+
+        # USER ID
+        self._next_userID = 1
+        
+        # GREENHOUSE ID
+        self._next_ghID = 1
+
+        # SERVICE ID
+        self._next_servID = 1
 
     def GET(self, *uri, **params):
 
@@ -441,7 +464,18 @@ class ServicesCatalogWebService():
                     raise cherrypy.HTTPError(400, "Missing/wrong parameters")
             
             elif (str(uri[0]) == "greenhouses"):
-                return json.dumps(self.catalog.getGreenhouses())
+                if len(params) == 0:
+                    return json.dumps(self.catalog.getGreenhouses())
+                else:
+                    if len(params) == 1 and str(params.keys()[0]) == 'usr_id':
+                        usr_ID = int(params["usr_id"])
+                        out_gh = self.catalog.getUserGreenhouses(usr_ID)
+                        if out_gh == {}:
+                            raise cherrypy.HTTPError(404, f"User {usr_ID} not found")
+                        else:
+                            return json.dumps(out_gh)
+                    else:
+                        raise cherrypy.HTTPError(400, "Missing/wrong parameters")
             elif (str(uri[0]) == "greenhouse"):
                 if "id" in params:
                     gh_ID = int(params["id"])
@@ -472,10 +506,34 @@ class ServicesCatalogWebService():
                     elif s_obj is not None:
                         # Object was understood but not found
                         raise cherrypy.HTTPError(404, f"Service {s_obj} not found")
-                
+
                 # Missing required params
                 else:
                     raise cherrypy.HTTPError(400, "Missing/wrong parameters")
+
+            elif (str(uri[0]) == "new_user_id"):
+                # Return next ID:
+                self.checkUnusedUserID()
+                out = {}
+                out["id"] = self._next_userID
+                self._next_userID += 1
+                return json.dumps(out)
+            
+            elif (str(uri[0]) == "new_greenhouse_id"):
+                # Return next greenhouse ID:
+                self.checkUnusedGreenhouseID()
+                out = {}
+                out["id"] = self._next_ghID
+                self._next_ghID += 1
+                return json.dumps(out)
+            
+            elif (str(uri[0]) == "new_serv_id"):
+                # Return next ID:
+                self.checkUnusedServiceID()
+                out = {}
+                out["id"] = self._next_servID
+                self._next_servID += 1
+                return json.dumps(out)
 
         else:       # Default case
             return "Available commands: " + json.dumps(self.API["methods"][0])
@@ -490,13 +548,13 @@ class ServicesCatalogWebService():
             if (str(uri[0]) == "device_catalog"):
                 if self.catalog.addDevCat(body) != 0:
                     out = self.msg_ok.copy()
-                    out["msg"] = "Device catalog was added"
+                    out["msg"] = "Device catalog was successfully added!"
                     self.catalog.saveAsJson()
                     cherrypy.response.status = 201
                     return json.dumps(out)
                 else:
                     out = self.msg_ko.copy()
-                    out["msg"] = "Unable to add device catalog"
+                    out["msg"] = "Unable to add device catalog!"
                     cherrypy.response.status = 400
                     return json.dumps(out)
 
@@ -553,7 +611,7 @@ class ServicesCatalogWebService():
             if (str(uri[0]) == "device_catalog"):
                 if self.catalog.updateDevCat(body) != 0:
                     out = self.msg_ok.copy()
-                    out["msg"] = "Device catalog was updated"
+                    out["msg"] = "Device catalog was successfully updated!"
                     self.catalog.saveAsJson()
                     cherrypy.response.status = 200
                     return json.dumps(out)
@@ -589,7 +647,7 @@ class ServicesCatalogWebService():
                     cherrypy.response.status = 400
                     return json.dumps(out)
 
-        elif (str(uri[0]) == "services"):
+        elif (str(uri[0]) == "service"):
                 if self.catalog.updateService(body) != 0:
                     out = self.msg_ok.copy()
                     out["msg"] = "Service " + str(body["id"]) + " was updated"
@@ -610,10 +668,10 @@ class ServicesCatalogWebService():
         ## Check for old records (> 2 min)
         curr_time = time.time()
 
-        rem_d = self.catalog.cleanDevCat(curr_time, self.timeout)
-        rem_u = self.catalog.cleanUsers(curr_time, self.timeout)
-        rem_gh = self.catalog.cleanGreenhouses(curr_time, self.timeout)
-        rem_s = self.catalog.cleanServices(curr_time, self.timeout)
+        rem_d = self.catalog.cleanDevCat(curr_time, self._dev_cat_timeout)
+        rem_u = self.catalog.cleanUsers(curr_time, self._user_gh_timeout)
+        rem_gh = self.catalog.cleanGreenhouses(curr_time, self._user_gh_timeout)
+        rem_s = self.catalog.cleanServices(curr_time, self._dev_cat_timeout)
         
         if rem_d > 0 or rem_u > 0 or rem_gh > 0 or rem_s > 0:
             self.catalog.saveAsJson()
@@ -625,13 +683,56 @@ class ServicesCatalogWebService():
             time.sleep(refresh_rate)
             self.cleanRecords()
 
-
     def getMyIP(self):
         return self.my_info["ip"]
 
     def getMyPort(self):
         return self.my_info["port"]
 
+    def checkUnusedUserID(self):
+        """
+        Used to verify the current 'next user id' is not taken already
+        """
+        # self._next_devID
+
+        # Get list of currently used IDs:
+        ids = []
+
+        for dev in self.catalog.getUsers():
+            ids.append(dev['id'])
+        
+        while self._next_userID in ids:
+            self._next_userID += 1
+
+    def checkUnusedGreenhouseID(self):
+        """
+        Used to verify the current 'next greenhouse id' is not taken already
+        """
+        # self._next_devID
+
+        # Get list of currently used IDs:
+        ids = []
+
+        for dev in self.catalog.getGreenhouses():
+            ids.append(dev['id'])
+        
+        while self._next_ghID in ids:
+            self._next_ghID += 1
+
+    def checkUnusedServiceID(self):
+        """
+        Used to verify the current 'next service id' is not taken already
+        """
+        # self._next_devID
+
+        # Get list of currently used IDs:
+        ids = []
+
+        for dev in self.catalog.getServices():
+            ids.append(dev['id'])
+        
+        while self._next_servID in ids:
+            self._next_servID += 1
 #
 #
 #
@@ -658,7 +759,8 @@ if __name__ == "__main__":
     cherrypy.config.update({'server.socket_host': WebService.getMyIP()})
     cherrypy.config.update({'server.socket_port': WebService.getMyPort()})
     cherrypy.engine.start()
-    WebService.cleanupLoop(30)
-    
-    # This part is not executed
-    cherrypy.engine.block()
+    try:
+        WebService.cleanupLoop(30)
+    except KeyboardInterrupt:
+        cherrypy.engine.stop()
+
