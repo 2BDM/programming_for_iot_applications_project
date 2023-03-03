@@ -65,7 +65,8 @@ class adaptor_mongo_interface(object):
         if params['coll']==self.coll1_name:
             if "id" in value:
                 return self.mongoP.find_by_id(int(params['id']))
-            
+            elif "id" in value and "needs" in value:
+                return self.mongoP.find_by_id_needs(int(params['id']))
             elif "min_size" in value and "max_size" in value and "N" in value:
                 return self.mongoP.find_by_size(int(params['min_size']),int(params['max_size']),int(params['N']))
             
