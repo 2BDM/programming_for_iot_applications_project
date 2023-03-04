@@ -5,7 +5,9 @@ import requests
 import time
 import warnings
 
-#
+""" 
+Water delivery strategy
+"""
 
 MOIST_LOW = 10      # %
 #
@@ -29,12 +31,6 @@ class LightingStrategy():
         self.whoami = self._conf["water_delivery"]         # Own information - to be sent to the services catalog
 
         self._out_conf_path = out_conf
-
-        # NOT DONE, since no web service needs to be launched for this microservice
-        # for ed in self.whoami["endpoints_details"]:
-        #     if ed["endpoint"] == "REST":
-        #         self.ip = ed["address"].split(':')[1].split('//')[1]
-        #         self.port = int(ed["address"].split(':')[-1])
 
         if own_ID:
             self.id = self.whoami["id"]
@@ -136,7 +132,7 @@ class LightingStrategy():
                     # May receive other units from different sensors
                     # Here, one should call methods to convert the units
 
-                    # Not implemented...
+                    # Not implemented
                     pass
 
                 if meas <= low_thresh:
