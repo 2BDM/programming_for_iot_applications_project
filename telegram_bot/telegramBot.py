@@ -15,20 +15,19 @@ class RESTBot:
     ##################
     # INITIALIZATION #                                                                                      
     ##################
-    def __init__(self, token):
-        self.catalogIP = 0
-        #self.catalogIP = json.loads(open("initialization"))["catalogIP"]
-        #self.myIP = json.loads(open("initialization"))["IP"]
-        self.myIP = 0
+    def __init__(self, conf_dict):
+        self.catalogIP = str(conf_dict["services_catalog"]["ip"])+"/"+ str(conf_dict["services_catalog"]["port"])
+        self.myIP = str(conf_dict["telegram"]["endpoints_details"][0]["ip"]) +"/"+ str(conf_dict["telegram"]["endpoints_details"][0]["port"])
         #self.tokenBot=requests.get("http://" + self.catalogIP + "/telegram_token").json()["telegramToken"]
         self.tokenBot = "6226505200:AAFJfAUnwZqRHwk8tH5YbNweoKKKYm0Tufk"
         self.bot = telepot.Bot(self.tokenBot)
         self.users = []
         #self.databaseIP = requests.get("http://" + self.catalogIP + "/service?name=mongoDBadptor").json()["IP"]
-        self.myDict = {"id" : 123456,
+        self.myDict = {"id" : conf_dict["telegram"]["id"],
                         "name": "telegramBot",
                         "token": self.tokenBot,
-                        "IP": self.myIP}
+                        "ip": conf_dict["telegram"]["endpoints_details"][0]["ip"],
+                        "port":conf_dict["telegram"]["endpoints_details"][0]["port"]}
         #requests.post("http://" + self.catalogIP + "/service", json = self.myDict)
         MessageLoop(self.bot, {'chat': self.on_chat_message}).run_as_thread()
     
@@ -38,7 +37,8 @@ class RESTBot:
     # SEND A LIST OF PLANT #                                                                                      
     ########################
     # Given a list of plant and a user, send to the user the list in the format <plant_name:plant_id>
-    def sendPlantList(self, plantList, chat_ID):
+    def sendPlantList(self, plantListDict, chat_ID):
+        plantList = plantListDict["plant_list"]
         if len(plantList)==0:
             self.bot.sendMessage(chat_ID, text="No plant in our database match your requirements.")
         else:
@@ -257,12 +257,13 @@ send a message with thefollowing format:\n/getPlantInformation\n<plant_id>")
     ########
     # POST #                                                                                      
     ########
-    def POST(self, **param):
+    def POST(self, *uri, **param):
+        
         greenhouseID = param["greenhouseID"]
         resp = requests.get("http://"+self.catalogIP+"/greenhouse?id="+greenhouseID)
         chat_ID = resp["user_id"]
         self.bot.sendMessage(chat_ID, text="The water in the tank of one of your greenhouse is low. You should refill it. The greenhouse \
-    ID is "+ greenhouseID)
+ID is "+ greenhouseID)
 
 
         
@@ -272,17 +273,15 @@ send a message with thefollowing format:\n/getPlantInformation\n<plant_id>")
 # MAIN #                                                                                      
 ########
 if __name__ == "__main__":
-    #conf = json.load(open("settings.json"))
-    conf = {"telegramToken": "6226505200:AAFJfAUnwZqRHwk8tH5YbNweoKKKYm0Tufk", "port":8080}
-    token = conf["telegramToken"]
+    conf_dict = json.load(open("settings.json"))
     cherryConf = {
         '/': {
             'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
             'tool.session.on': True
         }
     }
-    cherrypy.config.update({'server.socket_host': '0.0.0.0', 'server.socket_port': conf["port"]})
-    bot = RESTBot(token)
+    cherrypy.config.update({'server.socket_host': 'conf_dict["telegram"]["endpoints_details"][0]["ip"]', 'server.socket_port': conf_dict["telegram"]["endpoints_details"][0]["port"]})
+    bot = RESTBot(conf_dict)
     cherrypy.tree.mount(bot, '/', cherryConf)
     cherrypy.engine.start()
     cherrypy.engine.block()
