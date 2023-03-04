@@ -47,6 +47,26 @@ class RESTBot:
                 currentMessage = "\n"+current["name"]+" : "+ str(current["id"])
                 message = message+currentMessage
             self.bot.sendMessage(chat_ID, text=message)
+    
+
+
+    ##########################
+    # SEND PLANT INFORMATION #                                                                                      
+    ##########################
+    def sendPlantInformation(self, information, chat_ID):
+
+        message = "Information about the selected plant:\n"
+        message = message + "ID: "+str(information["id"])+"\nName: "+str(information["name"])+"\nCategory: "+str(information["category"])
+        size = "\nSize range: "+str(information["size"][0])+"-"+str(information["size"][1])
+        light = "\nLight range: "+str(information["min_light_lux"])+"-"+str(information["max_light_lux"])
+        temperature = "\nTemperature range: "+str(information["min_temp"])+"-"+str(information["max_temp"])
+        humidity = "\nHumidity range: "+str(information["min_env_humid"])+"-"+str(information["max_env_humid"])
+        soil = "\nSoil moisture range: "+str(information["min_soil_moist"])+"-"+str(information["max_soil_moist"])
+        generalInfo = "\n"+ str(information["soil"])+". "+str(information["sunlight"])+". "+str(information["watering"])+". "+str(information["fertilization"])+". "+str(information["pruning"])+".  "+str(information["blooming"])+". "+str(information["color"])+"."
+        message = message + size + light + temperature + humidity + soil + generalInfo
+
+        self.bot.sendPhoto(chat_id=chat_ID, photo=str(information["image"]))
+        self.bot.sendMessage(chat_ID, text=message)
 
 
 
@@ -55,7 +75,6 @@ class RESTBot:
     ################################
     def on_chat_message(self, msg):
         content_type, chat_type, chat_ID = telepot.glance(msg)
-
         message = msg["text"]
         lines = message.split("\n")
         command = lines[0].replace(" ","")
@@ -102,6 +121,7 @@ with the following format:\n/addUser\n<user_name>\n<user_surname>\n<email_addres
 message with the following format:\n/addUser\n<user_name>\n<user_surname>\n<email_address>")
                 
 
+
         ##################
         # ADD GREENHOUSE #                                                                                      
         ##################
@@ -130,6 +150,7 @@ message with the following format:\n/addUser\n<user_name>\n<user_surname>\n<emai
                 self.bot.sendMessage(chat_ID, text="Wrong format for adding a greenhouse. To add a greenhouse send a message with the \
 following format:\n/addGreenhouse\n<greenhouse_id>\n<plant_id>\n")
                 
+
 
         ##################
         # GET PLANT LIST #                                                                                      
@@ -215,7 +236,8 @@ to stain at a certain temperature send:\n/getPlantList\ntemperature:<value>\n- T
 \n/getPlantInformation\n<plant_id>")
             elif len(lines) == 2:
                 plantID = lines[1].replace(" ","")
-                needs = requests.get("http://" + self.databaseIP + "?coll=plants&id="+plantID).json()
+                info = requests.get("http://" + self.databaseIP + "?coll=plants&id="+plantID).json()
+                self.sendPlantInformation(info, chat_ID)
 
             else:
                 self.bot.sendMessage(chat_ID, text="Wrong format for getting plant information. To get a plant information \
