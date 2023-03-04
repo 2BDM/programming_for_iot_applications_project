@@ -1,0 +1,27 @@
+{
+    "project_name": "Smart greenhouse",
+    "project_owner": "2BDM",
+    "services_catalog": {
+        "ip": "100.127.117.69",
+        "port": 2222,
+        "methods": [
+            "GET",
+            "PUT",
+            "POST"
+        ]
+    },
+    "lighting_strategy": {
+        "id": 3,
+        "name": "lighting_strategy",
+        "endpoints": [
+            "MQTT"
+        ],
+        "endpoints_details": [
+            {
+                "endpoint": "MQTT",
+                "bn": "lighting_strategy_3",
+                "topics": []
+            }
+        ]
+    }
+}
