@@ -1,0 +1,27 @@
+{
+    "project_name": "Smart greenhouse",
+    "project_owner": "2BDM",
+    "services_catalog": {
+        "ip": "100.127.117.69",
+        "port": 2222,
+        "methods": [
+            "GET",
+            "PUT",
+            "POST"
+        ]
+    },
+    "water_delivery": {
+        "id": 4,
+        "name": "water_delivery",
+        "endpoints": [
+            "MQTT"
+        ],
+        "endpoints_details": [
+            {
+                "endpoint": "MQTT",
+                "bn": "water_strategy_4",
+                "topics": []
+            }
+        ]
+    }
+}
