@@ -10,6 +10,11 @@ from datetime import datetime
 class RESTBot:
     exposed = True
 
+
+
+    ##################
+    # INITIALIZATION #                                                                                      
+    ##################
     def __init__(self, token):
         self.catalogIP = 0
         #self.catalogIP = json.loads(open("initialization"))["catalogIP"]
@@ -26,8 +31,28 @@ class RESTBot:
                         "IP": self.myIP}
         #requests.post("http://" + self.catalogIP + "/service", json = self.myDict)
         MessageLoop(self.bot, {'chat': self.on_chat_message}).run_as_thread()
+    
 
 
+    ########################
+    # SEND A LIST OF PLANT #                                                                                      
+    ########################
+    # Given a list of plant and a user, send to the user the list in the format <plant_name:plant_id>
+    def sendPlantList(self, plantList, chat_ID):
+        if len(plantList)==0:
+            self.bot.sendMessage(chat_ID, text="No plant in our database match your requirements.")
+        else:
+            message = "Here is a list of plants that match your requirements:"
+            for current in plantList:
+                currentMessage = "\n"+current["name"]+" : "+ str(current["id"])
+                message = message+currentMessage
+            self.bot.sendMessage(chat_ID, text=message)
+
+
+
+    ################################
+    # MANAGIN THE RECIVED MESSAGES #                                                                                      
+    ################################
     def on_chat_message(self, msg):
         content_type, chat_type, chat_ID = telepot.glance(msg)
 
@@ -111,29 +136,87 @@ following format:\n/addGreenhouse\n<greenhouse_id>\n<plant_id>\n")
         ##################        
         elif command == "/getPlantList":
             if len(lines) == 1:
-                self.bot.sendMessage(chat_ID, text="")
+                self.bot.sendMessage(chat_ID, text="To get a list of plants that suits your needs, \
+send a message with one of the following formats:\n- To get plants within a certain size range send:\n/getPlantList\nminSize:<value>\n\
+maxSize:<value>\n- To get plants that belong to a certain category send:\n/getPlantList\ncategory:<value>\n- To get plants that are able \
+to stain at a certain temperature send:\n/getPlantList\ntemperature:<value>\n- To get plants that need a certain humidity send:\n\
+/getPlantList\nhumidity:<value>\n- To get plants that need a certain amount of light send:\n/getPlantList\nlux:<value>\n\
+- To get plants that can stay in a soil with a certain moisture send:\n/getPlantList\nmoisture:<value>\n")
             
             elif len(lines) == 2:
-                com = lines[1].split(":")[0].replace(" ","")
-                if com == "id":
-                    plantID = lines[1].split(":")[1].replace(" ","")
-                    needs = requests.get("http://" + self.databaseIP + "?coll=plants&id="+plantID).json()
+                parameter = lines[1].split(":")[0].replace(" ","")
+                value = lines[1].split(":")[1].replace(" ","")
+
+                if parameter == "category":
+                    plantList = requests.get("http://" + self.databaseIP + "?coll=plants&categoty="+value+"&N=10").json()
+                    self.sendPlantList(plantList, chat_ID)
+
+                elif parameter == "temperature":
+                    plantList = requests.get("http://" + self.databaseIP + "?coll=plants&temperature="+value+"&N=10").json()
+                    self.sendPlantList(plantList, chat_ID)
+
+                
+                elif parameter == "humidity":
+                    plantList = requests.get("http://" + self.databaseIP + "?coll=plants&humidity="+value+"&N=10").json()
+                    self.sendPlantList(plantList, chat_ID)
+
+                
+                elif parameter == "lux":
+                    plantList = requests.get("http://" + self.databaseIP + "?coll=plants&lux="+value+"&N=10").json()
+                    self.sendPlantList(plantList, chat_ID)
+
+                
+                elif parameter == "moisture":
+                    plantList = requests.get("http://" + self.databaseIP + "?coll=plants&moisture="+value+"&N=10").json()
+                    self.sendPlantList(plantList, chat_ID)
+
+
+                else:
+                    self.bot.sendMessage(chat_ID, text="Wrong format for searching plants. To get a list of plants that suits your needs, \
+send a message with one of the following formats:\n- To get plants within a certain size range send:\n/getPlantList\nminSize:<value>\n\
+maxSize:<value>\n- To get plants that belong to a certain category send:\n/getPlantList\ncategory:<value>\n- To get plants that are able \
+to stain at a certain temperature send:\n/getPlantList\ntemperature:<value>\n- To get plants that need a certain humidity send:\n\
+/getPlantList\nhumidity:<value>\n- To get plants that need a certain amount of light send:\n/getPlantList\nlux:<value>\n\
+- To get plants that can stay in a soil with a certain moisture send:\n/getPlantList\nmoisture:<value>\n")
+            elif len(lines) == 3:
+                parameter1 = lines[1].split(":")[0].replace(" ","")
+                value1 = lines[1].split(":")[1].replace(" ","")
+                parameter2 = lines[2].split(":")[0].replace(" ","")
+                value2 = lines[2].split(":")[1].replace(" ","")
+
+                if parameter1 == "minSize" and parameter2 == "maxSize":
+                    plantList = requests.get("http://" + self.databaseIP + "?coll=plants&min_size="+value1+"&max_size="+value2+"&N=5").json()
+                    self.sendPlantList(plantList, chat_ID)
+                
+                else:
+                    self.bot.sendMessage(chat_ID, text="Wrong format for searching plants. To get a list of plants that suits your needs, \
+send a message with one of the following formats:\n- To get plants within a certain size range send:\n/getPlantList\nminSize:<value>\n\
+maxSize:<value>\n- To get plants that belong to a certain category send:\n/getPlantList\ncategory:<value>\n- To get plants that are able \
+to stain at a certain temperature send:\n/getPlantList\ntemperature:<value>\n- To get plants that need a certain humidity send:\n\
+/getPlantList\nhumidity:<value>\n- To get plants that need a certain amount of light send:\n/getPlantList\nlux:<value>\n\
+- To get plants that can stay in a soil with a certain moisture send:\n/getPlantList\nmoisture:<value>\n")
 
             else:
-                self.bot.sendMessage(chat_ID, text="Wrong format for searching a plant. To add a greenhouse send a message with the \
-following format:")
+                self.bot.sendMessage(chat_ID, text="Wrong format for searching plants. To get a list of plants that suits your needs, \
+send a message with one of the following formats:\n- To get plants within a certain size range send:\n/getPlantList\nminSize:<value>\n\
+maxSize:<value>\n- To get plants that belong to a certain category send:\n/getPlantList\ncategory:<value>\n- To get plants that are able \
+to stain at a certain temperature send:\n/getPlantList\ntemperature:<value>\n- To get plants that need a certain humidity send:\n\
+/getPlantList\nhumidity:<value>\n- To get plants that need a certain amount of light send:\n/getPlantList\nlux:<value>\n\
+- To get plants that can stay in a soil with a certain moisture send:\n/getPlantList\nmoisture:<value>\n")
 
 
         
-        ###################
-        # GET PLANT NEEDS #                                                                                      
-        ###################
+        #########################
+        # GET PLANT INFORMATION #                                                                                      
+        #########################
         elif command == "/getPlantInformation":
             if len(lines) == 1:
                 self.bot.sendMessage(chat_ID, text="To get the informations about a plant, send a message with the following format: \
 \n/getPlantInformation\n<plant_id>")
             elif len(lines) == 2:
-                pass
+                plantID = lines[1].replace(" ","")
+                needs = requests.get("http://" + self.databaseIP + "?coll=plants&id="+plantID).json()
+
             else:
                 self.bot.sendMessage(chat_ID, text="Wrong format for getting plant information. To get a plant information \
 send a message with thefollowing format:\n/getPlantInformation\n<plant_id>")
@@ -149,28 +232,34 @@ send a message with thefollowing format:\n/getPlantInformation\n<plant_id>")
             
     
 
-    def POST(self, *param):
-        greenhouseID = param[0]
+    ########
+    # POST #                                                                                      
+    ########
+    def POST(self, **param):
+        greenhouseID = param["greenhouseID"]
+        resp = requests.get("http://"+self.catalogIP+"/greenhouse?id="+greenhouseID)
+        chat_ID = resp["user_id"]
+        self.bot.sendMessage(chat_ID, text="The water in the tank of one of your greenhouse is low. You should refill it. The greenhouse \
+    ID is "+ greenhouseID)
+
+
         
 
 
-""" 
-MAIN
-"""
-
+########
+# MAIN #                                                                                      
+########
 if __name__ == "__main__":
     #conf = json.load(open("settings.json"))
     conf = {"telegramToken": "6226505200:AAFJfAUnwZqRHwk8tH5YbNweoKKKYm0Tufk", "port":8080}
     token = conf["telegramToken"]
-    token = 0
     cherryConf = {
         '/': {
             'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
             'tool.session.on': True
         }
     }
-    cherrypy.config.update(
-        {'server.socket_host': '0.0.0.0', 'server.socket_port': conf["port"]})
+    cherrypy.config.update({'server.socket_host': '0.0.0.0', 'server.socket_port': conf["port"]})
     bot = RESTBot(token)
     cherrypy.tree.mount(bot, '/', cherryConf)
     cherrypy.engine.start()
