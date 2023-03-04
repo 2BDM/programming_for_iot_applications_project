@@ -1,0 +1,27 @@
+{"project_name": "Smart greenhouse", 
+"project_owner": "2BDM", 
+"services_catalog": {
+    "ip": "100.127.117.69", 
+    "port": 2222, 
+    "methods": [
+        "GET", 
+        "PUT", 
+        "POST" 
+        ]
+    },  
+"telegram":{
+    "id": 123,
+    "name": "telegramBot",
+    "endpoints": [
+        "REST"
+    ],
+    "endpoints_details": [
+        {
+            "endpoint": "REST",
+            "ip": "127.0.0.1",
+            "port": 8080,
+            "address": ""
+        }
+    ]
+},
+"last_update": "2023-03-02 14:28:42"}
