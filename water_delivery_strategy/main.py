@@ -7,10 +7,7 @@ import warnings
 
 #
 
-LIGHT_SUNNY = 10000         # Lux
-LIGHT_CLOUDY = 1000         # Lux
-LIGHT_LT = 1000             # Lux
-LIGHT_HT = 5000             # Lux
+MOIST_LOW = 10      # %
 #
 #
 #
@@ -19,17 +16,17 @@ LIGHT_HT = 5000             # Lux
 
 class LightingStrategy():
 
-    def __init__(self, conf_path="light_conf.json", out_conf="light_conf_updated.json", own_ID=False):
+    def __init__(self, conf_path="water_conf.json", out_conf="water_conf_updated.json", own_ID=False):
         self._conf_path = conf_path
         try:
             with open(conf_path) as f:
                 self._conf = json.load(f)
         except:
-            with open("lighting_strategy/" + conf_path) as f:
+            with open("water_delivery_strategy/" + conf_path) as f:
                 self._conf = json.load(f)
 
         self._serv_cat_addr = "http://" + self._conf["services_catalog"]["ip"] + ":" + str(self._conf["services_catalog"]["port"])    # Address of services catalog
-        self.whoami = self._conf["lighting_strategy"]         # Own information - to be sent to the services catalog
+        self.whoami = self._conf["water_delivery"]         # Own information - to be sent to the services catalog
 
         self._out_conf_path = out_conf
 
@@ -86,15 +83,19 @@ class LightingStrategy():
         
         # Each element of _devices has the same shape:
         # Each of the first two elements contains the associated topic
+        # 'tank' contains the (non-compulsory) tank weight topic
         # 'last_3' counts for how many subsequent times the measurement was 
         # below threshold (...) and possibly triggers the actuation
         # 'curr_state' contains the current actuator state
+        # 'min_moist' is the lower bound for the moisture, for the specific plant
+        # '--> this is the value used as threshold
         self._dev_template = {
             "measurement": "",
             "actuator": "",
+            "tank": "",
             "last_3": 0,
             "curr_state": "off",
-            "min_light": 0
+            "min_moist": 0
         }
         
     #####################################################################################
@@ -113,6 +114,10 @@ class LightingStrategy():
         Activation happens if for 5 consecutive measurements the light intensity value is 
         below the minimum value. The artificial light is turned off if the 
         light intensity value is above the threshold for 5 times.
+        ---
+        Return values:
+        - 1: irrigation was triggered
+        - 0: error - unable to locate device info
         """
 
         # First, iterate over self._devices to find the topic associated with the 
@@ -123,31 +128,50 @@ class LightingStrategy():
                 # Check:
                 assert (msg['e'][0]['u'] == 'Lux'), f"Unit is actually {msg['e'][0]['u']}"
 
+                low_thresh = dv["min_moist"]
+
                 if msg['e'][0]['u'] == 'Lux':
                     meas = msg['e'][0]['v']
-
-                    if meas <= LIGHT_LT:
-                        if dv["curr_state"] == "off":
-                            dv["last_3"] -= 1
-                    elif meas >= LIGHT_HT:
-                        if dv["curr_state"] == "on":
-                            dv["last_3"] += 1
-                    else:
-                        dv["last_3"] = 0
-
                 else:
                     # May receive other units from different sensors
                     # Here, one should call methods to convert the units
+
+                    # Not implemented...
                     pass
 
+                if meas <= low_thresh:
+                    if dv["curr_state"] == "off":
+                        dv["last_3"] += 1
+                else:
+                    dv["last_3"] = 0
 
-                if dv["last_3"] == 3:
-                    # Deactivate actuator, set last_3 to 0
-                    pass
-                elif dv["last_3"] == -3:
-                    # Activate act, set last_3 to 0
-                    pass
+                # (At least) 3 meas lower than the threshold trigger 
+                # the irrigation
+                # As long as the value keeps on being lower, the 
+                # irrigation will be triggered at each measurement
+                if dv["last_3"] >= 3:
+                    # Trigger watering
+                    # MQTT message for actuator:
+                    msg_on = {
+                        "cmd": "on",
+                        "t": time.time()
+                    }
+                    msg_off = {
+                        "cmd": "off",
+                        "t": time.time()
+                    }
 
+                    self.mqtt_cli.myPublish(dv["actuator"], msg_on)
+                    time.sleep(10)
+                    self.mqtt_cli.myPublish(dv["actuator"], msg_off)
+                
+                return 1
+            
+            elif dv["tank"] == topic:
+                # Trigger message transmission to Telegram ???
+                pass
+                    
+        print("Error - unable to locate device info")
         return 0
 
     #####################################################################################
@@ -156,7 +180,8 @@ class LightingStrategy():
         """
         Request ID from service catalog.
 
-        The method returns 1 if the ID is assigned, else 0
+        The method returns 1 if the ID is assigned, else 0. 
+        It also updates the configuration by adding the received ID.
         """
         tries = 0
         serv_cat_id = self._serv_cat_addr + '/new_serv_id'
@@ -227,7 +252,7 @@ class LightingStrategy():
 
     def updateServiceCatalog(self, max_tries=10):
         """
-        This ethod is used to update the information of the device catalog 
+        This method is used to update the information of the device catalog 
         at the services catalog.
         ------
         Return values:
@@ -360,11 +385,13 @@ class LightingStrategy():
         """
         This method is used to get the latest information about the devices connected to the device catalog.
         
-        As the information is obtained, the lighting strategy will save only the ones which possess both the
-        light intensity sensor and an actuator used to control the lights.
+        As the information is obtained, the water strategy will save only the ones which possess both the
+        moisture sensor and an actuator used to control the water.
         Then, it will store the sensor topic and the actuator one in attribute self._devices (following 
         the template in self._dev_template) and subscribe to the sensor topic (after checking it was not 
         already subscribed).
+
+        If available, the program also stores and subscribes to the tank weight topic.
 
         The parameter 'max_tries' is used to limit the number of requests made to the device catalog for
         getting the devices information.
@@ -394,14 +421,27 @@ class LightingStrategy():
                             sens_ok = False
                             top_s = ""
                             for s in d["resources"]["sensors"]:
-                                if "Light Intensity" in s["measure_type"]:
-                                    sens_ok = True
+                                if "Soil Moisture" in s["measure_type"]:
                                     if "MQTT" in s["available_services"]:
                                         for ser in s["services_details"]:
                                             if ser["service_type"] == "MQTT":
                                                 for top in ser["topic"]:
-                                                    if top.endswith("light_intensity"):
+                                                    if top.endswith("soil_moisture"):
+                                                        sens_ok = True
                                                         top_s = top
+
+                            # Look for tank (not compulsory)
+                            tank_ok = False
+                            top_tank = ""
+                            for s in d["resources"]["sensors"]:
+                                if "Tank Weight" in s["measure_type"]:
+                                    if "MQTT" in s["available_services"]:
+                                        for ser in s["services_details"]:
+                                            if ser["service_type"] == "MQTT":
+                                                for top in ser["topic"]:
+                                                    if top.endswith("tank_weight"):
+                                                        tank_ok = True
+                                                        top_tank = top
 
                             # Look for actuator
                             act_ok = False
@@ -415,14 +455,34 @@ class LightingStrategy():
                                                     act_ok = True
                                                     top_a = top
 
-                            # Find the needs, among which there is the 'min_light' field
-                            # Need to request the greenhouse info associated with the current device
-                            # Greenhouse id == device id!
-                            addr_gh = self._serv_cat_addr + '/greenhouse?id=' + str(d["id"])
-
                             # If both have been found, add the topics to self._devices:
                             if sens_ok and act_ok:
                                 new_elem = self._dev_template.copy()
+                                # Find the needs, among which there is the 'min_soil_moist' field
+                                # Need to request the greenhouse info associated with the current device
+                                # NOTE: Greenhouse id == device id (!)
+                                addr_gh = self._serv_cat_addr + '/greenhouse?id=' + str(d["id"])
+                                
+                                tries_2 = 0
+                                gh_info = {}
+                                while tries_2 < max_tries and gh_info == {}:
+                                    try:
+                                        r_2 = requests.get(addr_gh)
+                                        if r_2.ok:
+                                            gh_info = r.json()
+                                            # Suppose needs don't change in time - reasonable
+                                            print("Plant info retrieved!")
+                                        else:
+                                            print(f"Error {r_2.status_code} - unable to get greenhouse information")
+                                            time.sleep(5)
+                                    except:
+                                        print("Error - unable to reach services catalog to get greenhouse information")
+                                
+                                if gh_info != {}:
+                                    # Assign needs          %
+                                    new_elem["min_moist"] = gh_info["plant_needs"]["min_soil_moist"]
+
+                                
                                 new_elem["measurement"] = top_s
                                 new_elem["actuator"] = top_a
 
@@ -430,6 +490,16 @@ class LightingStrategy():
                                     # If a new topic for the light sensor is found, 
                                     self.mqtt_cli.mySubscribe(top_a)
                                     self.topics_list.append(top_a)
+
+                                if tank_ok:
+                                    # Add tank info
+                                    new_elem["tank"] = top_tank
+                                    if top_tank not in self.topics_list:
+                                        self.mqtt_cli.mySubscribe(top_tank)
+                                        self.topics_list.append(top_tank)
+
+
+                                self._devices.append(new_elem)
 
 
                     else:
