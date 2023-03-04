@@ -69,43 +69,45 @@ class adaptor_mongo_interface(object):
     def GET(self, *uri, **params):
         value = params.keys()
         print(self.coll1_name)
-        if params['coll']==self.coll1_name:
-            
-            if "id" in value and "needs" in value:
-                return self.mongoP.find_by_id_needs(int(params['id']))
+        if 'coll' in params.keys():
+            if params['coll']==self.coll1_name:
                 
-            elif "id" in value:
-                return self.mongoP.find_by_id(int(params['id']))
+                if "id" in value and "needs" in value:
+                    return self.mongoP.find_by_id_needs(int(params['id']))
+                    
+                elif "id" in value:
+                    return self.mongoP.find_by_id(int(params['id']))
+                    
+                elif "min_size" in value and "max_size" in value and "N" in value:
+                    return self.mongoP.find_by_size(int(params['min_size']),int(params['max_size']),int(params['N']))
                 
-            elif "min_size" in value and "max_size" in value and "N" in value:
-                return self.mongoP.find_by_size(int(params['min_size']),int(params['max_size']),int(params['N']))
-            
-            elif "category" in value and "N" in value:
-                return self.mongoP.find_by_category(str(params['category']),int(params['N']))
-            
-            elif "temperature" in value and "N" in value:
-                return self.mongoP.find_by_temperature(int(params['temperature']),int(params['N']))
-            
-            elif "humidity" in value and "N" in value:
-                return self.mongoP.find_by_humidity(int(params['humidity']),int(params['N']))
-            
-            elif "lux" in value and "N" in value:
-                return self.mongoP.find_by_lux(int(params['lux']),int(params['N']))
-            
-            elif "moisture" in value and "N" in value:
-                return self.mongoP.find_by_moisture(int(params['moisture']),int(params['N']))
+                elif "category" in value and "N" in value:
+                    return self.mongoP.find_by_category(str(params['category']),int(params['N']))
                 
-        elif params['coll']==self.coll2_name:
-            if "date" in value:
-                return self.mongoW.find_by_timestamp(str(params['date']))
-            elif "min_date" in value and "max_date" in value:
-                return self.mongoW.find_by_timestamp(str(params['min_date']),str(params['max_date']))
-            elif "chart_temp" in value:
-                return self.chart_temp
-            elif "chart_prec" in value:
-                return self.chart_prec
-        else:
-            return "Check the introduced parameters - no match found"   
+                elif "temperature" in value and "N" in value:
+                    return self.mongoP.find_by_temperature(int(params['temperature']),int(params['N']))
+                
+                elif "humidity" in value and "N" in value:
+                    return self.mongoP.find_by_humidity(int(params['humidity']),int(params['N']))
+                
+                elif "lux" in value and "N" in value:
+                    return self.mongoP.find_by_lux(int(params['lux']),int(params['N']))
+                
+                elif "moisture" in value and "N" in value:
+                    return self.mongoP.find_by_moisture(int(params['moisture']),int(params['N']))
+                    
+            elif params['coll']==self.coll2_name:
+                if "date" in value:
+                    return self.mongoW.find_by_timestamp(str(params['date']))
+                elif "min_date" in value and "max_date" in value:
+                    return self.mongoW.find_by_timestamp(str(params['min_date']),str(params['max_date']))
+                elif "chart_temp" in value:
+                    return self.chart_temp
+                elif "chart_prec" in value:
+                    return self.chart_prec
+        
+        
+        return f"Check the introduced parameters - no match found!\nneed parameter 'coll', which can be '{self.coll1_name}' or '{self.coll2_name}'"
     
     def POST(self,**params):
         bodyAsString = cherrypy.request.body.read()
@@ -148,7 +150,7 @@ class adaptor_mongo_interface(object):
                     tries += 1
                     time.sleep(3)
                 except:
-                    print("Tried to register at device catalog - failed to establish a connection!")
+                    print("Tried to register at services catalog - failed to establish a connection!")
                     tries += 1
                     time.sleep(3)
             

@@ -9,7 +9,8 @@ import warnings
 
 LIGHT_SUNNY = 10000         # Lux
 LIGHT_CLOUDY = 1000         # Lux
-
+LIGHT_LT = 1000             # Lux
+LIGHT_HT = 5000             # Lux
 #
 #
 #
@@ -84,16 +85,70 @@ class LightingStrategy():
         self._devices = []
         
         # Each element of _devices has the same shape:
-        # Each of the two elements contains the associated topic
+        # Each of the first two elements contains the associated topic
+        # 'last_3' counts for how many subsequent times the measurement was 
+        # below threshold (...) and possibly triggers the actuation
+        # 'curr_state' contains the current actuator state
         self._dev_template = {
             "measurement": "",
-            "actuator": ""
+            "actuator": "",
+            "last_3": 0,
+            "curr_state": "off",
+            "min_light": 0
         }
         
     #####################################################################################
 
     def notify(self, topic, msg):
-        pass
+        """
+        ## notify
+
+        Callback for MyMQTT object.
+        ---
+        As a message (containing the measurement) is received, the topic is searched 
+        in self._devices.
+        Then, depending on the current_state and on the measurement value, it is decided
+        whether to activate the light or not.
+
+        Activation happens if for 5 consecutive measurements the light intensity value is 
+        below the minimum value. The artificial light is turned off if the 
+        light intensity value is above the threshold for 5 times.
+        """
+
+        # First, iterate over self._devices to find the topic associated with the 
+        # received message
+        for dv in self._devices:
+            if dv["measurement"] == topic:
+                # Extract measurement (SenML)
+                # Check:
+                assert (msg['e'][0]['u'] == 'Lux'), f"Unit is actually {msg['e'][0]['u']}"
+
+                if msg['e'][0]['u'] == 'Lux':
+                    meas = msg['e'][0]['v']
+
+                    if meas <= LIGHT_LT:
+                        if dv["curr_state"] == "off":
+                            dv["last_3"] -= 1
+                    elif meas >= LIGHT_HT:
+                        if dv["curr_state"] == "on":
+                            dv["last_3"] += 1
+                    else:
+                        dv["last_3"] = 0
+
+                else:
+                    # May receive other units from different sensors
+                    # Here, one should call methods to convert the units
+                    pass
+
+
+                if dv["last_3"] == 3:
+                    # Deactivate actuator, set last_3 to 0
+                    pass
+                elif dv["last_3"] == -3:
+                    # Activate act, set last_3 to 0
+                    pass
+
+        return 0
 
     #####################################################################################
 
@@ -302,14 +357,27 @@ class LightingStrategy():
                 self._dev_cat_info = {}
 
     def updateDevices(self, max_tries=15):
+        """
+        This method is used to get the latest information about the devices connected to the device catalog.
+        
+        As the information is obtained, the lighting strategy will save only the ones which possess both the
+        light intensity sensor and an actuator used to control the lights.
+        Then, it will store the sensor topic and the actuator one in attribute self._devices (following 
+        the template in self._dev_template) and subscribe to the sensor topic (after checking it was not 
+        already subscribed).
+
+        The parameter 'max_tries' is used to limit the number of requests made to the device catalog for
+        getting the devices information.
+        """
+        
         # Check device cat info exists:
         if self._dev_cat_info == {}:
             if self.getDevCatInfo() == 0:
                 print("Unable to get device catalog info")
                 return -1
         
-        
-        try:
+        if self._dev_cat_info != {}:
+            # If here, the device info is not empty
             tries = 0
             dc_addr = "http://" + self._dev_cat_info["ip"] + ":" + str(self._dev_cat_info["port"]) + "/devices"
             while tries < max_tries:
@@ -347,28 +415,34 @@ class LightingStrategy():
                                                     act_ok = True
                                                     top_a = top
 
-                            new_info = self._dev_template.copy()
-                            new_info["measurement"] = top_s
-                            self.mqtt_cli.mySubscribe(top_s)
-                            new_info["actuator"] = top_a
+                            # Find the needs, among which there is the 'min_light' field
+                            # Need to request the greenhouse info associated with the current device
+                            # Greenhouse id == device id!
+                            addr_gh = self._serv_cat_addr + '/greenhouse?id=' + str(d["id"])
 
-                            # TODO
+                            # If both have been found, add the topics to self._devices:
+                            if sens_ok and act_ok:
+                                new_elem = self._dev_template.copy()
+                                new_elem["measurement"] = top_s
+                                new_elem["actuator"] = top_a
+
+                                if top_a not in self.topics_list:
+                                    # If a new topic for the light sensor is found, 
+                                    self.mqtt_cli.mySubscribe(top_a)
+                                    self.topics_list.append(top_a)
+
 
                     else:
                         print("Unable to obtain devices list from device cataolg!")
                         time.sleep(3)
                         
-
-
-
                 except:
                     print("Unable to connect to device catalog")
-        
-        
-        
-        except:
-            print("Unable to contact the device cataolg!")
-            time.sleep(3)
+                    time.sleep(3)
+        else:
+            print("Empty device catalog info coming from services catalog!")
+            
+            
 
 if __name__ == "__main__":
     pass
