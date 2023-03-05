@@ -18,8 +18,7 @@ class RESTBot:
     def __init__(self, conf_dict):
         self.catalogIP = str(conf_dict["services_catalog"]["ip"])+":"+ str(conf_dict["services_catalog"]["port"])
         self.myIP = str(conf_dict["telegram"]["endpoints_details"][0]["ip"]) +"/"+ str(conf_dict["telegram"]["endpoints_details"][0]["port"])
-        #self.tokenBot=requests.get("http://" + self.catalogIP + "/telegram_token").json()["telegramToken"]
-        self.tokenBot = "6127233427:AAFFeqmwB23wvFF550xsPKRWX8nza6-4gBs"
+        self.tokenBot=requests.get("http://" + self.catalogIP + "/telegram_token").json()["telegramToken"]
         self.bot = telepot.Bot(self.tokenBot)
         self.users = []
         self.currentGH = None
@@ -29,7 +28,7 @@ class RESTBot:
                         "token": self.tokenBot,
                         "ip": conf_dict["telegram"]["endpoints_details"][0]["ip"],
                         "port":conf_dict["telegram"]["endpoints_details"][0]["port"]}
-        #requests.post("http://" + self.catalogIP + "/service", json = self.myDict)
+        requests.post("http://" + self.catalogIP + "/service", json = self.myDict)
         MessageLoop(self.bot, {'chat': self.on_chat_message, 'callback_query':self.on_callback_query}).run_as_thread()
     
 
@@ -333,33 +332,39 @@ with the following format:\n/getGraph\n<type_of_graph>\nThe type of graph can be
         ######################
         elif command == "/myInformation":
 
-            try:
-                resp = requests.get("http://"+self.catalogIP+"/user?id="+str(chat_ID)).json()
-                info = resp.json()
-                if resp.status_code == 201:
-                    message = "Your user profile has the following informations:\n"
-                    information = "- ID: "+str(info["id"])+"\nUser name: "+str(info["user_name"])+"\nUser surname: "+str(info["user_surname"])+"\nEmail address: "+str(info["email_addr"])+"\nGreenhouse list:\n"
-                    message = message + information
-                    greenhouseList = info["greenhouse"]
+            found = False
+            info = None
 
-                    if len(greenhouseList)==0:
-                        currentMessage = "\nCurrently you have no greenhouse registered to the service."
-                        message = message + currentMessage
+            for i in self.users:
+                if i["id"] == chat_ID:
+                    info = i
+                    found = True
+            
+            if found == True:
+                message = "Your user profile has the following informations:\n"
+                information = "- ID: "+str(info["id"])+"\nUser name: "+str(info["user_name"])+"\nUser surname: "+str(info["user_surname"])+"\nEmail address: "+str(info["email_addr"])+"\nGreenhouse list:\n"
+                message = message + information
+                greenhouseList = info["greenhouse"]
 
-                    else:
+                if len(greenhouseList)==0:
+                    currentMessage = "\nCurrently you have no greenhouse registered to the service."
+                    message = message + currentMessage
+
+                else:
+
+                    try:
                         for gh in greenhouseList:
                             current = requests.get("http://"+self.catalogIP+"/greenhouse?id="+str(gh)).json()
                             currentMessage = "\nGreenhouse: "+str(gh)+"\nPlant: "+current["plant_type"]+"\nPlant ID: "+current["plant_id"]+"\n"
                             message = message + currentMessage
-                    
-                    self.bot.sendMessage(chat_ID, text=message)
-                    
-                else:
-                    self.bot.sendMessage(chat_ID, text="You have to create a user before getting your own informations.")
 
+                        self.bot.sendMessage(chat_ID, text=message)
 
-            except:
-                self.bot.sendMessage(chat_ID, text="Server is not responding")
+                    except:
+                        self.bot.sendMessage(chat_ID, text="Server is not responding")
+
+            else:
+                self.bot.sendMessage(chat_ID, text="You have to create a user before getting your own informations.")
 
 
 
@@ -386,7 +391,7 @@ with the following format:\n/getGraph\n<type_of_graph>\nThe type of graph can be
                 chat_ID = resp["user_id"]
                 if req == "yes":
                     self.bot.sendMessage(chat_ID, text="The water in the tank of one of your greenhouse is low. You should refill it. The greenhouse \
-        ID is "+ greenhouseID)
+ID is "+ greenhouseID)
                 if req == "no":
                     self.bot.sendMessage(chat_ID, text="The water in the tank of one of your greenhouse is low. \
 Tomorrow it is probably going to rain so it is not strictly equired to refill the tank. The greenhouse ID is "+ greenhouseID)
@@ -481,6 +486,12 @@ Tomorrow it is probably going to rain so it is not strictly equired to refill th
                 if resp.status_code == 201:
 
                     self.bot.sendMessage(chat_ID, text='GreenHouse added correctly!')
+                    resp = requests.get("http://" + self.catalogIP + "/user?id"+chat_ID)
+
+                    for i in self.users:
+                        if i["id"] == chat_ID:
+                            i["greenhouse"] = resp["greenhouse"] 
+
 
                 elif resp.status_code == 400:
 
