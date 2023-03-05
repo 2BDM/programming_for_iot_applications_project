@@ -83,7 +83,7 @@ class adaptor_mongo_interface(object):
                 
                 elif "category" in value and "N" in value:
                     return self.mongoP.find_by_category(str(params['category']),int(params['N']))
-                
+
                 elif "temperature" in value and "N" in value:
                     return self.mongoP.find_by_temperature(int(params['temperature']),int(params['N']))
                 
@@ -95,6 +95,7 @@ class adaptor_mongo_interface(object):
                 
                 elif "moisture" in value and "N" in value:
                     return self.mongoP.find_by_moisture(int(params['moisture']),int(params['N']))
+
                     
             elif params['coll']==self.coll2_name:
                 if "date" in value:
@@ -102,12 +103,12 @@ class adaptor_mongo_interface(object):
                 elif "min_date" in value and "max_date" in value:
                     return self.mongoW.find_by_timestamp(str(params['min_date']),str(params['max_date']))
                 elif "chart_temp" in value:
-                    return self.chart_temp
+                    return js.dumps({"url":self.chart_temp})
                 elif "chart_prec" in value:
-                    return self.chart_prec
+                    return js.dumps({"url":self.chart_prec})
+            else:
+                return "Check the introduced parameters - no match found"   
         
-        
-        return f"Check the introduced parameters - no match found!\nneed parameter 'coll', which can be '{self.coll1_name}' or '{self.coll2_name}'"
     
     def POST(self,**params):
         bodyAsString = cherrypy.request.body.read()

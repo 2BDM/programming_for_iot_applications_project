@@ -19,17 +19,18 @@ class RESTBot:
         self.catalogIP = str(conf_dict["services_catalog"]["ip"])+"/"+ str(conf_dict["services_catalog"]["port"])
         self.myIP = str(conf_dict["telegram"]["endpoints_details"][0]["ip"]) +"/"+ str(conf_dict["telegram"]["endpoints_details"][0]["port"])
         #self.tokenBot=requests.get("http://" + self.catalogIP + "/telegram_token").json()["telegramToken"]
-        self.tokenBot = "6226505200:AAFJfAUnwZqRHwk8tH5YbNweoKKKYm0Tufk"
+        self.tokenBot = "6127233427:AAFFeqmwB23wvFF550xsPKRWX8nza6-4gBs"
         self.bot = telepot.Bot(self.tokenBot)
         self.users = []
-        #self.databaseIP = requests.get("http://" + self.catalogIP + "/service?name=mongoDBadptor").json()["IP"]
+        self.currentGH = None
+        self.databaseIP = requests.get("http://" + self.catalogIP + "/service?name=mongoDBadptor").json()["IP"]
         self.myDict = {"id" : conf_dict["telegram"]["id"],
                         "name": "telegramBot",
                         "token": self.tokenBot,
                         "ip": conf_dict["telegram"]["endpoints_details"][0]["ip"],
                         "port":conf_dict["telegram"]["endpoints_details"][0]["port"]}
         #requests.post("http://" + self.catalogIP + "/service", json = self.myDict)
-        MessageLoop(self.bot, {'chat': self.on_chat_message}).run_as_thread()
+        MessageLoop(self.bot, {'chat': self.on_chat_message, 'callback_query':self.on_callback_query}).run_as_thread()
     
 
 
@@ -70,9 +71,9 @@ class RESTBot:
 
 
 
-    ################################
-    # MANAGIN THE RECIVED MESSAGES #                                                                                      
-    ################################
+    #################################
+    # MANEGING THE RECIVED MESSAGES #                                                                                      
+    #################################
     def on_chat_message(self, msg):
 
         content_type, chat_type, chat_ID = telepot.glance(msg)
@@ -113,23 +114,11 @@ with the following format:\n/addUser\n<user_name>\n<user_surname>\n<email_addres
                                 "telegram_id": chat_ID, 
                                 "greenhouse": list(), 
                                 "last_update": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-
-                try:
-
-                    resp = requests.post("http://"+self.catalogIP+"/user", json.dumps(myDictionary))
-
-                    if resp.status_code == 201:
-
-                        self.bot.sendMessage(chat_ID, text='User added correctly!')
-                        self.users[chat_ID] = myDictionary
-
-                    elif resp.status_code == 400:
-
-                        self.bot.sendMessage(chat_ID, text='Error, try again.') 
-
-                except:
-
-                    self.bot.sendMessage(chat_ID, text='The server is not responding, please try again later.')
+                self.users.append(myDictionary)
+                
+                buttons = [[InlineKeyboardButton(text=f'YES', callback_data=f'YESuser'),InlineKeyboardButton(text=f'NO', callback_data=f'NOuser')]]
+                keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+                self.bot.sendMessage(chat_ID, text="Are you sure you want to save this user", reply_markup=keyboard)
 
             else: 
 
@@ -158,20 +147,11 @@ message with the following format:\n/addUser\n<user_name>\n<user_surname>\n<emai
                                     "plant_type": lines[2].replace(" ",""),
                                     "plant_needs": needs}
                     
-                    try:
-
-                        resp = requests.post("http://" + self.catalogIP + "/greenhouse", json.dumps(myDictionary)) 
-
-                        if resp.status_code == 201:
-
-                            self.bot.sendMessage(chat_ID, text='GreenHouse added correctly!')
-
-                        elif resp.status_code == 400:
-
-                            self.bot.sendMessage(chat_ID, text='Error, try again.') 
+                    self.currentGH = myDictionary
                     
-                    except:
-                        self.bot.sendMessage(chat_ID, text='The server is not responding, please try again later.')
+                    buttons = [[InlineKeyboardButton(text=f'YES', callback_data=f'YESgh'),InlineKeyboardButton(text=f'NO', callback_data=f'NOgh')]]
+                    keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+                    self.bot.sendMessage(chat_ID, text="Are you sure you want to add this greenhouse", reply_markup=keyboard)
 
                 except:
 
@@ -186,7 +166,7 @@ following format:\n/addGreenhouse\n<greenhouse_id>\n<plant_id>\n")
 
         ##################
         # GET PLANT LIST #                                                                                      
-        ##################        
+        ##################  
         elif command == "/getPlantList":
 
             if len(lines) == 1:
@@ -319,16 +299,33 @@ send a message with thefollowing format:\n/getPlantInformation\n<plant_id>")
 
             if len(lines) == 1:
 
-                pass
+                self.bot.sendMessage(chat_ID, text="To require a graph, send a message \
+with the following format:\n/getGraph\n<type_of_graph>\nThe type of graph can be either temperature or precipitation")
 
             elif len(lines) == 2:
 
-                pass
+                requested = lines[1].replace(" ","")
+
+                try:
+                    if requested == "temperature":
+                        image = requests.get("http://"+self.databaseIP+"?coll=weathrer&chart_temp=TRUE").json()["URL"]
+                        self.bot.sendPhoto(chat_ID, photo=str(image))
+
+                    elif requested == "precipitation":
+                        image = requests.get("http://"+self.databaseIP+"?coll=weathrer&chart_prec=TRUE").json()["URL"]
+                        self.bot.sendPhoto(chat_ID, photo=str(image))
+
+                    else:
+                        self.bot.sendMessage(chat_ID, text="The graph you required does not exist")
+
+                except:
+                    self.bot.sendMessage(chat_ID, text="MongoDB is not responding")
+
 
             else:
 
-                pass
-
+                self.bot.sendMessage(chat_ID, text="Wrong format for requiring a graph. To require a graph, send a message \
+with the following format:\n/getGraph\n<type_of_graph>\nThe type of graph can be either temperature or precipitation")
 
 
         ######################
@@ -379,18 +376,123 @@ send a message with thefollowing format:\n/getPlantInformation\n<plant_id>")
     ########
     # POST #                                                                                      
     ########
-    def POST(self, *uri, **param):
+    def POST(self, **param):
+        listOfKeys = param.keys
+        if "greenhouseID" in listOfKeys and "required" in listOfKeys:
+            greenhouseID = param["greenhouseID"]
+            req = param["required"]
+            try:
+                resp = requests.get("http://"+self.catalogIP+"/greenhouse?id="+greenhouseID)
+                chat_ID = resp["user_id"]
+                if req == "yes":
+                    self.bot.sendMessage(chat_ID, text="The water in the tank of one of your greenhouse is low. You should refill it. The greenhouse \
+        ID is "+ greenhouseID)
+                if req == "no":
+                    self.bot.sendMessage(chat_ID, text="The water in the tank of one of your greenhouse is low. \
+Tomorrow it is probably going to rain so it is not strictly equired to refill the tank. The greenhouse ID is "+ greenhouseID)
+                else:
+                    raise cherrypy.HTTPError(400, "Wrong request")
+
+            except:
+                raise cherrypy.HTTPError(400, "Unable to contact the user as the services catalog is not responding")
+        else:
+            raise cherrypy.HTTPError(400, "Wrong request") 
+
+
+
+    ##########
+    # UPDATE #                                                                                      
+    ##########
+    def updateCatalog(self):
+
+        updated = False
+        count = 0
         
-        greenhouseID = str(param["greenhouseID"])
-        try:
-            resp = requests.get("http://"+self.catalogIP+"/greenhouse?id="+str(greenhouseID)).json()
-            chat_ID = resp["user_id"]
-            self.bot.sendMessage(chat_ID, text="The water in the tank of one of your greenhouse is low. You should refill it. The greenhouse \
-ID is "+ greenhouseID)
-        except:
-            raise cherrypy.HTTPError(400, "Unable to contact the user as the services catalog is not responding") 
+        while not updated and count<3:
+        
+            try:
+
+                resp = requests.put("http://" + self.catalogIP + "/service", data_=json.dumps(self.myDict))
+
+                if resp.ok:
+                    print("updated service")
+                else:
+                    requests.post("http://" + self.catalogIP + "/service", data_=json.dumps(self.myDict))
+
+                for current in self.users:
+
+                    resp =requests.put("http://" + self.catalogIP + "/user", data_=json.dumps(current))
+
+                    if not resp.ok:
+                        requests.post("http://" + self.catalogIP + "/user", data_=json.dumps(current))
+
+                updated = True
+                    
+
+            except:
+                print("fail to connect to service catalog")
+                count = count + 1
 
 
+    #####################
+    # CALLBACK FUNCTION #                                                                                      
+    #####################
+    def on_callback_query(self,msg):
+
+        query_ID, chat_ID, query_data = telepot.glance(msg, flavor='callback_query')
+        if query_data == "YESuser":
+            try:
+
+                current = None
+                for i in self.users:
+                    if i["id"] == chat_ID:
+                        current = i
+
+                resp = requests.post("http://"+self.catalogIP+"/user", json.dumps(i))
+
+                if resp.status_code == 201:
+
+                    self.bot.sendMessage(chat_ID, text='User added correctly!')
+                    self.users[chat_ID] = query_data[1]
+
+                elif resp.status_code == 400:
+
+                    self.bot.sendMessage(chat_ID, text='Error, try again.') 
+
+            except:
+
+                self.bot.sendMessage(chat_ID, text='The server is not responding, please try again later.')
+        
+        if query_data == "NOuser":
+
+            current = None  
+            for i in self.users:
+                if i["id"] == chat_ID:
+                    current = i
+
+            self.users.remove(current)
+            self.bot.sendMessage(chat_ID, text='User has not been added.')
+
+        if query_data == "YESgh":
+            try:
+
+                resp = requests.post("http://" + self.catalogIP + "/greenhouse", json.dumps(self.currentGH)) 
+
+                if resp.status_code == 201:
+
+                    self.bot.sendMessage(chat_ID, text='GreenHouse added correctly!')
+
+                elif resp.status_code == 400:
+
+                    self.bot.sendMessage(chat_ID, text='Error, try again.') 
+                    
+            except:
+                self.bot.sendMessage(chat_ID, text='The server is not responding, please try again later.')
+
+        if query_data == "NOgh":
+
+            self.currentGH = None
+            self.bot.sendMessage(chat_ID, text='The greenhouse has not been added.')
         
 
 
@@ -405,8 +507,11 @@ if __name__ == "__main__":
             'tools.sessions.on': True
         }
     }
-    cherrypy.config.update({'server.socket_host': conf_dict["telegram"]["endpoints_details"][0]["ip"], 'server.socket_port': conf_dict["telegram"]["endpoints_details"][0]["port"]})
+    cherrypy.config.update({'server.socket_host': '0.0.0.0', 'server.socket_port': conf_dict["telegram"]["endpoints_details"][0]["port"]})
     bot = RESTBot(conf_dict)
     cherrypy.tree.mount(bot, '/', cherryConf)
     cherrypy.engine.start()
-    cherrypy.engine.block()
+    
+    while True:
+        RESTBot.update()
+        time.sleep(20)
