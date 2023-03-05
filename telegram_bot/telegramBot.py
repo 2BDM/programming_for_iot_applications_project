@@ -381,9 +381,9 @@ send a message with thefollowing format:\n/getPlantInformation\n<plant_id>")
     ########
     def POST(self, *uri, **param):
         
-        greenhouseID = param["greenhouseID"]
+        greenhouseID = str(param["greenhouseID"])
         try:
-            resp = requests.get("http://"+self.catalogIP+"/greenhouse?id="+greenhouseID)
+            resp = requests.get("http://"+self.catalogIP+"/greenhouse?id="+str(greenhouseID)).json()
             chat_ID = resp["user_id"]
             self.bot.sendMessage(chat_ID, text="The water in the tank of one of your greenhouse is low. You should refill it. The greenhouse \
 ID is "+ greenhouseID)
