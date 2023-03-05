@@ -4,19 +4,21 @@ from sub.MyMQTT import MyMQTT
 import requests
 import time
 import warnings
+import sys
 
 """ 
 Water delivery strategy
 """
 
 MOIST_LOW = 10      # %
+WEIGHT_LOW = 50     # g
 #
 #
 #
 #
 #
 
-class LightingStrategy():
+class WaterDeliveryStrategy():
 
     def __init__(self, conf_path="water_conf.json", out_conf="water_conf_updated.json", own_ID=False):
         self._conf_path = conf_path
@@ -72,6 +74,10 @@ class LightingStrategy():
         self._dev_cat_info = {}
         self.getDevCatInfo()
 
+        # Get Telegram bot info
+        self._telegram_bot_info = {}
+        self.getTelegramInfo()
+
         # Store info about the devices
         # Only keep the ones which have both the lighting sensor and the 
         # actuator for the lights
@@ -91,8 +97,12 @@ class LightingStrategy():
             "tank": "",
             "last_3": 0,
             "curr_state": "off",
-            "min_moist": 0
+            "min_moist": 0,
+            "last_tank_notif": 0,
+            "timestamp": 0
         }
+
+        self._tank_notif_timeout = 12*3600      # 12 hours
         
     #####################################################################################
 
@@ -115,6 +125,7 @@ class LightingStrategy():
         - 1: irrigation was triggered
         - 0: error - unable to locate device info
         """
+        max_tries = 10
 
         # First, iterate over self._devices to find the topic associated with the 
         # received message
@@ -160,13 +171,74 @@ class LightingStrategy():
                     self.mqtt_cli.myPublish(dv["actuator"], msg_on)
                     time.sleep(10)
                     self.mqtt_cli.myPublish(dv["actuator"], msg_off)
-                
+
+                    # If there is no tank topic, get info via REST
+                    # If the topic is present, this is done when 
+                    # the measurement is received via the topic
+                    if dv["tank"] == "":
+                        dev_id = dv["measurement"].split('/')[1]
+
+                        # Get device info:
+                        self.cleanupDevCatInfo()
+                        self.getDevCatInfo()
+
+                        if self._dev_cat_info != {}:
+                            this_dev = {}
+                            tries = 0
+                            addr = 'http://' + self._dev_cat_info["ip"] + ':' + str(self._dev_cat_info["port"]) + '/device?id=' + str(dev_id)
+                            while this_dev == {} and tries < max_tries:
+                                tries += 1
+                                try:
+                                    r = requests.get(addr)
+                                    if r.ok:
+                                        this_dev = r.json()
+                                    else:
+                                        print(f"Error {r.status_code} - unable to get device {dev_id} information!")
+                                        time.sleep(3)
+                                except:
+                                    print(f"Unable to reach device catalog!")
+                                    time.sleep(3)
+                            
+                            uri_tank = ""
+                            if this_dev != {}:
+                                for sens in this_dev["resources"]["sensors"]:
+                                    if sens["measure_type"] == "Tank Weight" and "MQTT" not in sens["available_services"]:
+                                        for sd in sens["services_details"]:
+                                            if sd["service_type"] == "REST":
+                                                uri_tank = sd["uri"]
+
+                            if uri_tank != "":
+                                tries = 0
+                                wt = {}
+                                while tries < max_tries and wt == {}:
+                                    try:
+                                        r2 = requests.get(uri_tank)
+                                        if r2.ok:
+                                            wt = r2.json()
+                                        else:
+                                            print(f"Error {r2.status_code} - unable to get tank weight from device {dev_id}")
+                                            time.sleep(3)
+                                    except:
+                                        print(f"Unable to reach device connector {dev_id}")
+                                        time.sleep(3)
+                                
+                                if wt != {}:
+                                    return self.sendTankNotif(wt, dv)
+
+                            else:
+                                print("It was not possible to get the URI for the tank!")
+                                return 0
+                        else:
+                            print("It was not possible to retrieve the device catalog info!")
+                            return 0
+
+
                 return 1
             
             elif dv["tank"] == topic:
-                # Trigger message transmission to Telegram ???
-                pass
-                    
+                # Trigger message transmission to Telegram 
+                return self.sendTankNotif(msg, dv)
+          
         print("Error - unable to locate device info")
         return 0
 
@@ -377,6 +449,54 @@ class LightingStrategy():
             if (curr_time - self._dev_cat_info["last_update"]) > timeout:
                 self._dev_cat_info = {}
 
+    def getTelegramInfo(self, max_tries=10):
+        """
+        Obtain the telegram bot information from the services
+        catalog.
+        ----------------------------------------------------------
+        Need to specify the maximum number of tries (default 50).
+        ----------------------------------------------------------
+        Return values:
+        - 1: information was correctly retrieved
+        - 0: the information was not received (for how the 
+        services catalog is implemented, it means that it was not
+        possible to reach it)
+        ----------------------------------------------------------
+        """
+        tries = 0
+        addr = self._serv_cat_addr + "/service?name=telegramBot"
+        while self._telegram_bot_info == {} and tries < max_tries:
+            tries += 1
+            try:
+                r = requests.get(addr)
+                if r.ok:
+                    self._telegram_bot_info = r.json()
+                    self._telegram_bot_info["last_update"] = time.time()
+                    print("Telegram bot info retrieved!")
+                    return 1
+                else:
+                    print(f"Error {r.status_code} - could not get telegram info")
+                    time.sleep(5)
+            except:
+                print("Unable to reach services catalog - retrying")
+                time.sleep(5)
+        
+        if self._telegram_bot_info != {}:
+            return 1
+        else:
+            return 0
+
+    def cleanupTelegramBot(self, timeout=120):
+        """
+        Check age of Telegram bot information - if old, clean it.
+
+        The max age is 'timeout' (default 120s - 2 min).
+        """
+        if self._telegram_bot_info != {}:
+            curr_time = time.time()
+            if (curr_time - self._telegram_bot_info["last_update"]) > timeout:
+                self._telegram_bot_info = {}
+
     def updateDevices(self, max_tries=15):
         """
         This method is used to get the latest information about the devices connected to the device catalog.
@@ -489,6 +609,7 @@ class LightingStrategy():
 
                                 if tank_ok:
                                     # Add tank info
+                                    # In our case, the test device only allows the communication via REST
                                     new_elem["tank"] = top_tank
                                     if top_tank not in self.topics_list:
                                         self.mqtt_cli.mySubscribe(top_tank)
@@ -508,7 +629,107 @@ class LightingStrategy():
         else:
             print("Empty device catalog info coming from services catalog!")
             
+    def sendTankNotif(self, senml, dev_dict, max_tries=15):
+        """
+        Send the notification to the user for the tank being empty
+
+        Input parameters:
+        - senml: SenML-formatted JSON retrieved from the weighting sensor
+        - dev_dict: record in self._devices associated to that device
+        - max_tries: maximum number of rest requests before failure
+        """
+        weight = senml['e'][0]['v']
+
+        # Default unit is grams
+        unit = senml['e'][0]['u']
+
+        if unit == 'kg':
+            weight = weight*1000
+        
+        # The message can be sent only if the weight is below the threshold and it has elapsed
+        # at least 12 h from the last message (In order not to overwhelm user)
+        if weight <= WEIGHT_LOW and (time.time() - dev_dict["last_tank_notif"]) > self._tank_notif_timeout:
+            # Recover the weather (if possible!)
             
+            self.cleanupTelegramBot()
+            self.getTelegramInfo()
+
+            # Update the timeout for the notification
+            # Prevent multiple messages to the receiver in low time
+            dev_dict["last_tank_notif"] = time.time()
+
+            # Get info about the weather station endpoints:
+            tries = 0
+            weather_station_addr = ""
+            while tries < max_tries and weather_station_addr == "":
+                tries += 1
+
+                try:
+                    r = requests.get(self._serv_cat_addr + "/service?name=weather_station")
+                    
+                    if r.ok:
+                        weather_station_info = r.json()
+
+                        for det in weather_station_info["endpoints_details"]:
+                            if det["endpoint"] == "REST":
+                                weather_station_addr = det["address"]
+                    else:
+                        print(f"Error {r.status_code} - unable to get weather station information!")
+                        time.sleep(3)
+                except:
+                    print(f"Unable to reach services catalog!")
+                    time.sleep(3)
+            
+            if weather_station_addr == "":
+                print("It was not possible to obtain weather station info")
+                
+                # Even if the weather station cannot be reached, send the notification
+                dev_id = dev_dict["tank"].split('/')[1]
+                
+                tries = 0
+                addr_tg = ""
+                for ed in self._telegram_bot_info["endpoints_details"]:
+                    if ed["endpoint"] == "REST":
+                        addr_tg = 'http://' + ed["ip"] + ':' + str(ed["port"]) + '/?greenhouseID=' + str(dev_id)
+                
+                if addr_tg != "":
+                    while tries < max_tries:
+                        tries += 1
+                        try:
+                            r2 = requests.post(addr_tg)
+                            if r2.ok:
+                                print("Message sent to user!")
+                                return 1
+                            else:
+                                print(f"Error {r2.status_code} - unable to send post request to telegram bot")
+                                time.sleep(3)
+                        except:
+                            print("Unable to reach Telegram Bot!")
+                            time.sleep(3)
+                else:
+                    print("Unable to retrieve telegram bot address")
+                return 0
+            else:
+                # Can use the weather station to ask for future weather!
+                print("Something else")
+                # Who takes care of checking future weather??
+                return 1
+                
+    def mainLoop(self, refresh_rate=5):
+        while True:
+            self.updateDevices()
+            self.updateServiceCatalog()
+            self.cleanupDevCatInfo()
+            self.cleanupTelegramBot()
+
+            self.updateDevices()
+
+            time.sleep(refresh_rate)
 
 if __name__ == "__main__":
-    pass
+    water_delivery = WaterDeliveryStrategy("water_conf.json", "water_conf_updated.json", own_ID=True)
+
+    try:
+        water_delivery.mainLoop()
+    except KeyboardInterrupt:
+        sys.exit(0)
