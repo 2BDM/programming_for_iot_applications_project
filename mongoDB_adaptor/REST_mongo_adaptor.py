@@ -95,9 +95,9 @@ class adaptor_mongo_interface(object):
             elif "min_date" in value and "max_date" in value:
                 return self.mongoW.find_by_timestamp(str(params['min_date']),str(params['max_date']))
             elif "chart_temp" in value:
-                return self.chart_temp
+                return js.dumps({"url":self.chart_temp})
             elif "chart_prec" in value:
-                return self.chart_prec
+                return js.dumps({"url":self.chart_prec})
         else:
             return "Check the introduced parameters - no match found"   
     
