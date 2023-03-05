@@ -1,7 +1,7 @@
 import json
 import requests
 import time
-from MyMQTT import MyMQTT
+from sub.MyMQTT import MyMQTT
 
 class lighting_strategy:
     
@@ -371,5 +371,5 @@ if __name__ == "__main__":
     try:
         light_str.mainLoop()
     except KeyboardInterrupt:
-        print("Impossible to run the main loop")
+        print("Program stopped")
         light_str.stop()
