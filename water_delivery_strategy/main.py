@@ -280,8 +280,8 @@ class WaterDeliveryStrategy():
 
     def registerAtServiceCatalog(self, max_tries=10):
         """
-        This method is used to register the device catalog information
-        on the service catalog.
+        This method is used to register the water delivery strategy
+        information on the service catalog.
         -----
         Return values:
         - 1: registration successful
@@ -690,7 +690,7 @@ class WaterDeliveryStrategy():
                 addr_tg = ""
                 for ed in self._telegram_bot_info["endpoints_details"]:
                     if ed["endpoint"] == "REST":
-                        addr_tg = 'http://' + ed["ip"] + ':' + str(ed["port"]) + '/?greenhouseID=' + str(dev_id)
+                        addr_tg = 'http://' + ed["ip"] + ':' + str(ed["port"]) + '/?greenhouseID=' + str(dev_id) + '&required=yes'
                 
                 if addr_tg != "":
                     while tries < max_tries:
@@ -713,7 +713,62 @@ class WaterDeliveryStrategy():
                 # Can use the weather station to ask for future weather!
                 print("Something else")
                 # Who takes care of checking future weather??
-                return 1
+                dev_id = dev_dict["tank"].split('/')[1]
+                # Contact the weather station
+                # /will_it_rain?id=
+
+                tries = 0
+                will_it_rain = ""
+                addr_w = weather_station_addr + '/will_it_rain?id=' + str(dev_id)
+                while tries < max_tries and will_it_rain == "":
+                    tries += 1
+                    try:
+                        r_w = requests.get(addr_w)
+
+                        if r_w.ok:         # If the response was correctly received from the weather station
+                            resp = r_w.text
+
+                            assert (resp == "yes" or resp == "no"), print(f"The response from the weather station is: {resp}")
+
+                            # Get the telegram bot address:
+                            addr_tg = ""
+                            for ed in self._telegram_bot_info["endpoints_details"]:
+                                if ed["endpoint"] == "REST":
+                                    addr_tg = 'http://' + ed["ip"] + ':' + str(ed["port"]) + '/?greenhouseID=' + str(dev_id)
+
+                            #
+                            if resp == 'yes':
+                                resp_addr = addr_tg + "&required=no"
+                            elif resp == 'no':
+                                resp_addr = addr_tg + "&required=yes"
+
+                            tries_2 = 0
+                            if resp_addr != "":
+                                while tries_2 < max_tries:
+                                    tries_2 += 1
+                                    try:
+                                        r2 = requests.post(resp_addr)
+                                        if r2.ok:
+                                            print("Message sent to user!")
+                                            return 1
+                                        else:
+                                            print(f"Error {r2.status_code} - unable to send post request to telegram bot")
+                                            time.sleep(3)
+                                    except:
+                                        print("Unable to reach Telegram Bot!")
+                                        time.sleep(3)
+                            else:
+                                print("Unable to retrieve telegram bot address")
+                            return 0
+
+                        else: 
+                            print(f"Error {r_w.status_code} - Unable to get weather forecast from weather station!")
+                            time.sleep(3)
+                    except:
+                        print("Unable to reach weather station!")
+                        time.sleep(3)
+
+                return 0
                 
     def mainLoop(self, refresh_rate=5):
         while True:
