@@ -22,6 +22,7 @@ class RESTBot:
         self.tokenBot = "6127233427:AAFFeqmwB23wvFF550xsPKRWX8nza6-4gBs"
         self.bot = telepot.Bot(self.tokenBot)
         self.users = []
+        self.currentGH = None
         self.databaseIP = requests.get("http://" + self.catalogIP + "/service?name=mongoDBadptor").json()["IP"]
         self.myDict = {"id" : conf_dict["telegram"]["id"],
                         "name": "telegramBot",
@@ -113,8 +114,9 @@ with the following format:\n/addUser\n<user_name>\n<user_surname>\n<email_addres
                                 "telegram_id": chat_ID, 
                                 "greenhouse": list(), 
                                 "last_update": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+                self.users.append(myDictionary)
                 
-                buttons = [[InlineKeyboardButton(text=f'YES', callback_data=f'YES'),InlineKeyboardButton(text=f'NO', callback_data=f'NO')]]
+                buttons = [[InlineKeyboardButton(text=f'YES', callback_data=f'YESuser'),InlineKeyboardButton(text=f'NO', callback_data=f'NOuser')]]
                 keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
                 self.bot.sendMessage(chat_ID, text="Are you sure you want to save this user", reply_markup=keyboard)
 
@@ -145,21 +147,11 @@ message with the following format:\n/addUser\n<user_name>\n<user_surname>\n<emai
                                     "plant_type": lines[2].replace(" ",""),
                                     "plant_needs": needs}
                     
-                    try:
-
-                        resp = requests.post("http://" + self.catalogIP + "/greenhouse", json.dumps(myDictionary)) 
-
-                        if resp.status_code == 201:
-
-                            self.bot.sendMessage(chat_ID, text='GreenHouse added correctly!')
-                            # Manca aggiungere la greenhouse alla lista dello user
-
-                        elif resp.status_code == 400:
-
-                            self.bot.sendMessage(chat_ID, text='Error, try again.') 
+                    self.currentGH = myDictionary
                     
-                    except:
-                        self.bot.sendMessage(chat_ID, text='The server is not responding, please try again later.')
+                    buttons = [[InlineKeyboardButton(text=f'YES', callback_data=f'YESgh'),InlineKeyboardButton(text=f'NO', callback_data=f'NOgh')]]
+                    keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+                    self.bot.sendMessage(chat_ID, text="Are you sure you want to add this greenhouse", reply_markup=keyboard)
 
                 except:
 
@@ -174,7 +166,7 @@ following format:\n/addGreenhouse\n<greenhouse_id>\n<plant_id>\n")
 
         ##################
         # GET PLANT LIST #                                                                                      
-        ##################        
+        ##################  
         elif command == "/getPlantList":
 
             if len(lines) == 1:
@@ -414,10 +406,15 @@ Tomorrow it is probably going to rain so it is not strictly equired to refill th
     def on_callback_query(self,msg):
 
         query_ID, chat_ID, query_data = telepot.glance(msg, flavor='callback_query')
-        if query_data == "YES":
+        if query_data == "YESuser":
             try:
 
-                resp = requests.post("http://"+self.catalogIP+"/user", json.dumps(query_data[1]))
+                current = None
+                for i in self.users:
+                    if i["id"] == chat_ID:
+                        current = i
+
+                resp = requests.post("http://"+self.catalogIP+"/user", json.dumps(i))
 
                 if resp.status_code == 201:
 
@@ -432,9 +429,36 @@ Tomorrow it is probably going to rain so it is not strictly equired to refill th
 
                 self.bot.sendMessage(chat_ID, text='The server is not responding, please try again later.')
         
-        else:
+        if query_data == "NOuser":
+
+            current = None  
+            for i in self.users:
+                if i["id"] == chat_ID:
+                    current = i
+
+            self.users.remove(current)
             self.bot.sendMessage(chat_ID, text='User has not been added.')
 
+        if query_data == "YESgh":
+            try:
+
+                resp = requests.post("http://" + self.catalogIP + "/greenhouse", json.dumps(self.currentGH)) 
+
+                if resp.status_code == 201:
+
+                    self.bot.sendMessage(chat_ID, text='GreenHouse added correctly!')
+
+                elif resp.status_code == 400:
+
+                    self.bot.sendMessage(chat_ID, text='Error, try again.') 
+                    
+            except:
+                self.bot.sendMessage(chat_ID, text='The server is not responding, please try again later.')
+
+        if query_data == "NOgh":
+
+            self.currentGH = None
+            self.bot.sendMessage(chat_ID, text='The greenhouse has not been added.')
         
 
 
