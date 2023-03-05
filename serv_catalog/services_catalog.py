@@ -213,6 +213,9 @@ class ServicesCatalog():
         If the returned value is 0, one of the following happened:
         - The inserted element does not contain the required fields
         - An element with the same ID already exists
+        
+        If the returned value is -1:
+        - It was not possible to find the user
 
         This method also prevents to add elements having unnecessary keys
         """
@@ -227,7 +230,14 @@ class ServicesCatalog():
                 new_dict["last_update"] = self.last_update
                 self.cat["greenhouses"].append(new_dict)
                 self.cat["last_update"] = self.last_update
+
+            user_id = newGH["user_id"]
+            user = self.searchUser("id", user_id)
+            if user != {}:
+                user["greenhouse"].append(new_id)
                 return new_id
+            else:
+                return -1
         
         return 0
 
@@ -364,12 +374,21 @@ class ServicesCatalog():
         Clean up old greenhouse records
         - curr_time: unix timestamp
         - timeout: in seconds
+
+        As a greenhouse is deleted, also clear its info in the corresponding user (try to)...
         """
         n_rem = 0
         for ind in range(len(self.cat["greenhouses"])):
             gh_time = datetime.timestamp(datetime.strptime(self.cat["greenhouses"][ind]["last_update"], "%Y-%m-%d %H:%M:%S"))
             if curr_time - gh_time > timeout:
                 # Delete record
+
+                # Remove greenhouse from user info (no check on that since 
+                # the user could have been deleted)
+                for usr in self.cat["users"]:
+                    if usr["id"] == self.cat["greenhouses"][ind]["user_id"]:
+                        usr["greenhouse"].remove(self.cat["greenhouse"][ind]["id"])
+
                 self.cat["greenhouses"].remove(self.cat["greenhouses"][ind])
                 self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 self.cat["last_update"] = self.last_update
