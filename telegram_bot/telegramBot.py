@@ -402,7 +402,7 @@ if __name__ == "__main__":
     cherryConf = {
         '/': {
             'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
-            'tool.session.on': True
+            'tools.sessions.on': True
         }
     }
     cherrypy.config.update({'server.socket_host': conf_dict["telegram"]["endpoints_details"][0]["ip"], 'server.socket_port': conf_dict["telegram"]["endpoints_details"][0]["port"]})
