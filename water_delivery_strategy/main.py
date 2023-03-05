@@ -117,9 +117,8 @@ class WaterDeliveryStrategy():
         Then, depending on the current_state and on the measurement value, it is decided
         whether to activate the light or not.
 
-        Activation happens if for 5 consecutive measurements the light intensity value is 
-        below the minimum value. The artificial light is turned off if the 
-        light intensity value is above the threshold for 5 times.
+        Activation happens if for 5 consecutive measurements the moisture value is 
+        below the minimum value. The irrigation system is turned on for 10 seconds.
         ---
         Return values:
         - 1: irrigation was triggered
