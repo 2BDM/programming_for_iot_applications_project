@@ -397,7 +397,42 @@ Tomorrow it is probably going to rain so it is not strictly equired to refill th
                 raise cherrypy.HTTPError(400, "Unable to contact the user as the services catalog is not responding")
         else:
             raise cherrypy.HTTPError(400, "Wrong request") 
+
+
+
+    ##########
+    # UPDATE #                                                                                      
+    ##########
+    def updateCatalog(self):
+
+        updated = False
+        count = 0
         
+        while not updated and count<3:
+        
+            try:
+
+                resp = requests.put("http://" + self.catalogIP + "/service", data_=json.dumps(self.myDict))
+
+                if resp.ok:
+                    print("updated service")
+                else:
+                    requests.post("http://" + self.catalogIP + "/service", data_=json.dumps(self.myDict))
+
+                for current in self.users:
+
+                    resp =requests.put("http://" + self.catalogIP + "/user", data_=json.dumps(current))
+
+                    if not resp.ok:
+                        requests.post("http://" + self.catalogIP + "/user", data_=json.dumps(current))
+
+                updated = True
+                    
+
+            except:
+                print("fail to connect to service catalog")
+                count = count + 1
+
 
 
     #####################
@@ -477,4 +512,7 @@ if __name__ == "__main__":
     bot = RESTBot(conf_dict)
     cherrypy.tree.mount(bot, '/', cherryConf)
     cherrypy.engine.start()
-    cherrypy.engine.block()
+    
+    while True:
+        RESTBot.update()
+        time.sleep(20)
