@@ -106,6 +106,7 @@ class mongoAdaptor():
             else:
                 needs_dict["needs"][i]["unit"]=measure_unit[2]
         return json.dumps(needs_dict)
+
         
     #################################################################################
     # It searchs the first N plants that belong to the specified category           #

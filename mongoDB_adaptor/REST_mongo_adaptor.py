@@ -43,12 +43,12 @@ class adaptor_mongo_interface(object):
         self.addr = "http://" + str(self.ip) + ":" + str(self.port)
         
         #information of database
-        self.url = self.conf_dict["database"]["url_database"]
+        url = self.conf_dict["database"]["url_database"]
         database_name = self.conf_dict["database"]["database_name"]
         self.coll1_name = self.conf_dict["database"]["collections"][0]
         self.coll2_name = self.conf_dict["database"]["collections"][1]
-        self.mongoP = mDB.mongoAdaptor(self.url,database_name,self.coll1_name)
-        self.mongoW = mDB.mongoAdaptor(self.url,database_name,self.coll2_name)
+        self.mongoP = mDB.mongoAdaptor(url,database_name,self.coll1_name)
+        self.mongoW = mDB.mongoAdaptor(url,database_name,self.coll2_name)
         
         #information of charts
         self.url_chart_temp = self.conf_dict["charts"]["url_temp"]
@@ -177,7 +177,7 @@ if __name__ == "__main__":
     max_iter_init = 10
     iter_init = 0
 
-    while ok:
+    while not ok:
         init_status = webService.registerAtServCat(max_tries=10)
         if init_status == 1:
             # Correctly registered
