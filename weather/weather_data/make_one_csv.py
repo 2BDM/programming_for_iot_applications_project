@@ -1,9 +1,8 @@
-import json
-import csv
 import pandas as pd
 import numpy as np
+from getRecords import getWeatherCsv
 
-def make_json(csvFilePaths, outPath): 
+def make_csv(csvFilePaths, outPath): 
     #
     df_list = []
 
@@ -55,7 +54,30 @@ def mapSeason(in_string):
 if __name__ == "__main__":
     out_path = "weather_train.csv"
 
+    years = list(range(2018, 2023))
+    months = list(range(1, 13))
+    city = "Torino"
+
+    files_list = []
+
+    for y in years:
+        for m in months:
+            files_list.append(getWeatherCsv(city, y, m))
+
+
     inputfilesList = [
+        "csv_ilMeteo/Torino-2018-01Gennaio.csv",
+        "csv_ilMeteo/Torino-2018-02Febbraio.csv",
+        "csv_ilMeteo/Torino-2018-03Marzo.csv",
+        "csv_ilMeteo/Torino-2018-04Aprile.csv",
+        "csv_ilMeteo/Torino-2018-05Maggio.csv",
+        "csv_ilMeteo/Torino-2018-06Giugno.csv",
+        "csv_ilMeteo/Torino-2018-07Luglio.csv",
+        "csv_ilMeteo/Torino-2018-08Agosto.csv",
+        "csv_ilMeteo/Torino-2018-09Settembre.csv",
+        "csv_ilMeteo/Torino-2018-10Ottobre.csv",
+        "csv_ilMeteo/Torino-2018-11Novembre.csv",
+        "csv_ilMeteo/Torino-2018-12Dicembre.csv",
         "csv_ilMeteo/Torino-2019-01Gennaio.csv",
         "csv_ilMeteo/Torino-2019-02Febbraio.csv",
         "csv_ilMeteo/Torino-2019-03Marzo.csv",
@@ -105,4 +127,5 @@ if __name__ == "__main__":
         "csv_ilMeteo/Torino-2022-11Novembre.csv",
         "csv_ilMeteo/Torino-2022-12Dicembre.csv"
     ]
-    make_json(inputfilesList, out_path)
+    
+    make_csv(files_list, out_path)
