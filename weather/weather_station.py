@@ -514,7 +514,7 @@ class WeatherStationWS():
 
         for ed in self.whoami["endpoints_details"]:
             if ed["endpoint"] == "REST":
-                self.ip = ed["address"].split(':')[1].split('//')[1]
+                self.ip = "0.0.0.0"
                 self.port = int(ed["address"].split(':')[-1])
         
         # Prediction model binary file paths
@@ -1055,7 +1055,10 @@ class WeatherStationWS():
             # Topic subscription
             # Update of the weather to MongoDB every 24 hours (at 11 pm)
             # Records cleanup
-        
+        print("###########################################################")
+        print(f"The updates will be performed at {hour_update} every day")
+        print("###########################################################")
+
         already_sent_flg = False
 
         timeout = time.time() + 10
@@ -1072,15 +1075,16 @@ class WeatherStationWS():
             time.sleep(5)
             print('')
 
-            # Send data to mongoDB now
-            curr_hour = int(datetime.now().strftime("%H"))
-            if curr_hour >= hour_update or curr_hour < ((hour_update+1)%24) and not already_sent_flg:
-                # Will be activated the first iteration after 23:00
+            ##### This is wrong . . . solved in the following part
+            # # Send data to mongoDB now
+            # curr_hour = int(datetime.now().strftime("%H"))
+            # if curr_hour >= hour_update or curr_hour < ((hour_update+1)%24) and not already_sent_flg:
+            #     # Will be activated the first iteration after 23:00
                 
-                already_sent_flg = True
-            elif curr_hour <= hour_update and curr_hour > ((hour_update+1)%24) and already_sent_flg:
-                # Reset the flag to 
-                already_sent_flg = False
+            #     already_sent_flg = True
+            # elif curr_hour <= hour_update and curr_hour > ((hour_update+1)%24) and already_sent_flg:
+            #     # Reset the flag to 
+            #     already_sent_flg = False
 
             self.updateServiceCatalog()
             self.getDevCatInfo()

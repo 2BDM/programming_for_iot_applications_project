@@ -5,7 +5,7 @@ from sub.MyMQTT import MyMQTT
 
 class lighting_strategy:
     
-    def __init__(self, conf_file="lightning_strategy_conf.json"): 
+    def __init__(self, conf_file="light_conf.json"): 
 
         # Importing configuration file
         self._conf_path = conf_file
@@ -13,13 +13,13 @@ class lighting_strategy:
             with open(conf_file) as f:
                 self._conf = json.load(f)
         except:
-            with open("lightning_strategy/" + conf_file) as f: 
+            with open("lighting_strategy/" + conf_file) as f: 
                 self._conf = json.load(f)
        
 
         # Creating service catalog address and saving the information to send to the service catalog
         self._serv_cat_address = "http://" + self._conf["services_catalog"]["ip"] + ":" + str(self._conf["services_catalog"]["port"])
-        self._whoami = self._conf["lightning_strategy"]
+        self._whoami = self._conf["lighting_strategy"]
         
 
         # Connect to the services catalog

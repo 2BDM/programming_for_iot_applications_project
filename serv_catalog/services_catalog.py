@@ -8,7 +8,7 @@ import sys
 This program contains the services catalog for the application
 ------------------------------------------------------------------
 Web service info:
-- Running on localhost
+- IP: 0.0.0.0 - accessible by anyone
 - Port 8080
 """
 
@@ -324,6 +324,7 @@ class ServicesCatalog():
                         self.cat["services"][ind][key] = upd_ser[key]
                     self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     self.cat["services"][ind]["last_update"] = self.last_update
+                    print(f"Updated service {self.cat['services'][ind]['name']}!")
                     self.cat["last_update"] = self.last_update
                     return upd_ser["id"]
             
@@ -628,7 +629,8 @@ class ServicesCatalogWebService():
 
         if (len(uri) >= 1):
             if (str(uri[0]) == "device_catalog"):
-                if self.catalog.updateDevCat(body) != 0:
+                rc = self.catalog.updateDevCat(body)
+                if rc != 0:
                     out = self.msg_ok.copy()
                     out["msg"] = "Device catalog was successfully updated!"
                     self.catalog.saveAsJson()
@@ -653,31 +655,35 @@ class ServicesCatalogWebService():
                     cherrypy.response.status = 400
                     return json.dumps(out)
         
-        elif (str(uri[0]) == "greenhouse"):
-                if self.catalog.updateGreenhouse(body) != 0:
-                    out = self.msg_ok.copy()
-                    out["msg"] = "Greenhouse " + str(body["id"]) + " was updated"
-                    self.catalog.saveAsJson()
-                    cherrypy.response.status = 200
-                    return json.dumps(out)
-                else:
-                    out = self.msg_ko.copy()
-                    out["msg"] = "Unable to update greenhouse"
-                    cherrypy.response.status = 400
-                    return json.dumps(out)
+            elif (str(uri[0]) == "greenhouse"):
+                    rc = self.catalog.updateGreenhouse(body)
+                    if rc != 0:
+                        out = self.msg_ok.copy()
+                        out["msg"] = "Greenhouse " + str(body["id"]) + " was updated"
+                        self.catalog.saveAsJson()
+                        cherrypy.response.status = 200
+                        return json.dumps(out)
+                    else:
+                        out = self.msg_ko.copy()
+                        out["msg"] = "Unable to update greenhouse"
+                        cherrypy.response.status = 400
+                        return json.dumps(out)
 
-        elif (str(uri[0]) == "service"):
-                if self.catalog.updateService(body) != 0:
-                    out = self.msg_ok.copy()
-                    out["msg"] = "Service " + str(body["id"]) + " was updated"
-                    self.catalog.saveAsJson()
-                    cherrypy.response.status = 200
-                    return json.dumps(out)
-                else:
-                    out = self.msg_ko.copy()
-                    out["msg"] = "Unable to update service"
-                    cherrypy.response.status = 400
-                    return json.dumps(out)
+            elif (str(uri[0]) == "service"):
+                    rc = self.catalog.updateService(body)
+                    if rc != 0:
+                        out = self.msg_ok.copy()
+                        out["msg"] = "Service " + str(body["id"]) + " was updated"
+
+                        self.catalog.saveAsJson()
+                        cherrypy.response.status = 200
+                        return json.dumps(out)
+                    else:
+                        out = self.msg_ko.copy()
+                        out["msg"] = "Unable to update service"
+
+                        cherrypy.response.status = 400
+                        return json.dumps(out)
 
         return "Available commands: " + json.dumps(self.API["methods"][2])
 

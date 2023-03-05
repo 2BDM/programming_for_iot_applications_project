@@ -128,16 +128,19 @@ class WaterDeliveryStrategy():
 
         # First, iterate over self._devices to find the topic associated with the 
         # received message
+        mess = json.loads(msg)
         for dv in self._devices:
             if dv["measurement"] == topic:
                 # Extract measurement (SenML)
+                print("here (2)")
                 # Check:
-                assert (msg['e'][0]['u'] == 'Lux'), f"Unit is actually {msg['e'][0]['u']}"
+                assert (mess['e'][0]['u'] == '%'), f"Unit is actually {mess['e'][0]['u']}"
 
                 low_thresh = dv["min_moist"]
 
-                if msg['e'][0]['u'] == 'Lux':
-                    meas = msg['e'][0]['v']
+                if mess['e'][0]['u'] == '%':
+                    meas = mess['e'][0]['v']
+                    # print(f"Current moisture: {meas}")
                 else:
                     # May receive other units from different sensors
                     # Here, one should call methods to convert the units
@@ -236,7 +239,10 @@ class WaterDeliveryStrategy():
             
             elif dv["tank"] == topic:
                 # Trigger message transmission to Telegram 
-                return self.sendTankNotif(msg, dv)
+                return self.sendTankNotif(mess, dv)
+            
+            else:
+                print("here!")
           
         print("Error - unable to locate device info")
         return 0
@@ -448,7 +454,7 @@ class WaterDeliveryStrategy():
             if (curr_time - self._dev_cat_info["last_update"]) > timeout:
                 self._dev_cat_info = {}
 
-    def getTelegramInfo(self, max_tries=10):
+    def getTelegramInfo(self, max_tries=1):
         """
         Obtain the telegram bot information from the services
         catalog.
@@ -566,11 +572,18 @@ class WaterDeliveryStrategy():
                                     for det in s["services_details"]:
                                         if det["service_type"] == "MQTT":
                                             for top in det["topic"]:
-                                                if top.endswith("act_light"):
+                                                if top.endswith("act_water"):
                                                     act_ok = True
                                                     top_a = top
 
-                            # If both have been found, add the topics to self._devices:
+                            # Check the topiocs are not already in a device record
+                            already_in = False
+                            for dvinfo in self._devices:
+                                if dvinfo["measurement"] == top_s and dvinfo["actuator"] == top_a:
+                                    sens_ok = False
+                                    act_ok = False
+                            
+                            # If both have been found, add the topics to self._devices
                             if sens_ok and act_ok:
                                 new_elem = self._dev_template.copy()
                                 # Find the needs, among which there is the 'min_soil_moist' field
@@ -581,12 +594,15 @@ class WaterDeliveryStrategy():
                                 tries_2 = 0
                                 gh_info = {}
                                 while tries_2 < max_tries and gh_info == {}:
+                                    tries_2 += 1
                                     try:
                                         r_2 = requests.get(addr_gh)
                                         if r_2.ok:
-                                            gh_info = r.json()
+                                            gh_info = r_2.json()
+                                            assert (gh_info != {}), f"{gh_info}"
+
                                             # Suppose needs don't change in time - reasonable
-                                            print("Plant info retrieved!")
+                                            print("Greenhouse info retrieved!")
                                         else:
                                             print(f"Error {r_2.status_code} - unable to get greenhouse information")
                                             time.sleep(5)
@@ -596,15 +612,16 @@ class WaterDeliveryStrategy():
                                 if gh_info != {}:
                                     # Assign needs          %
                                     new_elem["min_moist"] = gh_info["plant_needs"]["min_soil_moist"]
+                                    # print(f"Minimum moisture: {new_elem['min_moist']}")
 
                                 
                                 new_elem["measurement"] = top_s
                                 new_elem["actuator"] = top_a
 
-                                if top_a not in self.topics_list:
+                                if top_s not in self.topics_list:
                                     # If a new topic for the light sensor is found, 
-                                    self.mqtt_cli.mySubscribe(top_a)
-                                    self.topics_list.append(top_a)
+                                    self.mqtt_cli.mySubscribe(top_s)
+                                    self.topics_list.append(top_s)
 
                                 if tank_ok:
                                     # Add tank info
@@ -617,16 +634,19 @@ class WaterDeliveryStrategy():
 
                                 self._devices.append(new_elem)
 
+                        return 1
 
                     else:
                         print("Unable to obtain devices list from device cataolg!")
                         time.sleep(3)
-                        
+                            
                 except:
                     print("Unable to connect to device catalog")
                     time.sleep(3)
         else:
             print("Empty device catalog info coming from services catalog!")
+        
+        return 0
             
     def sendTankNotif(self, senml, dev_dict, max_tries=15):
         """
@@ -775,8 +795,6 @@ class WaterDeliveryStrategy():
             self.updateServiceCatalog()
             self.cleanupDevCatInfo()
             self.cleanupTelegramBot()
-
-            self.updateDevices()
 
             time.sleep(refresh_rate)
 

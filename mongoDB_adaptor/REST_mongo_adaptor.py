@@ -39,7 +39,7 @@ class adaptor_mongo_interface(object):
         
         # information of mongoDB
         self.port = self.conf_dict["mongo_db"]["endpoints_details"][0]["port"]
-        self.ip = self.conf_dict["mongo_db"]["endpoints_details"][0]["ip"]
+        self.ip = "0.0.0.0" # self.conf_dict["mongo_db"]["endpoints_details"][0]["ip"]
         self.addr = "http://" + str(self.ip) + ":" + str(self.port)
         
         #information of database

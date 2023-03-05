@@ -423,7 +423,7 @@ if __name__ == "__main__":
         WebService = DeviceCatalogWebService("dev_catalog.json")
 
     cherrypy.tree.mount(WebService, '/', conf)
-    cherrypy.config.update({'server.socket_host': WebService.getMyIP()})
+    cherrypy.config.update({'server.socket_host': "0.0.0.0"})
     cherrypy.config.update({'server.socket_port': WebService.getMyPort()})
     cherrypy.engine.start()
     try:

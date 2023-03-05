@@ -16,14 +16,14 @@ class RESTBot:
     # INITIALIZATION #                                                                                      
     ##################
     def __init__(self, conf_dict):
-        self.catalogIP = str(conf_dict["services_catalog"]["ip"])+"/"+ str(conf_dict["services_catalog"]["port"])
+        self.catalogIP = str(conf_dict["services_catalog"]["ip"])+":"+ str(conf_dict["services_catalog"]["port"])
         self.myIP = str(conf_dict["telegram"]["endpoints_details"][0]["ip"]) +"/"+ str(conf_dict["telegram"]["endpoints_details"][0]["port"])
         #self.tokenBot=requests.get("http://" + self.catalogIP + "/telegram_token").json()["telegramToken"]
         self.tokenBot = "6127233427:AAFFeqmwB23wvFF550xsPKRWX8nza6-4gBs"
         self.bot = telepot.Bot(self.tokenBot)
         self.users = []
         self.currentGH = None
-        self.databaseIP = requests.get("http://" + self.catalogIP + "/service?name=mongoDBadptor").json()["IP"]
+        self.databaseIP = requests.get("http://" + self.catalogIP + "/service?name=mongoDB").json()["endpoints_details"]["ip"]
         self.myDict = {"id" : conf_dict["telegram"]["id"],
                         "name": "telegramBot",
                         "token": self.tokenBot,
