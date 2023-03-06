@@ -64,13 +64,32 @@ class mongoAdaptor():
         
  
     #################################################################################
-    # It searchs the plant with the specified id.                                   #                
+    # It searches the plant with the specified id.                                  #                
     #                                                                               #
-    # It returns all the information related to the plant (it's the only method).   #
+    # It returns all the information related to the plant (it's the only method with#
+    # the name search).                                                             #
     #################################################################################
     def find_by_id(self,id):
         myquery = { "_id": id }        
         cur=self.mycol.find(myquery)
+        for doc in cur:
+            val = str(doc)
+            val = val.replace('\'','\"')
+        return val
+    
+    
+    #################################################################################
+    # It searches the plant with the specified name                                 #                
+    #                                                                               #
+    # It returns all the information related to the plant (it's the only method with# 
+    # the id search).                                                               #
+    #################################################################################    
+    def find_by_name(self,name):
+        if self.collection == "weather":
+            raise KeyError("Request in wrong collection")
+        elif self.collection == "plants":
+            myquery = { "name": name }        
+            cur=self.mycol.find(myquery).limit(1)
         for doc in cur:
             val = str(doc)
             val = val.replace('\'','\"')
@@ -109,7 +128,7 @@ class mongoAdaptor():
 
         
     #################################################################################
-    # It searchs the first N plants that belong to the specified category           #
+    # It searches the first N plants that belong to the specified category          #
     #                                                                               #
     # It returns a list of plants. The id and name only {"_id":id},{"name":name}).  #
     #################################################################################
@@ -127,9 +146,9 @@ class mongoAdaptor():
     
     
     #################################################################################
-    # Search the first N plants thet have a volume between min_size and max_size    #
-    # the volume is calculated as: 3.14*d^(2)*h/4, where it is a cylinder volume,   #
-    # d is the diameter of the base, h the height.                                  #
+    # It Searches the first N plants thet have a volume between min_size and        #
+    # max_size the volume is calculated as: 3.14*d^(2)*h/4, where it is a cylinder  #
+    # volume, d is the diameter of the base, h the height.                          #
     #                                                                               #
     # The database is expected correct                                              #
     #                                                                               #
@@ -160,7 +179,7 @@ class mongoAdaptor():
     
     
     #################################################################################
-    # The method searchs the first N plants that survive at a specific temperature  #
+    # The method searches the first N plants that survive at a specific temperature #
     #                                                                               #
     # The method returns the list of dictionaries ({"_id":id},{"name":name}) of the # 
     # all (max N) plants selected.                                                  #
@@ -188,7 +207,7 @@ class mongoAdaptor():
     
     
     #################################################################################
-    # The method searchs the first N plants that survive at a specific humidity. So #
+    # The method searches the first N plants that survive at a specific humidity. So#
     # it controls if it is in the range between min and max humidity                #
     #                                                                               #
     # The method returns the list of dictionaries ({"_id":id},{"name":name}) of the # 
@@ -217,7 +236,7 @@ class mongoAdaptor():
     
     
     #################################################################################
-    # The method searchs the first N plants that survive at a specific quantity of  #
+    # The method searches the first N plants that survive at a specific quantity of #
     # luminosity measured in lux. So it controls if the light is in the range       #
     # between min and max lux.                                                      #
     #                                                                               #
