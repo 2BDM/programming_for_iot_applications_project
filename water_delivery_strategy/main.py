@@ -136,6 +136,8 @@ class WaterDeliveryStrategy():
                 assert (mess['e'][0]['u'] == '%'), f"Unit is actually {mess['e'][0]['u']}"
 
                 low_thresh = dv["min_moist"]
+                if low_thresh == 0:
+                    print(f"No threshold found for greenhouse {dv['measurement'].split('/')[1]}")
 
                 if mess['e'][0]['u'] == '%':
                     meas = mess['e'][0]['v']
@@ -157,7 +159,7 @@ class WaterDeliveryStrategy():
                 # the irrigation
                 # As long as the value keeps on being lower, the 
                 # irrigation will be triggered at each measurement
-                if dv["last_3"] >= 1:
+                if dv["last_3"] >= 3:
                     # Trigger watering
                     # MQTT message for actuator:
                     msg_on = {
@@ -463,7 +465,7 @@ class WaterDeliveryStrategy():
             if (curr_time - self._dev_cat_info["last_update"]) > timeout:
                 self._dev_cat_info = {}
 
-    def getTelegramInfo(self, max_tries=1):
+    def getTelegramInfo(self, max_tries=10):
         """
         Obtain the telegram bot information from the services
         catalog.
@@ -500,7 +502,7 @@ class WaterDeliveryStrategy():
         else:
             return 0
 
-    def cleanupTelegramBot(self, timeout=120):
+    def cleanupTelegramInfo(self, timeout=120):
         """
         Check age of Telegram bot information - if old, clean it.
 
@@ -620,7 +622,7 @@ class WaterDeliveryStrategy():
                                 
                                 if gh_info != {}:
                                     # Assign needs          %
-                                    new_elem["min_moist"] = gh_info["plant_needs"]["min_soil_moist"]
+                                    new_elem["min_moist"] = gh_info["plant_needs"][7]["min_soil_moist"]
                                     # print(f"Minimum moisture: {new_elem['min_moist']}")
 
                                 
@@ -682,7 +684,7 @@ class WaterDeliveryStrategy():
         if weight <= WEIGHT_LOW and (time.time() - dev_dict["last_tank_notif"]) > self._tank_notif_timeout:
             # Recover the weather (if possible!)
             
-            self.cleanupTelegramBot()
+            self.cleanupTelegramInfo()
             self.getTelegramInfo()
 
             # Get info about the weather station endpoints:
@@ -766,14 +768,15 @@ class WaterDeliveryStrategy():
                                 if ed["endpoint"] == "REST":
                                     addr_tg = 'http://' + ed["ip"] + ':' + str(ed["port"]) + '/?greenhouseID=' + str(dev_id)
 
-                            #
-                            if resp == 'yes':
-                                resp_addr = addr_tg + "&required=no"
-                            elif resp == 'no':
-                                resp_addr = addr_tg + "&required=yes"
+                                #
+                                if resp == 'yes':
+                                    resp_addr = addr_tg + "&required=no"
+                                elif resp == 'no':
+                                    resp_addr = addr_tg + "&required=yes"
 
                             tries_2 = 0
                             if resp_addr != "":
+                                #print(resp_addr)
                                 while tries_2 < max_tries:
                                     tries_2 += 1
                                     try:
@@ -808,7 +811,7 @@ class WaterDeliveryStrategy():
             self.updateDevices()
             self.updateServiceCatalog()
             self.cleanupDevCatInfo()
-            self.cleanupTelegramBot()
+            self.cleanupTelegramInfo()
 
             time.sleep(refresh_rate)
 

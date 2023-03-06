@@ -20,7 +20,6 @@ class RESTBot:
         self.myIP = str(conf_dict["telegram"]["endpoints_details"][0]["ip"]) +":"+ str(conf_dict["telegram"]["endpoints_details"][0]["port"])
         self.tokenBot=requests.get("http://" + self.serv_cat_addr + "/telegram").json()["telegram_token"]
         self.bot = telepot.Bot(self.tokenBot)
-        self.users = []
         self.currentGH = None
         self.databaseIP = requests.get("http://" + self.serv_cat_addr + "/service?name=mongoDB").json()["endpoints_details"]["address"]
         self.myDict = conf_dict["telegram"]
@@ -29,6 +28,14 @@ class RESTBot:
         self._last_update_serv = 0
         self.registerAtServiceCatalog()
 
+        # Local variables for preventing failures
+        self._users_local = []
+        self._gh_local = []
+
+        # In case of bot failure, the users need to be recovered from the services catalog
+        # NOTE: these 2 methods are called at startup ONLY
+        self.recoverUsers()
+        self.recoverGreenhouses()
 
         MessageLoop(self.bot, {'chat': self.on_chat_message, 'callback_query':self.on_callback_query}).run_as_thread()
     
@@ -57,7 +64,7 @@ class RESTBot:
     def sendPlantInformation(self, information, chat_ID):
 
         message = "Information about the selected plant:\n"
-        message = message + "ID: "+str(information["id"])+"\nName: "+str(information["name"])+"\nCategory: "+str(information["category"])
+        message = message + "ID: "+str(information["_id"])+"\nName: "+str(information["name"])+"\nCategory: "+str(information["category"])
         size = "\nSize range: "+str(information["size"][0])+"-"+str(information["size"][1])
         light = "\nLight range: "+str(information["min_light_lux"])+"-"+str(information["max_light_lux"])
         temperature = "\nTemperature range: "+str(information["min_temp"])+"-"+str(information["max_temp"])
@@ -65,7 +72,6 @@ class RESTBot:
         soil = "\nSoil moisture range: "+str(information["min_soil_moist"])+"-"+str(information["max_soil_moist"])
         generalInfo = "\n"+ str(information["soil"])+". "+str(information["sunlight"])+". "+str(information["watering"])+". "+str(information["fertilization"])+". "+str(information["pruning"])+".  "+str(information["blooming"])+". "+str(information["color"])+"."
         message = message + size + light + temperature + humidity + soil + generalInfo
-
         self.bot.sendPhoto(chat_id=chat_ID, photo=str(information["image"]))
         self.bot.sendMessage(chat_ID, text=message)
 
@@ -110,11 +116,10 @@ with the following format:\n/addUser\n<user_name>\n<user_surname>\n<email_addres
                 myDictionary = {"id": chat_ID, 
                                 "user_name": lines[1].replace(" ",""), 
                                 "user_surname": lines[2].replace(" ",""), 
-                                "email_addr": lines[3].replace(" ",""), 
-                                "telegram_id": chat_ID, 
+                                "email_addr": lines[3].replace(" ",""),
                                 "greenhouse": list(), 
                                 "last_update": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-                self.users.append(myDictionary)
+                self._users_local.append(myDictionary)
                 
                 buttons = [[InlineKeyboardButton(text=f'YES', callback_data=f'YESuser'),InlineKeyboardButton(text=f'NO', callback_data=f'NOuser')]]
                 keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -141,9 +146,10 @@ message with the following format:\n/addUser\n<user_name>\n<user_surname>\n<emai
 
                 plantID = lines[2]
                 try:
-                    needs = requests.get("http://" + self.databaseIP + "?coll=plants&id="+plantID+"needs=1").json()["needs"]
+                    needs = requests.get(self.databaseIP + "?coll=plants&id="+plantID+"&needs=1").json()["needs"]
                     myDictionary = {"id": lines[1].replace(" ",""),  
                                     "user_id": chat_ID,
+                                    "device_id": lines[1].replace(" ",""),
                                     "plant_type": lines[2].replace(" ",""),
                                     "plant_needs": needs}
                     
@@ -186,7 +192,7 @@ to stain at a certain temperature send:\n/getPlantList\ntemperature:<value>\n- T
                 if parameter == "category":
                     
                     try:
-                        plantList = requests.get("http://" + self.databaseIP + "?coll=plants&categoty="+value+"&N=10").json()
+                        plantList = requests.get(self.databaseIP + "?coll=plants&categoty="+value+"&N=10").json()
                         self.sendPlantList(plantList, chat_ID)
 
                     except:
@@ -195,7 +201,7 @@ to stain at a certain temperature send:\n/getPlantList\ntemperature:<value>\n- T
                 elif parameter == "temperature":
 
                     try:
-                        plantList = requests.get("http://" + self.databaseIP + "?coll=plants&temperature="+value+"&N=10").json()
+                        plantList = requests.get(self.databaseIP + "?coll=plants&temperature="+value+"&N=10").json()
                         self.sendPlantList(plantList, chat_ID)
                     except:
                         self.bot.sendMessage(chat_ID, text="MongoDB is not answering.")
@@ -203,7 +209,7 @@ to stain at a certain temperature send:\n/getPlantList\ntemperature:<value>\n- T
                 
                 elif parameter == "humidity":
                     try:
-                        plantList = requests.get("http://" + self.databaseIP + "?coll=plants&humidity="+value+"&N=10").json()
+                        plantList = requests.get(self.databaseIP + "?coll=plants&humidity="+value+"&N=10").json()
                         self.sendPlantList(plantList, chat_ID)
                     except:
                         self.bot.sendMessage(chat_ID, text="MongoDB is not answering.")
@@ -212,7 +218,7 @@ to stain at a certain temperature send:\n/getPlantList\ntemperature:<value>\n- T
                 elif parameter == "lux":
                     
                     try:
-                        plantList = requests.get("http://" + self.databaseIP + "?coll=plants&lux="+value+"&N=10").json()
+                        plantList = requests.get(self.databaseIP + "?coll=plants&lux="+value+"&N=10").json()
                         self.sendPlantList(plantList, chat_ID)
                     except:
                         self.bot.sendMessage(chat_ID, text="MongoDB is not answering.")
@@ -221,7 +227,7 @@ to stain at a certain temperature send:\n/getPlantList\ntemperature:<value>\n- T
                 elif parameter == "moisture":
                     
                     try:
-                        plantList = requests.get("http://" + self.databaseIP + "?coll=plants&moisture="+value+"&N=10").json()
+                        plantList = requests.get(self.databaseIP + "?coll=plants&moisture="+value+"&N=10").json()
                         self.sendPlantList(plantList, chat_ID)
                     except:
                         self.bot.sendMessage(chat_ID, text="MongoDB is not answering.")
@@ -244,7 +250,7 @@ to stain at a certain temperature send:\n/getPlantList\ntemperature:<value>\n- T
                 if parameter1 == "minSize" and parameter2 == "maxSize":
 
                     try:
-                        plantList = requests.get("http://" + self.databaseIP + "?coll=plants&min_size="+value1+"&max_size="+value2+"&N=5").json()
+                        plantList = requests.get(self.databaseIP + "?coll=plants&min_size="+value1+"&max_size="+value2+"&N=5").json()
                         self.sendPlantList(plantList, chat_ID)
                     except:
                         self.bot.sendMessage(chat_ID, text="MongoDB is not answering.")
@@ -279,9 +285,10 @@ to stain at a certain temperature send:\n/getPlantList\ntemperature:<value>\n- T
             elif len(lines) == 2:
 
                 plantID = lines[1].replace(" ","")
-
+                print(self.databaseIP + "?coll=plants&id="+plantID)
                 try:
-                    info = requests.get("http://" + self.databaseIP + "?coll=plants&id="+plantID).json()
+                    info = requests.get(self.databaseIP + "?coll=plants&id="+plantID).json()
+                    print(info)
                     self.sendPlantInformation(info, chat_ID)
                 except:
                     self.bot.sendMessage(chat_ID, text="MongoDB is not answering.")
@@ -299,8 +306,8 @@ send a message with thefollowing format:\n/getPlantInformation\n<plant_id>")
 
             if len(lines) == 1:
 
-                self.bot.sendMessage(chat_ID, text="To require a graph, send a message \
-with the following format:\n/getGraph\n<type_of_graph>\nThe type of graph can be either temperature or precipitation")
+                self.bot.sendMessage(chat_ID, text="📊 To require a graph, send a message \
+with the following format:\n/getGraph\n<type_of_graph>\nThe type of graph can be temperature, precipitation, humidity or pressure")
 
             elif len(lines) == 2:
 
@@ -308,12 +315,20 @@ with the following format:\n/getGraph\n<type_of_graph>\nThe type of graph can be
 
                 try:
                     if requested == "temperature":
-                        image = requests.get("http://"+self.databaseIP+"?coll=weathrer&chart_temp=TRUE").json()["URL"]
-                        self.bot.sendPhoto(chat_ID, photo=str(image))
+                        image = requests.get(self.databaseIP+"?coll=weather&chart_temp=TRUE").json()["url"]
+                        self.bot.sendMessage(chat_ID, text=image)
 
                     elif requested == "precipitation":
-                        image = requests.get("http://"+self.databaseIP+"?coll=weathrer&chart_prec=TRUE").json()["URL"]
-                        self.bot.sendPhoto(chat_ID, photo=str(image))
+                        image = requests.get(self.databaseIP+"?coll=weather&chart_prec=TRUE").json()["url"]
+                        self.bot.sendMessage(chat_ID, text=image)
+
+                    elif requested == "humidity":
+                        image = requests.get(self.databaseIP+"?coll=weather&chart_hum=TRUE").json()["url"]
+                        self.bot.sendMessage(chat_ID, text=image)
+                    
+                    elif requested == "pressure":
+                        image = requests.get(self.databaseIP+"?coll=weather&chart_press=TRUE").json()["url"]
+                        self.bot.sendMessage(chat_ID, text=image)
 
                     else:
                         self.bot.sendMessage(chat_ID, text="The graph you required does not exist")
@@ -324,7 +339,7 @@ with the following format:\n/getGraph\n<type_of_graph>\nThe type of graph can be
 
             else:
 
-                self.bot.sendMessage(chat_ID, text="Wrong format for requiring a graph. To require a graph, send a message \
+                self.bot.sendMessage(chat_ID, text="⚠️ Wrong format for requiring a graph. To require a graph, send a message \
 with the following format:\n/getGraph\n<type_of_graph>\nThe type of graph can be either temperature or precipitation")
 
 
@@ -332,22 +347,21 @@ with the following format:\n/getGraph\n<type_of_graph>\nThe type of graph can be
         # GET MY INFORMATION #                                                                                      
         ######################
         elif command == "/myInformation":
-
             found = False
             info = None
 
-            for i in self.users:
+            for i in self._users_local:
                 if i["id"] == chat_ID:
                     info = i
                     found = True
             
             if found == True:
                 message = "Your user profile has the following informations:\n"
-                information = "- ID: "+str(info["id"])+"\nUser name: "+str(info["user_name"])+"\nUser surname: "+str(info["user_surname"])+"\nEmail address: "+str(info["email_addr"])+"\nGreenhouse list:\n"
+                information = "- ID: "+str(info["id"])+"\n- User name: "+str(info["user_name"])+"\n- User surname: "+str(info["user_surname"])+"\n- Email address: "+str(info["email_addr"])+"\n- Greenhouse list:\n"
                 message = message + information
                 greenhouseList = info["greenhouse"]
 
-                if len(greenhouseList)==0:
+                if len(greenhouseList) == 0:
                     currentMessage = "\nCurrently you have no greenhouse registered to the service."
                     message = message + currentMessage
 
@@ -355,14 +369,14 @@ with the following format:\n/getGraph\n<type_of_graph>\nThe type of graph can be
 
                     try:
                         for gh in greenhouseList:
-                            current = requests.get("http://"+self.serv_cat_addr+"/greenhouse?id="+str(gh)).json()
-                            currentMessage = "\nGreenhouse: "+str(gh)+"\nPlant: "+current["plant_type"]+"\nPlant ID: "+current["plant_id"]+"\n"
+                            req = requests.get("http://"+self.serv_cat_addr+"/greenhouse?id="+str(gh))
+                            current = req.json()
+                            currentMessage = "    - Greenhouse: "+str(gh)+"\n        - Plant: "+current["plant_type"] + '\n'
                             message = message + currentMessage
-
-                        self.bot.sendMessage(chat_ID, text=message)
-
                     except:
                         self.bot.sendMessage(chat_ID, text="Server is not responding")
+
+                self.bot.sendMessage(chat_ID, text=message)
 
             else:
                 self.bot.sendMessage(chat_ID, text="You have to create a user before getting your own informations.")
@@ -391,18 +405,13 @@ with the following format:\n/getGraph\n<type_of_graph>\nThe type of graph can be
                 resp = requests.get("http://"+self.serv_cat_addr+"/greenhouse?id="+greenhouseID).json()
                 chat_ID = resp["user_id"]
                 if req == "yes":
-                    print("here (1)")
-
                     ########################################## ARRIVA FINO A QUA E POI SI ROMPE
 
-                    self.bot.sendMessage(chat_ID, text="The water in the tank of one of your greenhouse is low. You should refill it. The greenhouse \
-ID is "+ greenhouseID)
-                if req == "no":
-                    print("here (2)")
-                    self.bot.sendMessage(chat_ID, text="The water in the tank of one of your greenhouse is low. \
-Tomorrow it is probably going to rain so it is not strictly equired to refill the tank. The greenhouse ID is "+ greenhouseID)
+                    self.bot.sendMessage(chat_ID, text="💧 The water in the tank of one of your greenhouse is low. You should refill it. The greenhouse ID is "+ greenhouseID)
+                elif req == "no":
+                    self.bot.sendMessage(chat_ID, text="🌧️ The water in the tank of one of your greenhouse is low. Tomorrow it is probably going to rain so it is not strictly equired to refill the tank. The greenhouse ID is "+ greenhouseID)
                 else:
-                    print("Wrong request")
+                    print("Wrong request (1)")
                     raise cherrypy.HTTPError(400, "Wrong request")
 
             except:
@@ -482,6 +491,9 @@ Tomorrow it is probably going to rain so it is not strictly equired to refill th
                     return 1
                 else:
                     print(f"Error {resp.status_code} - unable to update services catalog")
+                    if self.registerAtServiceCatalog() != 0:
+                        print("Had to register!")
+                        return 1
                     time.sleep(3)             
             except:
                 print("Unable to reach services catalog for update")
@@ -497,7 +509,7 @@ Tomorrow it is probably going to rain so it is not strictly equired to refill th
     
     def updateUsers(self, max_tries=10):
         addr = "http://" + self.serv_cat_addr + "/user"
-        for current in self.users:    
+        for current in self._users_local:    
             tries = 0
             curr_reg = False
             while tries < max_tries and not curr_reg:
@@ -506,6 +518,7 @@ Tomorrow it is probably going to rain so it is not strictly equired to refill th
                     resp = requests.put(addr, data=json.dumps(current))
                     if resp.ok:
                         # User was registered correctly
+                        print(f"Updated user {current['id']}")
                         curr_reg = True
                     else:
                         tries_2 = 0
@@ -524,11 +537,101 @@ Tomorrow it is probably going to rain so it is not strictly equired to refill th
                 except:
                     time.sleep(3)
 
+    def updateGreenhouses(self, max_tries=10):
+        addr = "http://" + self.serv_cat_addr + "/greenhouse"
+        for current in self._gh_local:    
+            tries = 0
+            curr_reg = False
+            while tries < max_tries and not curr_reg:
+                tries += 1
+                try:
+                    resp = requests.put(addr, data=json.dumps(current))
+                    if resp.ok:
+                        print(f"Updated greenhouse {current['id']}")
+                        curr_reg = True
+                    else:
+                        tries_2 = 0
+                        curr_re_reg = False
+                        while tries_2 < max_tries and not curr_re_reg:
+                            tries_2 += 1
+                            try:
+                                r_up = requests.post(addr, data=json.dumps(current))
+                                if r_up:
+                                    curr_re_reg = True
+                                    curr_reg = True
+                                else:
+                                    time.sleep(3)
+                            except:
+                                time.sleep(3)
+                except:
+                    time.sleep(3)
+            
     def updatePipeline(self):
         self.updateServCatalog()
         time.sleep(2)
         self.updateUsers()
+        time.sleep(2)
+        self.updateGreenhouses()
         
+
+    def recoverUsers(self, max_tries=10):
+        """
+        In case of need to restart the bot, the users can be recovered with this method
+        from the services catalog.
+        """
+        addr = "http://" + self.serv_cat_addr + "/users"
+
+        tries = 0
+        while tries < max_tries and self._users_local == []:
+            tries += 1
+            try:
+                req = requests.get(addr)
+                usrlist = req.json()
+                if req.ok:
+                    if len(usrlist) > 0:
+                        print("Recovered users")
+                        self._users_local = usrlist
+                    else:
+                        print("No users were recovered!")
+                    return 1
+                else:
+                    print(f"Error {req.status_code} - could not get user list")
+                    time.sleep(3)
+            except:
+                print("Unable to contact services catalog to get users!")
+                time.sleep(3)
+        
+        return 0
+    
+    def recoverGreenhouses(self, max_tries=10):
+        """
+        In case of need to restart the bot, the greenhouses can be recovered with this method
+        from the services catalog.
+        """
+        addr = "http://" + self.serv_cat_addr + "/greenhouses"
+
+        tries = 0
+        while tries < max_tries and self._gh_local == []:
+            tries += 1
+            try:
+                req = requests.get(addr)
+                ghlist = req.json()
+                if req.ok:
+                    if len(ghlist) > 0:
+                        print("Recovered users")
+                        self._gh_local = ghlist
+                    else:
+                        print("No greenhouses were recovered!")
+                    return 1
+                else:
+                    print(f"Error {req.status_code} - could not get greenhouse list")
+                    time.sleep(3)
+            except:
+                print("Unable to contact services catalog to get greenhouses!")
+                time.sleep(3)
+        
+        return 0
+
 
     #####################
     # CALLBACK FUNCTION #                                                                                      
@@ -540,20 +643,29 @@ Tomorrow it is probably going to rain so it is not strictly equired to refill th
             try:
 
                 current = None
-                for i in self.users:
+                for i in self._users_local:
                     if i["id"] == chat_ID:
                         current = i
 
                 resp = requests.post("http://"+self.serv_cat_addr+"/user", json.dumps(i))
+                print(i)
 
                 if resp.status_code == 201:
 
                     self.bot.sendMessage(chat_ID, text='User added correctly!')
-                    self.users[chat_ID] = query_data[1]
+                    #self._users_local[chat_ID] = current
 
                 elif resp.status_code == 400:
 
-                    self.bot.sendMessage(chat_ID, text='Error, try again.') 
+                    resp2 = requests.put("http://"+self.serv_cat_addr+"/user", json.dumps(i))
+                    
+                    if resp2.ok:
+                        self.bot.sendMessage(chat_ID, text='User was updated') 
+                    else:
+                        self.bot.sendMessage(chat_ID, text='Error, try again.')
+                        # Need to remove the added user
+                        del self._users_local[-1]
+
 
             except:
 
@@ -562,31 +674,46 @@ Tomorrow it is probably going to rain so it is not strictly equired to refill th
         if query_data == "NOuser":
 
             current = None  
-            for i in self.users:
+            for i in self._users_local:
                 if i["id"] == chat_ID:
                     current = i
 
-            self.users.remove(current)
+            self._users_local.remove(current)
             self.bot.sendMessage(chat_ID, text='User has not been added.')
 
         if query_data == "YESgh":
             try:
 
+                print(self.currentGH)
                 resp = requests.post("http://" + self.serv_cat_addr + "/greenhouse", json.dumps(self.currentGH)) 
 
                 if resp.status_code == 201:
-
+                    # Remove greenhouses with same ID from the local list
+                    for gh in self._gh_local:
+                        if gh["id"] == self.currentGH["id"]:
+                            self._gh_local.remove(gh)
+                    self._gh_local.append(self.currentGH)
                     self.bot.sendMessage(chat_ID, text='GreenHouse added correctly!')
-                    resp = requests.get("http://" + self.serv_cat_addr + "/user?id"+chat_ID)
-
-                    for i in self.users:
+                    print("http://" + self.serv_cat_addr + "/user?id="+str(chat_ID))
+                    resp = requests.get("http://" + self.serv_cat_addr + "/user?id="+str(chat_ID))
+                    for i in self._users_local:
                         if i["id"] == chat_ID:
-                            i["greenhouse"] = resp["greenhouse"] 
+                            i["greenhouse"] = resp.json()["greenhouse"]
 
 
                 elif resp.status_code == 400:
+                    # Allow user to overwrite greenhouses
+                    for gh in self._gh_local:
+                        if gh["id"] == self.currentGH["id"]:
+                            self._gh_local.remove(gh)
+                    count = 0
+                    while count < 5:
+                        count = 5
+                        resp = requests.put("http://" + self.serv_cat_addr + "/greenhouse", json.dumps(self.currentGH))
+                        if resp.ok:
+                            self._gh_local.append(self.currentGH)
+                            self.bot.sendMessage(chat_ID, text='New greenhouse replaced existing one with same ID.')
 
-                    self.bot.sendMessage(chat_ID, text='Error, try again.') 
                     
             except:
                 self.bot.sendMessage(chat_ID, text='The server is not responding, please try again later.')

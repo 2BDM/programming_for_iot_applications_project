@@ -83,34 +83,44 @@ class lighting_strategy:
         #plant_type = None
         #max_light_lux = None
         min_light_lux = None
-
+        rx_id = topic.split("/")[1]
+        min_light_lux = -1
         for gh in self.greenhouses:
-            if gh["device_id"] == topic.split("/")[1]: #Same device_id
+            if gh["device_id"] == rx_id: #Same device_id
                 #plant_type = gh["plant_type"]
                 for need in gh["plant_needs"]:
                     keys = need.keys()
                     if "min_light_lux" in keys:
                         min_light_lux = need["min_light_lux"]
-                    '''
-                    if "max_light_lux" in keys:
-                        max_light_lux = need["max_light_lux"]
-                    '''
+                        '''
+                        if "max_light_lux" in keys:
+                            max_light_lux = need["max_light_lux"]
+                        '''
+    
+        top_found = False
+        for t in self.topics_actuator_list:    
+            if t.split('/')[1] == rx_id:
+                topic_pub = t
+                top_found = True
 
-        if light_value >= min_light_lux:
-            topic = self.topics_actuator_list[0]
+
+        if light_value >= min_light_lux and top_found:
+            #topic_pub = self.topics_actuator_list[0]
             message = {
                 "cmd": "stop",
                 "t": time.time()
             }
-            self.mqtt_cli.myPublish(topic, message)
+            self.mqtt_cli.myPublish(topic_pub, message)
+            print(f"->Stop {topic_pub}")
 
-        else: #light_value < min_light_lux
-            topic = self.topics_actuator_list[0]
+        elif light_value < min_light_lux and top_found: #
+            #topic_pub = self.topics_actuator_list[0]
             message = {
                 "cmd": "start",
                 "t": time.time()
             }
-            self.mqtt_cli.myPublish(topic, message)
+            self.mqtt_cli.myPublish(topic_pub, message)
+            print(f"->Start {topic_pub}")
 
 
     def getGreenhouses(self, max_tries=25): 
@@ -269,6 +279,7 @@ class lighting_strategy:
         try:
             dc_addr = "http://" + self._dev_cat_info["ip"] + ":" + str(self._dev_cat_info["port"]) + "/devices"
             while tries < max_tries:
+                tries += 1
                 try:
                     r = requests.get(dc_addr)
                     if r.ok:
@@ -332,7 +343,6 @@ class lighting_strategy:
             self.getListOfDevices()
 
         if self._devices["list"] != []:
-            
             n_sub = 0
             for dev in self._devices["list"]:                   
                 for sens in dev["resources"]["actuators"]:        
@@ -342,6 +352,7 @@ class lighting_strategy:
                                 for top in det["topic"]:        
                                     if top.split('/')[-1] == "act_light" and top not in self.topics_actuator_list:
                                         # Add topic to the list
+                                        print(top)
                                         self.topics_actuator_list.append(top)
                                         n_sub += 1
             
@@ -360,6 +371,7 @@ class lighting_strategy:
             self.getListOfDevices()
 
             self.subscribeToTopics()
+            self.retrieveActuatorTopic()
 
             self.cleanupDevCatInfo()
             self.cleanupGreenhouses()

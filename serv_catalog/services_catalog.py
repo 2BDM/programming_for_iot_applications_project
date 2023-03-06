@@ -44,7 +44,7 @@ class ServicesCatalog():
         self._dev_cat_params = ["ip", "port", "methods"]
         self._usr_params = ["id", "user_name", "user_surname", 
                     "email_addr", "greenhouse"]
-        self._greenhouse_params = ['id', 'user_id', 'device_id' 'plant_type', 'plant_needs']
+        self._greenhouse_params = ['id', 'user_id', 'device_id', 'plant_type', 'plant_needs']
         self._services_params = ['id', 'name', 'endpoints', 'endpoints_details']
 
         # Default empty device catalog
@@ -129,7 +129,7 @@ class ServicesCatalog():
             raise KeyError(f"Invalid key '{parameter}'")
         elem = {}
         for elem_cat in self.cat["greenhouses"]:
-            if elem_cat[parameter] == value:
+            if str(elem_cat[parameter]) == str(value):
                 elem = elem_cat.copy()
 
         return elem
@@ -194,7 +194,7 @@ class ServicesCatalog():
             if self.searchUser("id", new_id) == {}:
                 # not found
                 new_dict = {}
-                for key in self._usr_params.keys():
+                for key in self._usr_params:
                     new_dict[key] = newUsr[key]
                 self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 new_dict["last_update"] = self.last_update
@@ -226,7 +226,7 @@ class ServicesCatalog():
             new_id = newGH["id"]
             if self.searchGreenhouse("id", new_id) == {}:
                 new_dict = {}
-                for key in self._greenhouse_params.keys():
+                for key in self._greenhouse_params:
                     new_dict[key] = newGH[key]
                 self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 new_dict["last_update"] = self.last_update
@@ -234,11 +234,14 @@ class ServicesCatalog():
                 self.cat["last_update"] = self.last_update
                 print(f"Greenhouse {new_dict['id']} was added")
             user_id = newGH["user_id"]
-            user = self.searchUser("id", user_id)
-            if user != {}:
-                user["greenhouse"].append(new_id)
-                return new_id
-            else:
+            ufound = False
+            for usr in self.cat["users"]:
+                if usr["id"] == user_id and int(new_id) not in usr["greenhouse"]:
+                    usr["greenhouse"].append(int(new_id))
+                    ufound = True
+                    return int(new_id)
+            if not ufound:
+                print("User not found!")
                 return -1
         
         return 0
@@ -436,8 +439,8 @@ class ServicesCatalogWebService():
         self.catalog = ServicesCatalog(catalog_path, output_cat_path)
         self.msg_ok = {"status": "SUCCESS", "msg": ""}
         self.msg_ko = {"status": "FAILURE", "msg": ""}
-        self._dev_cat_timeout = 120          # seconds - for device catalog and services list
-        self._user_gh_timeout = 30*24*60*60          # seconds - for users and greenhouses
+        self._dev_cat_timeout = 240          # seconds - for device catalog and services list
+        self._user_gh_timeout = 15*24*60*60          # seconds - for users and greenhouses (15 days)
 
         self.my_info = self.catalog.getServCatInfo()
 
@@ -598,7 +601,7 @@ class ServicesCatalogWebService():
                     return json.dumps(out)
             
             elif (str(uri[0]) == "greenhouse"):
-                if self.catalog.addGreenhouse(body) != 0:
+                if self.catalog.addGreenhouse(body) > 0:
                     out = self.msg_ok.copy()
                     out["msg"] = "Greenhouse " + str(body["id"]) + " was added"
                     self.catalog.saveAsJson()

@@ -135,7 +135,7 @@ class DeviceCatalog():
         """
         n_rem = 0
         for ind in range(len(self.cat["devices"])):
-            gh_time = datetime.timestamp(datetime.strptime(self.cat["devices"][ind]["last_update"], "%Y-%m-%d %H:%M:%S"))
+            gh_time = datetime.timestamp(datetime.strptime(self.cat["devices"][ind]["last_update"], "%Y-%m-%d %H:%M:%S"))       # Problematic
             if curr_time - gh_time > timeout:
                 # Delete record
                 self.cat["devices"].remove(self.cat["devices"][ind])
