@@ -73,7 +73,7 @@ class adaptor_mongo_interface(object):
                 return self.mongoP.find_by_id(int(params['id']))
             
             elif "name" in value:
-                return self.mongoP.find_by_name(params['name']))
+                return self.mongoP.find_by_name(params['name'])
                 
             elif "min_size" in value and "max_size" in value and "N" in value:
                 return self.mongoP.find_by_size(int(params['min_size']),int(params['max_size']),int(params['N']))
