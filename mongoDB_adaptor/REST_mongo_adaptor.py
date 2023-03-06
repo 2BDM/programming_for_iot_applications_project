@@ -13,7 +13,8 @@ class adaptor_mongo_interface(object):
     # - coll            --> to select the right collection                                      #
     #   - coll = "plants"                                                                       #
     #           - id, needs=1             --> to have the list of needs of a plant (given ID)   #
-    #           - id                      --> to search by id                                   #
+    #           - id                      --> to search by id (retrieves all information)       #
+    #           - name                    --> to search by id (retrieves all information)       #
     #           - min_size, max_size, N   --> to search by size                                 #
     #           - category, N             --> to search by category                             #
     #           - temperature, N          --> to search by temperature                          #
@@ -76,6 +77,9 @@ class adaptor_mongo_interface(object):
                 
             elif "id" in value:
                 return self.mongoP.find_by_id(int(params['id']))
+            
+            elif "name" in value:
+                return self.mongoP.find_by_name(params['name'])
                 
             elif "min_size" in value and "max_size" in value and "N" in value:
                 return self.mongoP.find_by_size(int(params['min_size']),int(params['max_size']),int(params['N']))
