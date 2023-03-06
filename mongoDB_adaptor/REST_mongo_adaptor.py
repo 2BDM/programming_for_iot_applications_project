@@ -178,7 +178,6 @@ if __name__ == "__main__":
     cherrypy.config.update({'server.socket_port': webService.getPort()})
 
     ok = False
-    ok = True
     max_iter_init = 10
     iter_init = 0
 
