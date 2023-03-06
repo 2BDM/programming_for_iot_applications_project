@@ -14,7 +14,7 @@ class adaptor_mongo_interface(object):
     #   - coll = "plants"                                                                       #
     #           - id, needs=1             --> to have the list of needs of a plant (given ID)   #
     #           - id                      --> to search by id (retrieves all information)       #
-    #           - name                    --> to search by id (retrieves all information)       #
+    #           - name                    --> to search by name (retrieves all information)     #
     #           - min_size, max_size, N   --> to search by size                                 #
     #           - category, N             --> to search by category                             #
     #           - temperature, N          --> to search by temperature                          #
