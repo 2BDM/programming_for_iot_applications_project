@@ -66,11 +66,30 @@ class mongoAdaptor():
     #################################################################################
     # It searchs the plant with the specified id.                                   #                
     #                                                                               #
-    # It returns all the information related to the plant (it's the only method).   #
+    # It returns all the information related to the plant (it's the only method with#
+    # the name search).                                                             #
     #################################################################################
     def find_by_id(self,id):
         myquery = { "_id": id }        
         cur=self.mycol.find(myquery)
+        for doc in cur:
+            val = str(doc)
+            val = val.replace('\'','\"')
+        return val
+    
+    
+    #################################################################################
+    # It searchs the plant with the specified name                                  #                
+    #                                                                               #
+    # It returns all the information related to the plant (it's the only method with# 
+    # the id search).                                                               #
+    #################################################################################    
+    def find_by_name(self,name):
+        if self.collection == "weather":
+            raise KeyError("Request in wrong collection")
+        elif self.collection == "plants":
+            myquery = { "name": name }        
+            cur=self.mycol.find(myquery).limit(1)
         for doc in cur:
             val = str(doc)
             val = val.replace('\'','\"')
