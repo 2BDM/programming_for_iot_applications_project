@@ -19,7 +19,7 @@ class lighting_strategy:
 
         # Creating service catalog address and saving the information to send to the service catalog
         self._serv_cat_address = "http://" + self._conf["services_catalog"]["ip"] + ":" + str(self._conf["services_catalog"]["port"])
-        self._whoami = self._conf["lighting_strategy"]
+        self.whoami = self._conf["lighting_strategy"]
         
 
         # Connect to the services catalog
@@ -29,7 +29,7 @@ class lighting_strategy:
     
 
         # Retrieving broker informations from service catalog
-        self._broker_info == {}
+        self._broker_info = {}
 
         while self._broker_info == {}:
             if self.getBrokerInfo(max_tries=100) != 1:
@@ -58,7 +58,8 @@ class lighting_strategy:
         self.mqtt_cli.start()
 
 
-        self.greenhouses = {}
+        self.greenhouses = []
+        self._last_update_gh = 0
         self._dev_cat_info = {}
 
         self._devices = {
@@ -77,13 +78,13 @@ class lighting_strategy:
         print(f"Received message in {topic}")
         message = json.loads(payload)
         #Extracting the value of the sensor
-        light_value = message["v"]
+        light_value = message["e"][0]["v"]
 
         #plant_type = None
         #max_light_lux = None
         min_light_lux = None
 
-        for gh in self.greenhouses["greenhouses"]:
+        for gh in self.greenhouses:
             if gh["device_id"] == topic.split("/")[1]: #Same device_id
                 #plant_type = gh["plant_type"]
                 for need in gh["plant_needs"]:
@@ -114,12 +115,13 @@ class lighting_strategy:
 
     def getGreenhouses(self, max_tries=25): 
         tries = 0
-        while tries < max_tries and self.greenhouses == {}:
+        while tries < max_tries and self.greenhouses == []:
+            tries += 1
             try:
                 req = requests.get(self._serv_cat_address + "/greenhouses")
                 if req.ok:
                     self.greenhouses = req.json()
-                    self.greenhouses["last_update"] = time.time()
+                    self._last_update_gh = time.time()
                     print("Greenhouses info retrieved!")
                     return 1
                 else:
@@ -129,7 +131,7 @@ class lighting_strategy:
                 print("Unable to reach service catalog - retrying")
                 time.sleep(5)
         
-        if self.greenhouses != {}:
+        if self.greenhouses != []:
             return 1
         else:
             return 0
@@ -138,11 +140,12 @@ class lighting_strategy:
     def registerAtServiceCatalog(self, max_tries = 10):
         tries = 0
 
+        addr = self._serv_cat_address + "/service"
         while not self._registered_at_catalog and tries < max_tries:
-
+            tries += 1
             try:
-                reg = requests.post(self._serv_cat_address + "/service", data = json.dumps(self.whoami))
-                print(f"Sent request to {self._serv_cat_addr}")
+                reg = requests.post(addr, data = json.dumps(self.whoami))
+                print(f"Sent request to {self._serv_cat_address}")
 
                 if reg.status_code == 201:
                     self._registered_at_catalog = True
@@ -150,7 +153,7 @@ class lighting_strategy:
                     print("Successfully registered at service catalog!")
                     return 1
                 elif reg.status_code == 400:
-                    print("Device catalog was already registered!")
+                    print("Was already registered!")
                     self._registered_at_catalog = True
                     # Perform an update, to keep the last_update recent
                     self.updateServiceCatalog()
@@ -168,11 +171,11 @@ class lighting_strategy:
     def updateServiceCatalog(self, max_tries = 10):
         updated = False
         count_fail = 0
-
+        tries = 0
         while not updated and count_fail < max_tries:
-
+            tries += 1
             try:
-                update = requests.put(self._serv_cat_addr + '/service', data=json.dumps(self.whoami))
+                update = requests.put(self._serv_cat_address + '/service', data=json.dumps(self.whoami))
 
                 if update.status_code == 200:
                     print("Information in the service catalog was successfully updated!")
@@ -188,7 +191,7 @@ class lighting_strategy:
                         return -1
                 
             except:
-                print("Tried to connect to services catalog - failed to establish a connection!")
+                print("Tried to connect to services catalog - failed to establish a connection! (2)")
                 count_fail += 1
                 time.sleep(5)
 
@@ -200,7 +203,7 @@ class lighting_strategy:
         tries = 0
 
         while tries <= max_tries and self._broker_info == {}:
-            addr = self._serv_cat_addr + "/broker"
+            addr = self._serv_cat_address + "/broker"
             r = requests.get(addr)
             if r.ok:                                   
                 self._broker_info = r.json()
@@ -218,7 +221,7 @@ class lighting_strategy:
     def getDevCatInfo(self, max_tries=25):
         tries = 0
         while self._dev_cat_info == {} and tries < max_tries:
-            addr = self._serv_cat_addr + "/device_catalog"
+            addr = self._serv_cat_address + "/device_catalog"
             try:
                 r = requests.get(addr)
                 if r.ok:
@@ -250,8 +253,8 @@ class lighting_strategy:
         
         if self.greenhouses != {}:
             curr_time = time.time()
-            if (curr_time - self.greenhouses["last_update"]) > timeout:
-                self.greenhouses = {}
+            if (curr_time - self._last_update_gh) > timeout:
+                self.greenhouses = []
 
 
     def getListOfDevices(self, max_tries=25, info_timeout=120):

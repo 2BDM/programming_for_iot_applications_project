@@ -132,7 +132,6 @@ class WaterDeliveryStrategy():
         for dv in self._devices:
             if dv["measurement"] == topic:
                 # Extract measurement (SenML)
-                print("here (2)")
                 # Check:
                 assert (mess['e'][0]['u'] == '%'), f"Unit is actually {mess['e'][0]['u']}"
 
@@ -140,7 +139,7 @@ class WaterDeliveryStrategy():
 
                 if mess['e'][0]['u'] == '%':
                     meas = mess['e'][0]['v']
-                    # print(f"Current moisture: {meas}")
+                    print(f"Current moisture: {meas}")
                 else:
                     # May receive other units from different sensors
                     # Here, one should call methods to convert the units
@@ -158,22 +157,29 @@ class WaterDeliveryStrategy():
                 # the irrigation
                 # As long as the value keeps on being lower, the 
                 # irrigation will be triggered at each measurement
-                if dv["last_3"] >= 3:
+                if dv["last_3"] >= 1:
                     # Trigger watering
                     # MQTT message for actuator:
                     msg_on = {
-                        "cmd": "on",
+                        "cmd": "start",
                         "t": time.time()
                     }
                     msg_off = {
-                        "cmd": "off",
+                        "cmd": "stop",
                         "t": time.time()
                     }
 
+                    print(f"Publish in topic {dv['actuator']} (1)")
                     self.mqtt_cli.myPublish(dv["actuator"], msg_on)
                     time.sleep(10)
+                    msg_off = {
+                        "cmd": "stop",
+                        "t": time.time()
+                    }
+                    print(f"Publish in topic {dv['actuator']} (2)")
                     self.mqtt_cli.myPublish(dv["actuator"], msg_off)
 
+                    time.sleep(3)
                     # If there is no tank topic, get info via REST
                     # If the topic is present, this is done when 
                     # the measurement is received via the topic
@@ -194,6 +200,7 @@ class WaterDeliveryStrategy():
                                     r = requests.get(addr)
                                     if r.ok:
                                         this_dev = r.json()
+                                        print(f"Obtained device {dev_id} info")
                                     else:
                                         print(f"Error {r.status_code} - unable to get device {dev_id} information!")
                                         time.sleep(3)
@@ -204,10 +211,11 @@ class WaterDeliveryStrategy():
                             uri_tank = ""
                             if this_dev != {}:
                                 for sens in this_dev["resources"]["sensors"]:
-                                    if sens["measure_type"] == "Tank Weight" and "MQTT" not in sens["available_services"]:
+                                    if sens["measure_type"][0] == "Tank Weight" and "MQTT" not in sens["available_services"]:
                                         for sd in sens["services_details"]:
                                             if sd["service_type"] == "REST":
                                                 uri_tank = sd["uri"]
+                                                print(f"Tank URI: {uri_tank}")
 
                             if uri_tank != "":
                                 tries = 0
@@ -217,6 +225,7 @@ class WaterDeliveryStrategy():
                                         r2 = requests.get(uri_tank)
                                         if r2.ok:
                                             wt = r2.json()
+                                            print(f"Obtained tank weight - device {dev_id}")
                                         else:
                                             print(f"Error {r2.status_code} - unable to get tank weight from device {dev_id}")
                                             time.sleep(3)
@@ -239,7 +248,7 @@ class WaterDeliveryStrategy():
             
             elif dv["tank"] == topic:
                 # Trigger message transmission to Telegram 
-                return self.sendTankNotif(mess, dv)
+                return self.sendTankNotif(mess['e'], dv)
             
             else:
                 print("here!")
@@ -653,14 +662,17 @@ class WaterDeliveryStrategy():
         Send the notification to the user for the tank being empty
 
         Input parameters:
-        - senml: SenML-formatted JSON retrieved from the weighting sensor
+        - senml: SenML-formatted JSON retrieved from the weighting sensor; 
+        it only contains the list 'e' (!!!!)
         - dev_dict: record in self._devices associated to that device
         - max_tries: maximum number of rest requests before failure
         """
-        weight = senml['e'][0]['v']
+        # print(senml)
+        weight = senml[0]['v']
+        print(f"Weight: {weight}")
 
         # Default unit is grams
-        unit = senml['e'][0]['u']
+        unit = senml[0]['u']
 
         if unit == 'kg':
             weight = weight*1000
@@ -672,10 +684,6 @@ class WaterDeliveryStrategy():
             
             self.cleanupTelegramBot()
             self.getTelegramInfo()
-
-            # Update the timeout for the notification
-            # Prevent multiple messages to the receiver in low time
-            dev_dict["last_tank_notif"] = time.time()
 
             # Get info about the weather station endpoints:
             tries = 0
@@ -699,11 +707,11 @@ class WaterDeliveryStrategy():
                     print(f"Unable to reach services catalog!")
                     time.sleep(3)
             
-            if weather_station_addr == "":
+            if weather_station_addr == "" and self._telegram_bot_info != {}:
                 print("It was not possible to obtain weather station info")
                 
                 # Even if the weather station cannot be reached, send the notification
-                dev_id = dev_dict["tank"].split('/')[1]
+                dev_id = dev_dict["measurement"].split('/')[1]
                 
                 tries = 0
                 addr_tg = ""
@@ -718,6 +726,9 @@ class WaterDeliveryStrategy():
                             r2 = requests.post(addr_tg)
                             if r2.ok:
                                 print("Message sent to user!")
+                                # Update the timeout for the notification
+                                # Prevent multiple messages to the receiver in low time
+                                dev_dict["last_tank_notif"] = time.time()
                                 return 1
                             else:
                                 print(f"Error {r2.status_code} - unable to send post request to telegram bot")
@@ -728,11 +739,11 @@ class WaterDeliveryStrategy():
                 else:
                     print("Unable to retrieve telegram bot address")
                 return 0
-            else:
+            elif self._telegram_bot_info != {}:
                 # Can use the weather station to ask for future weather!
-                print("Something else")
+                print("Weather station info retrieved")
                 # Who takes care of checking future weather??
-                dev_id = dev_dict["tank"].split('/')[1]
+                dev_id = dev_dict["measurement"].split('/')[1]
                 # Contact the weather station
                 # /will_it_rain?id=
 
@@ -769,6 +780,9 @@ class WaterDeliveryStrategy():
                                         r2 = requests.post(resp_addr)
                                         if r2.ok:
                                             print("Message sent to user!")
+                                            # Update the timeout for the notification
+                                            # Prevent multiple messages to the receiver in low time
+                                            dev_dict["last_tank_notif"] = time.time()
                                             return 1
                                         else:
                                             print(f"Error {r2.status_code} - unable to send post request to telegram bot")
@@ -789,7 +803,7 @@ class WaterDeliveryStrategy():
 
                 return 0
                 
-    def mainLoop(self, refresh_rate=5):
+    def mainLoop(self, refresh_rate=20):
         while True:
             self.updateDevices()
             self.updateServiceCatalog()

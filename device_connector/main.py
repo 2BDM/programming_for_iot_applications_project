@@ -468,7 +468,7 @@ class DevConn:
                 for serv_det in act["services_details"]:
                     if "topic" in serv_det.keys():
                         # Find the actuator associated with the specified topic
-                        # NOTE: there is one topic per actuator ----- TODO: remove lists
+                        # NOTE: there is one topic per actuator
                         if topic == serv_det["topic"][0]:
                             
                             # Locate the position of the correct device agent in the list
@@ -823,7 +823,7 @@ class DevConn:
 
     def workingLoop(self):
         ############### Working loop ###############
-        meas_timeout = 20          # Time for measurement update
+        meas_timeout = 60           # Time for measurement update
         t_last_meas = 0             # This triggers measurements in first loop
 
         cherrypy.engine.start()

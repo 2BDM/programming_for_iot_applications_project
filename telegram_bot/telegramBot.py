@@ -16,19 +16,22 @@ class RESTBot:
     # INITIALIZATION #                                                                                      
     ##################
     def __init__(self, conf_dict):
-        self.catalogIP = str(conf_dict["services_catalog"]["ip"])+":"+ str(conf_dict["services_catalog"]["port"])
+        self.serv_cat_addr = str(conf_dict["services_catalog"]["ip"])+":"+ str(conf_dict["services_catalog"]["port"])
         self.myIP = str(conf_dict["telegram"]["endpoints_details"][0]["ip"]) +"/"+ str(conf_dict["telegram"]["endpoints_details"][0]["port"])
-        self.tokenBot=requests.get("http://" + self.catalogIP + "/telegram_token").json()["telegramToken"]
+        self.tokenBot=requests.get("http://" + self.serv_cat_addr + "/telegram").json()["telegram_token"]
+        print("Here")
         self.bot = telepot.Bot(self.tokenBot)
+        print("Here (2)")
         self.users = []
         self.currentGH = None
-        self.databaseIP = requests.get("http://" + self.catalogIP + "/service?name=mongoDB").json()["endpoints_details"]["ip"]
-        self.myDict = {"id" : conf_dict["telegram"]["id"],
-                        "name": "telegramBot",
-                        "token": self.tokenBot,
-                        "ip": conf_dict["telegram"]["endpoints_details"][0]["ip"],
-                        "port":conf_dict["telegram"]["endpoints_details"][0]["port"]}
-        requests.post("http://" + self.catalogIP + "/service", json = self.myDict)
+        self.databaseIP = requests.get("http://" + self.serv_cat_addr + "/service?name=mongoDB").json()["endpoints_details"]["address"]
+        self.myDict = conf_dict["telegram"]
+        
+        self._registered_at_catalog = False
+        self._last_update_serv = 0
+        self.registerAtServiceCatalog()
+
+
         MessageLoop(self.bot, {'chat': self.on_chat_message, 'callback_query':self.on_callback_query}).run_as_thread()
     
 
@@ -70,9 +73,9 @@ class RESTBot:
 
 
 
-    #################################
-    # MANEGING THE RECIVED MESSAGES #                                                                                      
-    #################################
+    ##################################
+    # MANAGING THE RECEIVED MESSAGES #                                                                                      
+    ##################################
     def on_chat_message(self, msg):
 
         content_type, chat_type, chat_ID = telepot.glance(msg)
@@ -354,7 +357,7 @@ with the following format:\n/getGraph\n<type_of_graph>\nThe type of graph can be
 
                     try:
                         for gh in greenhouseList:
-                            current = requests.get("http://"+self.catalogIP+"/greenhouse?id="+str(gh)).json()
+                            current = requests.get("http://"+self.serv_cat_addr+"/greenhouse?id="+str(gh)).json()
                             currentMessage = "\nGreenhouse: "+str(gh)+"\nPlant: "+current["plant_type"]+"\nPlant ID: "+current["plant_id"]+"\n"
                             message = message + currentMessage
 
@@ -382,62 +385,153 @@ with the following format:\n/getGraph\n<type_of_graph>\nThe type of graph can be
     # POST #                                                                                      
     ########
     def POST(self, **param):
-        listOfKeys = param.keys
+        listOfKeys = param.keys()
         if "greenhouseID" in listOfKeys and "required" in listOfKeys:
-            greenhouseID = param["greenhouseID"]
-            req = param["required"]
+            greenhouseID = str(param["greenhouseID"])
+            req = str(param["required"])
             try:
-                resp = requests.get("http://"+self.catalogIP+"/greenhouse?id="+greenhouseID)
+                resp = requests.get("http://"+self.serv_cat_addr+"/greenhouse?id="+greenhouseID).json()
                 chat_ID = resp["user_id"]
                 if req == "yes":
+                    print("here (1)")
+
+                    ########################################## ARRIVA FINO A QUA E POI SI ROMPE
+
                     self.bot.sendMessage(chat_ID, text="The water in the tank of one of your greenhouse is low. You should refill it. The greenhouse \
 ID is "+ greenhouseID)
                 if req == "no":
+                    print("here (2)")
                     self.bot.sendMessage(chat_ID, text="The water in the tank of one of your greenhouse is low. \
 Tomorrow it is probably going to rain so it is not strictly equired to refill the tank. The greenhouse ID is "+ greenhouseID)
                 else:
+                    print("Wrong request")
                     raise cherrypy.HTTPError(400, "Wrong request")
 
             except:
+                print("Unable to contact the user as the services catalog is not responding")
                 raise cherrypy.HTTPError(400, "Unable to contact the user as the services catalog is not responding")
         else:
+            print("Wrong request (2)")
             raise cherrypy.HTTPError(400, "Wrong request") 
+
+    ############
+    # REGISTER #
+    ############
+    def registerAtServiceCatalog(self, max_tries=10):
+        """
+        This method is used to register the water delivery strategy
+        information on the service catalog.
+        -----
+        Return values:
+        - 1: registration successful
+        - -1: information was already present - update was performed
+        - 0: failed to add (unreachable server)
+        """
+        
+        # Actual
+        tries = 0
+        addr = 'http://' + self.serv_cat_addr + '/service'
+        print(addr)
+
+        while not self._registered_at_catalog and tries < max_tries:
+            tries += 1
+            try:
+                reg = requests.post(addr, json.dumps(self.myDict))
+                print(self.myDict)
+                
+                if reg.ok:
+                    self._registered_at_catalog = True
+                    self._last_update_serv = time.time()
+                    print("Successfully registered at service catalog!")
+                    return 1
+                elif reg.status_code == 400:
+                    print("Device catalog was already registered!")
+                    self._registered_at_catalog = True
+                    # Perform an update, to keep the last_update recent
+                    self.updateServCatalog()
+                    return -1
+                else:
+                    print(f"Error {reg.status_code} - registration failed")
+            except:
+                print("Tried to connect to services catalog - failed to establish a connection!")
+                time.sleep(5)
+
+        return 0
 
 
 
     ##########
     # UPDATE #                                                                                      
     ##########
-    def updateCatalog(self):
+    def updateServCatalog(self, max_tries=10):
+        """
+        Update the information at the services catalog.
 
+        Return values:
+        - 1: success
+        - 0: fail
+        - -1: had to register
+        """
         updated = False
-        count = 0
-        
-        while not updated and count<3:
-        
+        tries = 0
+        addr = 'http://' + self.serv_cat_addr + '/service'
+        while not updated and tries < max_tries:
+            tries += 1
             try:
-
-                resp = requests.put("http://" + self.catalogIP + "/service", data_=json.dumps(self.myDict))
-
+                resp = requests.put(addr, data=json.dumps(self.myDict))
                 if resp.ok:
-                    print("updated service")
+                    print("Services catalog updated")
+                    self._last_update_serv = time.time()
+                    return 1
                 else:
-                    requests.post("http://" + self.catalogIP + "/service", data_=json.dumps(self.myDict))
-
-                for current in self.users:
-
-                    resp =requests.put("http://" + self.catalogIP + "/user", data_=json.dumps(current))
-
-                    if not resp.ok:
-                        requests.post("http://" + self.catalogIP + "/user", data_=json.dumps(current))
-
-                updated = True
-                    
-
+                    print(f"Error {resp.status_code} - unable to update services catalog")
+                    time.sleep(3)             
             except:
-                print("fail to connect to service catalog")
-                count = count + 1
+                print("Unable to reach services catalog for update")
+                time.sleep(3)
 
+        if tries == max_tries:
+            self._registered_at_catalog = False
+            if self.registerAtServiceCatalog() == 1:
+                print("Had to register")
+                return -1
+        
+        return 0
+    
+    def updateUsers(self, max_tries=10):
+        addr = "http://" + self.serv_cat_addr + "/user"
+        for current in self.users:    
+            tries = 0
+            curr_reg = False
+            while tries < max_tries and not curr_reg:
+                tries += 1
+                try:
+                    resp = requests.put(addr, data=json.dumps(current))
+                    if resp.ok:
+                        # User was registered correctly
+                        curr_reg = True
+                    else:
+                        tries_2 = 0
+                        curr_re_reg = False
+                        while tries_2 < max_tries and not curr_re_reg:
+                            tries_2 += 1
+                            try:
+                                r_up = requests.post(addr, data=json.dumps(current))
+                                if r_up:
+                                    curr_re_reg = True
+                                    curr_reg = True
+                                else:
+                                    time.sleep(3)
+                            except:
+                                time.sleep(3)
+                except:
+                    time.sleep(3)
+
+    def updatePipeline(self):
+        self.updateServCatalog()
+        time.sleep(2)
+        self.updateUsers()
+        
 
     #####################
     # CALLBACK FUNCTION #                                                                                      
@@ -453,7 +547,7 @@ Tomorrow it is probably going to rain so it is not strictly equired to refill th
                     if i["id"] == chat_ID:
                         current = i
 
-                resp = requests.post("http://"+self.catalogIP+"/user", json.dumps(i))
+                resp = requests.post("http://"+self.serv_cat_addr+"/user", json.dumps(i))
 
                 if resp.status_code == 201:
 
@@ -481,12 +575,12 @@ Tomorrow it is probably going to rain so it is not strictly equired to refill th
         if query_data == "YESgh":
             try:
 
-                resp = requests.post("http://" + self.catalogIP + "/greenhouse", json.dumps(self.currentGH)) 
+                resp = requests.post("http://" + self.serv_cat_addr + "/greenhouse", json.dumps(self.currentGH)) 
 
                 if resp.status_code == 201:
 
                     self.bot.sendMessage(chat_ID, text='GreenHouse added correctly!')
-                    resp = requests.get("http://" + self.catalogIP + "/user?id"+chat_ID)
+                    resp = requests.get("http://" + self.serv_cat_addr + "/user?id"+chat_ID)
 
                     for i in self.users:
                         if i["id"] == chat_ID:
@@ -523,6 +617,9 @@ if __name__ == "__main__":
     cherrypy.tree.mount(bot, '/', cherryConf)
     cherrypy.engine.start()
     
-    while True:
-        RESTBot.update()
-        time.sleep(20)
+    try:
+        while True:
+            bot.updatePipeline()
+            time.sleep(20)
+    except KeyboardInterrupt:
+        cherrypy.engine.stop()

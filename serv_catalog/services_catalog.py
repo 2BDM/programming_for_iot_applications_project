@@ -170,6 +170,7 @@ class ServicesCatalog():
                 self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 self.cat["device_catalog"]["last_update"] = self.last_update
                 self.cat["last_update"] = self.last_update
+                print("Device catalog was added")
                 return 1
         return 0
 
@@ -199,6 +200,7 @@ class ServicesCatalog():
                 new_dict["last_update"] = self.last_update
                 self.cat["users"].append(new_dict)
                 self.cat["last_update"] = self.last_update
+                print(f"User {new_dict['id']} was added")
                 return new_id
 
         return 0    # Element is either invalid or already exists
@@ -230,7 +232,7 @@ class ServicesCatalog():
                 new_dict["last_update"] = self.last_update
                 self.cat["greenhouses"].append(new_dict)
                 self.cat["last_update"] = self.last_update
-
+                print(f"Greenhouse {new_dict['id']} was added")
             user_id = newGH["user_id"]
             user = self.searchUser("id", user_id)
             if user != {}:
@@ -265,6 +267,7 @@ class ServicesCatalog():
                 new_dict["last_update"] = self.last_update
                 self.cat["services"].append(new_dict)
                 self.cat["last_update"] = self.last_update
+                print(f"Service {new_dict['name']} was added")
                 return new_id
         
         return 0
@@ -283,6 +286,7 @@ class ServicesCatalog():
                 self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 self.cat["device_catalog"]["last_update"] = self.last_update
                 self.cat["last_update"] = self.last_update
+                print("Device catalog was updated")
                 return 1
         return 0
 
@@ -297,6 +301,7 @@ class ServicesCatalog():
                     self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     self.cat["users"][ind]["last_update"] = self.last_update
                     self.cat["last_update"] = self.last_update
+                    print(f"User {updUsr['id']} was updated")
                     return updUsr["id"]
             
         return 0
@@ -311,6 +316,7 @@ class ServicesCatalog():
                     self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     self.cat["greenhouses"][ind]["last_update"] = self.last_update
                     self.cat["last_update"] = self.last_update
+                    print(f"Greenhouse {upd_gh['id']} was updated")
                     return upd_gh["id"]
             
         return 0
@@ -324,8 +330,8 @@ class ServicesCatalog():
                         self.cat["services"][ind][key] = upd_ser[key]
                     self.last_update = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     self.cat["services"][ind]["last_update"] = self.last_update
-                    print(f"Updated service {self.cat['services'][ind]['name']}!")
                     self.cat["last_update"] = self.last_update
+                    print(f"Service {upd_ser['name']} was updated")
                     return upd_ser["id"]
             
         return 0

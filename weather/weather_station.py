@@ -603,7 +603,7 @@ class WeatherStationWS():
             elif str(uri[0]) == "will_it_rain":
                 # Anticipate tomorrow's weather given the last 24 hours
                 self.weather_station.cleanupMeas()
-                if len(params) > 0 and str(params.keys(0)) == "id":
+                if len(params) > 0 and str(list(params.keys())[0]) == "id":
                     next_rain = self.weather_station.estFutureWeather(int(params["id"]), model_path=self.pred_model_tomorrow)
                 else:
                     ### HERE
