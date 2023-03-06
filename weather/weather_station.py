@@ -509,10 +509,12 @@ class WeatherStationWS():
 
         self._serv_cat_addr = "http://" + self._conf["services_catalog"]["ip"] + ":" + str(self._conf["services_catalog"]["port"])    # Address of services catalog
         self.whoami = self._conf["weather_station"]         # Own information - to be sent to the services catalog
-        
+
+        self.out_conf = out_conf
+
         for ed in self.whoami["endpoints_details"]:
             if ed["endpoint"] == "REST":
-                self.ip = ed["address"].split(':')[1].split('//')[1]
+                self.ip = "0.0.0.0"
                 self.port = int(ed["address"].split(':')[-1])
         
         # Prediction model binary file paths
@@ -601,7 +603,7 @@ class WeatherStationWS():
             elif str(uri[0]) == "will_it_rain":
                 # Anticipate tomorrow's weather given the last 24 hours
                 self.weather_station.cleanupMeas()
-                if len(params) > 0 and str(params.keys(0)) == "id":
+                if len(params) > 0 and str(list(params.keys())[0]) == "id":
                     next_rain = self.weather_station.estFutureWeather(int(params["id"]), model_path=self.pred_model_tomorrow)
                 else:
                     ### HERE
@@ -655,6 +657,8 @@ class WeatherStationWS():
                 if r_id.ok:
                     self.id = r_id.json()
                     self.whoami["id"] = self.id
+                    with open(self.out_conf, 'w') as f:
+                        json.dump(self.whoami, f)
                     return 1
                 else:
                     # Should not happen
@@ -835,7 +839,7 @@ class WeatherStationWS():
         """
         Check age of device catalog information - if old, clean it.
 
-        The max age is 'timeout' (default 240s - 4 min).
+        The max age is 'timeout' (default 120s - 2 min).
         """
         if self._dev_cat_info != {}:
             curr_time = time.time()
@@ -854,7 +858,7 @@ class WeatherStationWS():
         - -1: Unable to get device catalog info
         """
         
-        # CHeck device cat info exists:
+        # Check device cat info exists:
         if self._dev_cat_info == {}:
             if self.getDevCatInfo() == 0:
                 print("Unable to get device catalog info")
@@ -1051,7 +1055,10 @@ class WeatherStationWS():
             # Topic subscription
             # Update of the weather to MongoDB every 24 hours (at 11 pm)
             # Records cleanup
-        
+        print("###########################################################")
+        print(f"The updates will be performed at {hour_update} every day")
+        print("###########################################################")
+
         already_sent_flg = False
 
         timeout = time.time() + 10
@@ -1068,15 +1075,16 @@ class WeatherStationWS():
             time.sleep(5)
             print('')
 
-            # Send data to mongoDB now
-            curr_hour = int(datetime.now().strftime("%H"))
-            if curr_hour >= hour_update or curr_hour < ((hour_update+1)%24) and not already_sent_flg:
-                # Will be activated the first iteration after 23:00
+            ##### This is wrong . . . solved in the following part
+            # # Send data to mongoDB now
+            # curr_hour = int(datetime.now().strftime("%H"))
+            # if curr_hour >= hour_update or curr_hour < ((hour_update+1)%24) and not already_sent_flg:
+            #     # Will be activated the first iteration after 23:00
                 
-                already_sent_flg = True
-            elif curr_hour <= hour_update and curr_hour > ((hour_update+1)%24) and already_sent_flg:
-                # Reset the flag to 
-                already_sent_flg = False
+            #     already_sent_flg = True
+            # elif curr_hour <= hour_update and curr_hour > ((hour_update+1)%24) and already_sent_flg:
+            #     # Reset the flag to 
+            #     already_sent_flg = False
 
             self.updateServiceCatalog()
             self.getDevCatInfo()

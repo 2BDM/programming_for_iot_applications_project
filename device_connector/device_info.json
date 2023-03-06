@@ -8,7 +8,7 @@
     "endpoints_details": [
         {
             "endpoint": "REST",
-            "address": "http://100.70.41.23:3030",
+            "address": "http://100.127.117.69:3030",
             "methods": [
                 "GET"
             ]
@@ -43,7 +43,7 @@
                 "services_details": [
                     {
                         "service_type": "REST",
-                        "uri": "http://100.70.41.23:8080?sens=1"
+                        "uri": "http://100.127.117.69:3030?sens=1"
                     },
                     {
                         "service_type": "MQTT",
@@ -74,7 +74,7 @@
                 "services_details": [
                     {
                         "service_type": "REST",
-                        "uri": "http://100.70.41.23:8080?sens=2"
+                        "uri": "http://100.127.117.69:3030?sens=2"
                     },
                     {
                         "service_type": "MQTT",
@@ -103,7 +103,7 @@
                 "services_details": [
                     {
                         "service_type": "REST",
-                        "uri": "http://100.70.41.23:8080?sens=3"
+                        "uri": "http://100.127.117.69:3030?sens=3"
                     },
                     {
                         "service_type": "MQTT",
@@ -131,7 +131,7 @@
                 "services_details": [
                     {
                         "service_type": "REST",
-                        "uri": "http://100.70.41.23:8080?sens=4"
+                        "uri": "http://100.127.117.69:3030?sens=4"
                     },
                     {
                         "service_type": "MQTT",
@@ -158,7 +158,7 @@
                 "services_details": [
                     {
                         "service_type": "REST",
-                        "uri": "http://100.70.41.23:8080?sens=5"
+                        "uri": "http://100.127.117.69:3030?sens=5"
                     }
                 ],
                 "last_update": "2020-03-30 12:00:00"

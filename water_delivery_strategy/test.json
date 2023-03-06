@@ -1,0 +1,26 @@
+{
+    "_id": 1,
+    "name": "Abelia dielsii",
+    "image": "http://pkb.resource.huahuacaocao.com/YWJlbGlhIGRpZWxzaWkuanBn?imageView2/1/w/%d/h/%d",
+    "origin": "China",
+    "category": "Caprifoliaceae",
+    "blooming": "Flowering period May, fruiting period August-September",
+    "color": "Flower color white, light red",
+    "size": [
+        15,
+        25
+    ],
+    "soil": "Acidic soil with loose texture or soil with specific nutrients",
+    "sunlight": "Like sunshine, resistant to half shade",
+    "watering": "Water thoroughly when soil is dry, avoid saturated water",
+    "fertilization": "Dilute fertilizers following instructions, apply 1-2 times monthly",
+    "pruning": "Remove dead, rotten, diseased leaves and the parts that may affect the good appearance",
+    "max_light_lux": 20000,
+    "min_light_lux": 3500,
+    "max_temp": 35,
+    "min_temp": 5,
+    "max_env_humid": 80,
+    "min_env_humid": 30,
+    "max_soil_moist": 60,
+    "min_soil_moist": 15
+}

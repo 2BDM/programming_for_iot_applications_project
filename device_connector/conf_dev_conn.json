@@ -19,7 +19,7 @@
         "endpoints_details": [
             {
                 "endpoint": "REST",
-                "ip": "100.70.41.23",
+                "ip": "0.0.0.0",
                 "port": 3030,
                 "methods": [
                     "GET"
@@ -66,12 +66,12 @@
         {
             "id": 1,
             "name": "Keyes_SRLY",
-            "out": 21
+            "out": 19
         },
         {
             "id": 2,
             "name": "Keyes_SRLY",
-            "out": 19
+            "out": 21
         }
     ]
 }

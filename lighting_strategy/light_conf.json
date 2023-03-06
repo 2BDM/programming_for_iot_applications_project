@@ -10,27 +10,18 @@
             "POST"
         ]
     },
-    "weather_station": {
-        "id": 1,
-        "name": "weather_station",
+    "lighting_strategy": {
+        "id": 3,
+        "name": "lighting_strategy",
         "endpoints": [
-            "REST",
             "MQTT"
         ],
         "endpoints_details": [
             {
-                "endpoint": "REST",
-                "address": "http://100.127.117.69:8083"
-            },
-            {
                 "endpoint": "MQTT",
-                "bn": "weather_station_1",
+                "bn": "lighting_strategy_3",
                 "topics": []
             }
         ]
-    },
-    "models_path": {
-        "today": "models/weather_today.sav",
-        "tomorrow": "models/rain_tomorrow.sav"
     }
 }

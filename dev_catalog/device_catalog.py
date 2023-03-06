@@ -135,7 +135,7 @@ class DeviceCatalog():
         """
         n_rem = 0
         for ind in range(len(self.cat["devices"])):
-            gh_time = datetime.timestamp(datetime.strptime(self.cat["devices"][ind]["last_update"], "%Y-%m-%d %H:%M:%S"))
+            gh_time = datetime.timestamp(datetime.strptime(self.cat["devices"][ind]["last_update"], "%Y-%m-%d %H:%M:%S"))       # Problematic
             if curr_time - gh_time > timeout:
                 # Delete record
                 self.cat["devices"].remove(self.cat["devices"][ind])
@@ -423,7 +423,7 @@ if __name__ == "__main__":
         WebService = DeviceCatalogWebService("dev_catalog.json")
 
     cherrypy.tree.mount(WebService, '/', conf)
-    cherrypy.config.update({'server.socket_host': WebService.getMyIP()})
+    cherrypy.config.update({'server.socket_host': "0.0.0.0"})
     cherrypy.config.update({'server.socket_port': WebService.getMyPort()})
     cherrypy.engine.start()
     try:

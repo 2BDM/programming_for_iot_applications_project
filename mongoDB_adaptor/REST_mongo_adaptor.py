@@ -40,7 +40,7 @@ class adaptor_mongo_interface(object):
         
         # information of mongoDB
         self.port = self.conf_dict["mongo_db"]["endpoints_details"][0]["port"]
-        self.ip = self.conf_dict["mongo_db"]["endpoints_details"][0]["ip"]
+        self.ip = "0.0.0.0" # self.conf_dict["mongo_db"]["endpoints_details"][0]["ip"]
         self.addr = "http://" + str(self.ip) + ":" + str(self.port)
         
         #information of database
@@ -54,6 +54,8 @@ class adaptor_mongo_interface(object):
         #information of charts
         self.url_chart_temp = self.conf_dict["charts"]["url_temp"]
         self.url_chart_prec = self.conf_dict["charts"]["url_precipitations"]
+        self.url_chart_pressure = self.conf_dict["charts"]["url_pressure"]
+        self.url_chart_hum = self.conf_dict["charts"]["url_hum"]
 
         tmpDict = self.conf_dict["mongo_db"]
         tmpdetails = tmpDict["endpoints_details"][0]
@@ -70,46 +72,54 @@ class adaptor_mongo_interface(object):
     def GET(self, *uri, **params):
         value = params.keys()
         print(self.coll1_name)
-        if params['coll']==self.coll1_name:
-            
-            if "id" in value and "needs" in value:
-                return self.mongoP.find_by_id_needs(int(params['id']))
+        if 'coll' in params.keys():
+            if params['coll']==self.coll1_name:
                 
-            elif "id" in value:
-                return self.mongoP.find_by_id(int(params['id']))
+
+                if "id" in value and "needs" in value:
+                    return self.mongoP.find_by_id_needs(int(params['id']))
+                    
+                elif "id" in value:
+                    return self.mongoP.find_by_id(int(params['id']))
+                    
+                elif "min_size" in value and "max_size" in value and "N" in value:
+                    return self.mongoP.find_by_size(int(params['min_size']),int(params['max_size']),int(params['N']))
             
-            elif "name" in value:
-                return self.mongoP.find_by_name(params['name'])
+                elif "name" in value:
+                    return self.mongoP.find_by_name(params['name'])
                 
-            elif "min_size" in value and "max_size" in value and "N" in value:
-                return self.mongoP.find_by_size(int(params['min_size']),int(params['max_size']),int(params['N']))
-            
-            elif "category" in value and "N" in value:
-                return self.mongoP.find_by_category(str(params['category']),int(params['N']))
-            
-            elif "temperature" in value and "N" in value:
-                return self.mongoP.find_by_temperature(int(params['temperature']),int(params['N']))
-            
-            elif "humidity" in value and "N" in value:
-                return self.mongoP.find_by_humidity(int(params['humidity']),int(params['N']))
-            
-            elif "lux" in value and "N" in value:
-                return self.mongoP.find_by_lux(int(params['lux']),int(params['N']))
-            
-            elif "moisture" in value and "N" in value:
-                return self.mongoP.find_by_moisture(int(params['moisture']),int(params['N']))
+                elif "category" in value and "N" in value:
+                    return self.mongoP.find_by_category(str(params['category']),int(params['N']))
+
+                elif "temperature" in value and "N" in value:
+                    return self.mongoP.find_by_temperature(int(params['temperature']),int(params['N']))
                 
-        elif params['coll']==self.coll2_name:
-            if "date" in value:
-                return self.mongoW.find_by_timestamp(str(params['date']))
-            elif "min_date" in value and "max_date" in value:
-                return self.mongoW.find_by_timestamp(str(params['min_date']),str(params['max_date']))
-            elif "chart_temp" in value:
-                return js.dumps({"url":self.chart_temp})
-            elif "chart_prec" in value:
-                return js.dumps({"url":self.chart_prec})
-        else:
-            return "Check the introduced parameters - no match found"   
+                elif "humidity" in value and "N" in value:
+                    return self.mongoP.find_by_humidity(int(params['humidity']),int(params['N']))
+                
+                elif "lux" in value and "N" in value:
+                    return self.mongoP.find_by_lux(int(params['lux']),int(params['N']))
+                
+                elif "moisture" in value and "N" in value:
+                    return self.mongoP.find_by_moisture(int(params['moisture']),int(params['N']))
+
+                    
+            elif params['coll']==self.coll2_name:
+                if "date" in value:
+                    return self.mongoW.find_by_timestamp(str(params['date']))
+                elif "min_date" in value and "max_date" in value:
+                    return self.mongoW.find_by_timestamp(str(params['min_date']),str(params['max_date']))
+                elif "chart_temp" in value:
+                    return js.dumps({"url":self.url_chart_temp})
+                elif "chart_prec" in value:
+                    return js.dumps({"url":self.url_chart_prec})
+                elif "chart_press" in value:
+                    return js.dumps({"url":self.url_chart_press})
+                elif "chart_hum" in value:
+                    return js.dumps({"url":self.url_chart_hum})
+            else:
+                return "Check the introduced parameters - no match found"   
+        
     
     def POST(self,**params):
         bodyAsString = cherrypy.request.body.read()
@@ -119,7 +129,6 @@ class adaptor_mongo_interface(object):
             
     
     def registerAtServCat(self,max_tries=1):
-        tries = 0
         # TODO --> ask for new ID
         if not self.own_ID:
             try:
@@ -130,9 +139,9 @@ class adaptor_mongo_interface(object):
                     
         # I'm preparing the dictionary to send to the service catalog
         tmpDict = self.conf_dict["mongo_db"]
-        print(tmpDict)
  
-        if self.addr_ser_cat != {}:
+        tries = 0
+        if self.addr_ser_cat != "":
             addr = self.addr_ser_cat + "/service"
             while tries <= max_tries and not self._registered_dev_cat:  
                 try:
@@ -148,11 +157,11 @@ class adaptor_mongo_interface(object):
                         else:
                             print("Unable to update info")
                     else:
-                        print(f"Error {r.status_code} - unable to update device information on device catalog")
+                        print(f"Error {r.status_code} - unable to register info on services catalog")
                     tries += 1
                     time.sleep(3)
                 except:
-                    print("Tried to register at device catalog - failed to establish a connection!")
+                    print("Tried to register at services catalog - failed to establish a connection!")
                     tries += 1
                     time.sleep(3)
             
@@ -186,6 +195,7 @@ class adaptor_mongo_interface(object):
         tmpDict = self.conf_dict["mongo_db"]
 
         while not updated and count_fail < max_tries:
+            count_fail += 1
             try:
                 try1 = requests.put(self.addr_ser_cat + '/service', data=js.dumps(tmpDict))
 
@@ -197,15 +207,15 @@ class adaptor_mongo_interface(object):
                     return 1
                 elif try1.status_code == 400:
                     print("Unable to update information at the service catalog ---> trying to register")
-                    count_fail += 1
                     self._registered_dev_cat = False
-                    self.registerAtServiceCatalog()
+                    self.registerAtServCat()
                     if self._registered_dev_cat:
                         updated = True
                         return -1
+                else:
+                    print(f"Error {try1.status_code} - could not update service info")
             except:
                 print("Tried to connect to services catalog - failed to establish a connection!")
-                count_fail += 1
                 time.sleep(5)
         
         # If here, then it was not possible to update nor register information
