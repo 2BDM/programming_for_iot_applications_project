@@ -17,11 +17,9 @@ class RESTBot:
     ##################
     def __init__(self, conf_dict):
         self.serv_cat_addr = str(conf_dict["services_catalog"]["ip"])+":"+ str(conf_dict["services_catalog"]["port"])
-        self.myIP = str(conf_dict["telegram"]["endpoints_details"][0]["ip"]) +"/"+ str(conf_dict["telegram"]["endpoints_details"][0]["port"])
+        self.myIP = str(conf_dict["telegram"]["endpoints_details"][0]["ip"]) +":"+ str(conf_dict["telegram"]["endpoints_details"][0]["port"])
         self.tokenBot=requests.get("http://" + self.serv_cat_addr + "/telegram").json()["telegram_token"]
-        print("Here")
         self.bot = telepot.Bot(self.tokenBot)
-        print("Here (2)")
         self.users = []
         self.currentGH = None
         self.databaseIP = requests.get("http://" + self.serv_cat_addr + "/service?name=mongoDB").json()["endpoints_details"]["address"]
@@ -457,7 +455,6 @@ Tomorrow it is probably going to rain so it is not strictly equired to refill th
                 time.sleep(5)
 
         return 0
-
 
 
     ##########
