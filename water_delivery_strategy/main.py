@@ -587,12 +587,9 @@ class WaterDeliveryStrategy():
                                                     act_ok = True
                                                     top_a = top
 
-                            # Check the topiocs are not already in a device record
+                            # Check the topics are not already in a device record
                             already_in = False
-                            for dvinfo in self._devices:
-                                if dvinfo["measurement"] == top_s and dvinfo["actuator"] == top_a:
-                                    sens_ok = False
-                                    act_ok = False
+                            
                             
                             # If both have been found, add the topics to self._devices
                             if sens_ok and act_ok:
@@ -620,14 +617,30 @@ class WaterDeliveryStrategy():
                                     except:
                                         print("Error - unable to reach services catalog to get greenhouse information")
                                 
+                                
+                                        
+
+                                #if already_in:
+                                    # Update needs
+
+
                                 if gh_info != {}:
                                     # Assign needs          %
                                     # new_elem["min_moist"] = gh_info["plant_needs"][7]["min_soil_moist"]
                                     # print(f"Minimum moisture: {new_elem['min_moist']}")
+                                    already_in = False
+                                    for dvinfo in self._devices:
+                                        if dvinfo["measurement"] == top_s and dvinfo["actuator"] == top_a:
+                                            dvinfo["min_moist"] = gh_info["plant_needs"][7]["min_soil_moist"]
+                                            print("Updated device information!")
+                                            already_in = True
+                                            
+
                                     for need in gh_info["plant_needs"]:
                                         keys = need.keys()
-                                        if "min_soil_moist" in keys:
+                                        if "min_soil_moist" in keys and not already_in:
                                             new_elem["min_moist"] = need["min_soil_moist"]
+                                            print(f"Min moisture: {new_elem['min_moist']}")
 
                                 
                                 new_elem["measurement"] = top_s
@@ -646,9 +659,8 @@ class WaterDeliveryStrategy():
                                         self.mqtt_cli.mySubscribe(top_tank)
                                         self.topics_list.append(top_tank)
 
-
-                                self._devices.append(new_elem)
-
+                                if not already_in:
+                                    self._devices.append(new_elem)
                         return 1
 
                     else:
