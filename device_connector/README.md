@@ -11,6 +11,28 @@ The device connector ID is not user-defined (despite the 'id' field being presen
 
 ---
 
+## Launching the container
+
+In order to launch this application as a Docker container, the following steps are needed:
+
+* Make sure to have Docker installed on your machine
+* Edit the configuration file (conf_dev_conn.json and device_info.json) with your own IP address.
+* Run this command, having the shell open in the `device_connector` folder:
+
+    `$ docker build -t device_connector .`
+
+* Then, you are ready to launch the container:
+
+    `$ sudo docker run --name devConn -d -p 8083:8083 device_connector`
+
+* To check that it is working, run:
+
+    `$ docker ps`
+  
+  you should see the container you just created.
+
+---
+
 ## REST API
 
 The device connector only provides the GET method.
@@ -50,11 +72,11 @@ The list `self.last_meas` is a list of lists which contains the last measurement
 All sensor measurements are published via MQTT on the broker.
 The `publishLastMeas()` method performs the publication, acting as follows:
 
-- Iterate through sensor list in the device information dict (`self.whoami`)
-- Retrieve the last measurements for each sensor (using the name-index mapping as explained in 'Last measurements')
-- Get list of topics associated with the sensor
-- For each entry in the selected last-measured list, find the associated topic, knowing the last element in the topic url is the name of the measurement (associated with key `"n"` in the SenML-compliant measure info), **all lowercase and with spaces replaced by underscores**.
-- Publish the SenML message containing the measure in the topic
+* Iterate through sensor list in the device information dict (`self.whoami`)
+* Retrieve the last measurements for each sensor (using the name-index mapping as explained in 'Last measurements')
+* Get list of topics associated with the sensor
+* For each entry in the selected last-measured list, find the associated topic, knowing the last element in the topic url is the name of the measurement (associated with key `"n"` in the SenML-compliant measure info), **all lowercase and with spaces replaced by underscores**.
+* Publish the SenML message containing the measure in the topic
 
 ---
 
@@ -90,28 +112,28 @@ Then, depending on the received command, the `notify()` callback, used by `MyMQT
 
 Here is reported the structure (keys) of the `.json` file containing the device connector information. An example is provided, called `device_info.json`.
 
-- **id**: device ID
-- **name**: device name
-- **endpoints**: list containing the supported M2M communication protocols
-- **endpoints_details**: list containing, for each communication protocol in 'endpoints', the details for the communication (address/topic base name)
-- **greenhouse**: ID of the greenhouse associated with the device (raspberry)
-- **resources**: list of "resources", i.e., sensors/actuators whose functionalities can be accessed from other parts of the application
-  - **sensors**: list of available sensors
-    - **id**: sensor ID (unique for each sensor connected to the device)
-    - **device_name**: name of the sensor
-    - **measure** type: list containing the measured quantities
-    - **units**: units of measurement for the specified quantities
-    - **device_id**: device to which the sensor is connected
-    - **available_services**: list of possible communication protocols through which the measurements can be retrieved
-    - **services_details**: list containing additional information for each protocol specified among the available ones (e.g., 'topic': list of MQTT topics)
-    - **last_update**: timestamp (YYYY-MM-DD hh:mm:ss) for the last update
-  - **actuators**: list of available actuators
-    - **id**: actuator ID, unique for each actuator on the same device
-    - **device_name**: actuator name
-    - **device_id**: id of the device (raspberry) it is connected to
-    - **available_services**: list of supported communication protocols for communicating (i.e., giving commands) to the actuator
-    - **services_details**: additional information related to the specified communication protocols
-- **last_update**: timestamp (YYYY-MM-DD hh:mm:ss) the information was last updated
+* **id**: device ID
+* **name**: device name
+* **endpoints**: list containing the supported M2M communication protocols
+* **endpoints_details**: list containing, for each communication protocol in 'endpoints', the details for the communication (address/topic base name)
+* **greenhouse**: ID of the greenhouse associated with the device (raspberry)
+* **resources**: list of "resources", i.e., sensors/actuators whose functionalities can be accessed from other parts of the application
+  * **sensors**: list of available sensors
+    * **id**: sensor ID (unique for each sensor connected to the device)
+    * **device_name**: name of the sensor
+    * **measure** type: list containing the measured quantities
+    * **units**: units of measurement for the specified quantities
+    * **device_id**: device to which the sensor is connected
+    * **available_services**: list of possible communication protocols through which the measurements can be retrieved
+    * **services_details**: list containing additional information for each protocol specified among the available ones (e.g., 'topic': list of MQTT topics)
+    * **last_update**: timestamp (YYYY-MM-DD hh:mm:ss) for the last update
+  * **actuators**: list of available actuators
+    * **id**: actuator ID, unique for each actuator on the same device
+    * **device_name**: actuator name
+    * **device_id**: id of the device (raspberry) it is connected to
+    * **available_services**: list of supported communication protocols for communicating (i.e., giving commands) to the actuator
+    * **services_details**: additional information related to the specified communication protocols
+* **last_update**: timestamp (YYYY-MM-DD hh:mm:ss) the information was last updated
 
 ---
 
@@ -119,26 +141,26 @@ Here is reported the structure (keys) of the `.json` file containing the device 
 
 Here is the structure of the configuration file for the device connector.
 
-- **project_name**: "commercial" name of the project
-- **project_owner**: owner(s)/organization name
-- **services_catalog**: services catalog (static) information - needed to register at startup
-  - **ip**
-  - **port**
-  - **methods**: supported REST methods
-- **device_connector**: information about the device connector needed at setup
-  - **id**: device ID
-  - **endpoints**: supported M2M communication protocols
-  - **endpoints_details**: for each of the previously specified endpoints, the details about the protocol (e.g., IP and port for REST/base name for MQTT)
-- **sens_pins**: list of sensors and corresponding pins
-  - **id**: sensor ID - corresponding to the one found in the device info JSON file
-  - **name**: sensor name
-  - *Pins*:
-    - If I2C: **dt** (data connection) and **sck** (digital clock connection)
-    - Else: **out** - data transmission pin
-- **act_pins**: list of actuators and corresponding pins
-  - **id**: actuator ID - corresponding to the one found in the device info JSON file
-  - **name**: actuator name
-  - **out**: digital output pin
+* **project_name**: "commercial" name of the project
+* **project_owner**: owner(s)/organization name
+* **services_catalog**: services catalog (static) information - needed to register at startup
+  * **ip**
+  * **port**
+  * **methods**: supported REST methods
+* **device_connector**: information about the device connector needed at setup
+  * **id**: device ID
+  * **endpoints**: supported M2M communication protocols
+  * **endpoints_details**: for each of the previously specified endpoints, the details about the protocol (e.g., IP and port for REST/base name for MQTT)
+* **sens_pins**: list of sensors and corresponding pins
+  * **id**: sensor ID - corresponding to the one found in the device info JSON file
+  * **name**: sensor name
+  * *Pins*:
+    * If I2C: **dt** (data connection) and **sck** (digital clock connection)
+    * Else: **out** - data transmission pin
+* **act_pins**: list of actuators and corresponding pins
+  * **id**: actuator ID - corresponding to the one found in the device info JSON file
+  * **name**: actuator name
+  * **out**: digital output pin
 
 ---
 
@@ -146,9 +168,9 @@ Here is the structure of the configuration file for the device connector.
 
 The following device agents have been provided:
 
-- DHT11: temperature and humidity sensor - [library](https://github.com/adafruit/Adafruit_Python_DHT) ~ DEPRECATED
-- BMP180: atmospheric pressure - [library](https://github.com/adafruit/Adafruit_Python_BMP) ~ DEPRECATED (sensor is not made anymore)
-- GY-30/BH1750: light sensor - [library](https://github.com/adafruit/Adafruit_CircuitPython_BH1750)
+* DHT11: temperature and humidity sensor - [library](https://github.com/adafruit/Adafruit_Python_DHT) ~ DEPRECATED
+* BMP180: atmospheric pressure - [library](https://github.com/adafruit/Adafruit_Python_BMP) ~ DEPRECATED (sensor is not made anymore)
+* GY-30/BH1750: light sensor - [library](https://github.com/adafruit/Adafruit_CircuitPython_BH1750)
 
 The device agent programs can work even if the required libraries needed for the sensor are not available - in this case, they will work as random number generators.
 
@@ -160,10 +182,10 @@ Each agent was developed in such a way that the program can be ran in standalone
 
 The device connector provides the following ways to communicate:
 
-- To get the measurements of the sensors, it is needed to subscribe to the corresponding MQTT topics. Since there can be multiple sensors measuring the same quantity (as is the case with temperature), one can choose to either pick one measurement only, or to use MQTT topic wildcards.
+* To get the measurements of the sensors, it is needed to subscribe to the corresponding MQTT topics. Since there can be multiple sensors measuring the same quantity (as is the case with temperature), one can choose to either pick one measurement only, or to use MQTT topic wildcards.
 The general topic syntax is:
 
     smartGreenhouse/*device_id*/*sensor_id*/*measured_quantity*
 
   which means it is possible to subscribe to 'smartGreenhouse/1/*/temperature' in order to get all possible temperature measurements.
-- To submit commands to the actuators (water delivery strategy, illumination strategy)), it is needed to publish messages in the topics related to the actuators
+* To submit commands to the actuators (water delivery strategy, illumination strategy)), it is needed to publish messages in the topics related to the actuators

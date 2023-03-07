@@ -2,6 +2,26 @@
 
 The subfolder contains the program and the REST interface to manage the operations on MongoDB.
 
+## Launching the container
+
+In order to launch this application as a Docker container, the following steps are needed:
+
+- Make sure to have Docker installed on your machine
+- Edit the configuration file (mongo_conf.json) with your own IP address.
+- Run this command, having the shell open in the `mongoDB_adaptor` folder:
+
+    `$ docker build -t mongoDB .`
+
+- Then, you are ready to launch the container:
+
+    `$ sudo docker run --name mongoDBAdaptor -d -p 8282:8282 mongoDB`
+
+- To check that it is working, run:
+
+    `$ docker ps`
+  
+  you should see the container you just created.
+
 ## MongoDB database
 
 The database is called 2BDM and contains two collections:
