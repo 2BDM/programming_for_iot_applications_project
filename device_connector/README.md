@@ -13,10 +13,12 @@ The device connector ID is not user-defined (despite the 'id' field being presen
 
 ## Launching the container
 
+**Important notice**: the device connector requires the use of device agents, which are software components used to communicate with the different sensors. In order to allow for different sensors to be used, the file 'requirements.txt' does not include all the needed packages. In any case, the provided device agents have been built in such a way that they will detect missing packages (i.e., missing sensors) and in this case their `measure` method will simply return random numbers as measurements.
+
 In order to launch this application as a Docker container, the following steps are needed:
 
 * Make sure to have Docker installed on your machine
-* Edit the configuration file (conf_dev_conn.json and device_info.json) with your own IP address.
+* Edit the configuration file (conf_dev_conn.json and device_info.json) with your own IP address and provide an updated 'requirements.txt' file, if necessary.
 * Run this command, having the shell open in the `device_connector` folder:
 
     `$ docker build -t device_connector .`
