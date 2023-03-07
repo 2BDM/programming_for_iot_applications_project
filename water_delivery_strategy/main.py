@@ -622,8 +622,12 @@ class WaterDeliveryStrategy():
                                 
                                 if gh_info != {}:
                                     # Assign needs          %
-                                    new_elem["min_moist"] = gh_info["plant_needs"][7]["min_soil_moist"]
+                                    # new_elem["min_moist"] = gh_info["plant_needs"][7]["min_soil_moist"]
                                     # print(f"Minimum moisture: {new_elem['min_moist']}")
+                                    for need in gh_info["plant_needs"]:
+                                        keys = need.keys()
+                                        if "min_soil_moist" in keys:
+                                            new_elem["min_moist"] = need["min_soil_moist"]
 
                                 
                                 new_elem["measurement"] = top_s
