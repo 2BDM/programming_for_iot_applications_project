@@ -16,7 +16,7 @@
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/serv_catalog",
             "justMyCode": true
-        }
+        },
         // {
         //     "name": "Docker: Python - serv_catalog",
         //     "type": "docker",
@@ -31,6 +31,6 @@
         //         ],
         //         "projectType": "flask"
         //     }
-        // }
+        }
     ]
 }
