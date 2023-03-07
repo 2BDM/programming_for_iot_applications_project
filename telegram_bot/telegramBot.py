@@ -192,7 +192,7 @@ to stain at a certain temperature send:\n/getPlantList\ntemperature:<value>\n- T
                 if parameter == "category":
                     
                     try:
-                        plantList = requests.get(self.databaseIP + "?coll=plants&categoty="+value+"&N=10").json()
+                        plantList = requests.get(self.databaseIP + "?coll=plants&category="+value+"&N=10").json()
                         self.sendPlantList(plantList, chat_ID)
 
                     except:
