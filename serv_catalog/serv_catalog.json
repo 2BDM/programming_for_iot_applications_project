@@ -16,7 +16,7 @@
         "port_n": 1883
     },
     "telegram": {
-        "telegram_token": "",
+        "telegram_token": "5922785241:AAFeKlSnS4f54KIGs_qfYgEWpbqHRDRXcSw",
         "telegram_link": "http://t.me/Greenhouse101_bot"
     },
     "device_catalog": {

@@ -2,7 +2,7 @@
     "project_name": "Smart greenhouse",
     "project_owner": "2BDM",
     "services_catalog": {
-        "ip": "100.127.117.69",
+        "ip": "100.106.123.125",
         "port": 8081,
         "methods": [
             "GET",
@@ -19,9 +19,9 @@
         "endpoints_details": [
             {
                 "endpoint": "REST",
-                "ip": "100.127.117.69",
+                "ip": "100.106.123.125",
                 "port": 9090,
-                "address": "http://100.127.117.69:9090"
+                "address": "http://100.106.123.125:9090"
             }
         ]
     },

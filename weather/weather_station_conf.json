@@ -2,7 +2,7 @@
     "project_name": "Smart greenhouse",
     "project_owner": "2BDM",
     "services_catalog": {
-        "ip": "100.127.117.69",
+        "ip": "100.106.123.125",
         "port": 8081,
         "methods": [
             "GET",
@@ -20,7 +20,7 @@
         "endpoints_details": [
             {
                 "endpoint": "REST",
-                "address": "http://100.127.117.69:8084"
+                "address": "http://100.106.123.125:8084"
             },
             {
                 "endpoint": "MQTT",

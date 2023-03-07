@@ -2,7 +2,7 @@
     "project_name": "Smart greenhouse",
     "project_owner": "2BDM",
     "device_catalog": {
-        "ip": "100.127.117.69",
+        "ip": "100.106.123.125",
         "port": 8082,
         "methods": [
             "GET",
