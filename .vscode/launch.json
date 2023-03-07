@@ -1,6 +1,22 @@
 {
     "configurations": [
         {
+            "name": "Python: Remote Attach serv_catalog",
+            "type": "python",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}/serv_catalog",
+                    "remoteRoot": "."
+                }
+            ],
+            "justMyCode": true
+        },
+        {
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
@@ -16,7 +32,7 @@
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/serv_catalog",
             "justMyCode": true
-        },
+        }
         // {
         //     "name": "Docker: Python - serv_catalog",
         //     "type": "docker",
@@ -31,6 +47,5 @@
         //         ],
         //         "projectType": "flask"
         //     }
-        }
     ]
 }
