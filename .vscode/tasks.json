@@ -1,40 +1,46 @@
 {
 	"version": "2.0.0",
 	"tasks": [
-		// {
-		// 	"type": "docker-build",
-		// 	"label": "docker-build serv_catalog",
-		// 	"platform": "python",
-		// 	"dockerBuild": {
-		// 		"tag": "serv_catalog:latest",
-		// 		"dockerfile": "Dockerfile",
-		// 		"context": "${workspaceFolder}/serv_catalog",
-		// 		"pull": true
-		// 	}
-		// },
-		// {
-		// 	"type": "docker-run",
-		// 	"label": "docker-run: debug",
-		// 	"dependsOn": [
-		// 		"docker-build"
-		// 	],
-		// 	"dockerRun": {
-		// 		"env": {
-		// 			"FLASK_APP": "serv_catalog/services_catalog.py"
-		// 		}
-		// 	},
-		// 	"python": {
-		// 		"args": [
-		// 			"run",
-		// 			"--no-debugger",
-		// 			"--no-reload",
-		// 			"--host",
-		// 			"0.0.0.0",
-		// 			"--port",
-		// 			"5002"
-		// 		],
-		// 		// "module": "flask"
-		// 	}
-		// }
+		{
+			"type": "docker-build",
+			"label": "docker-build serv_catalog",
+			"dockerBuild": {
+				"tag": "serv_catalog:latest",
+				"dockerfile": "${workspaceFolder}/serv_catalog/Dockerfile",
+				"context": "${workspaceFolder}/serv_catalog",
+				"pull": true
+			},
+			"platform": "python",
+			"problemMatcher": [],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			// {
+			// 	"type": "docker-run",
+			// 	"label": "docker-run: debug serv_catalog",
+			// 	"dependsOn": [
+			// 		"docker-build serv_catalog"
+			// 	],
+			// 	"dockerRun": {
+			// 		// "env": {
+			// 		// 	"FLASK_APP": "serv_catalog/services_catalog.py"
+			// 		// }
+			// 	},
+			// 	"python": {
+			// 		"file": "services_catalog.py"
+			// 		// "args": [
+			// 		// 	"run",
+			// 		// 	"--no-debugger",
+			// 		// 	"--no-reload",
+			// 		// 	"--host",
+			// 		// 	"0.0.0.0",
+			// 		// 	"--port",
+			// 		// 	"5002"
+			// 		// ],
+			// 		// "module": "flask"
+			// 	}
+			// }
+		}
 	]
 }
