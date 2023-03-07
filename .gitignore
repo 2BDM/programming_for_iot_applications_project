@@ -179,3 +179,7 @@ tags
 
 # Folder with data
 csv_ilMeteo/
+
+# Updated catalogs
+serv_catalog_updated.json
+dev_catalog_updated.json
