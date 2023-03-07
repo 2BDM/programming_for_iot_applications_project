@@ -16,6 +16,26 @@ The constructor of this class requires:
 * The path for the input catalog (if invalid, the default one will be provided)
 * The path to the updated catalog (saved everytime the saveAsJson() method is called - typically after any catalog update)
 
+### Launching the container
+
+In order to launch this application as a Docker container, the following steps are needed:
+
+* Make sure to have Docker installed on your machine
+* Edit the configuration file (dev_catalog.json) with your own IP address.
+* Run this command, having the shell open in the `dev_catalog` folder:
+
+    `$ docker build -t dev_catalog .`
+
+* Then, you are ready to launch the container:
+
+    `$ sudo docker run --name devCatalog -d -p 8082:8082 dev_catalog`
+
+* To check that it is working, run:
+
+    `$ docker ps`
+  
+  you should see the container you just created.
+
 ### List of available methods
 
 Below is a list of methods for the DeviceCatalog class. Notice that this is not the class used as web service.

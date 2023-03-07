@@ -22,3 +22,12 @@ The main components of the application are:
 * **Artificial lighting strategy**: it is the microservice used to control the artificial lighting system, based on the illumination system and on the plants needs.
 * **Mongo DB**: it is the database system used in the application. It is used to store the plants database, from which the user can select his/her own plant to tailor the service on.
 * **Mongo DB adaptor**: it is an application component used to exchange data with the MongoDB database. It also allows for retrieving data visualizations.
+
+## Launching the application
+
+Thanks to their nature, microservices are well-suited to be containerized and executed on any machine running Docker. For this reason, it is possible to create containers for each of the aforementioned components (excluded the message broker), as each subfolder of this repository includes a Dockerfile.
+It is first required, however, that the configuration files of each microservice are reviewed and updated, as they need to include the IP address of the machine on which they are running.
+
+Once that has been done, it is enough to instantiate and run the Docker containers. If the IP addresses have been correctly set and the different containers run in the same network, the application will be launched. The application has been built in such a way that the order of launch of the containers does not matter.
+
+Inside each README file there are the detailed instructions on how to launch the containers (terminal commands).

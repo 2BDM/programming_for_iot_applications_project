@@ -3,7 +3,7 @@
     "project_owner": "2BDM",
     "services_catalog": {
         "ip": "0.0.0.0",
-        "port": 2222,
+        "port": 8081,
         "methods": [
             "GET",
             "PUT",
@@ -16,7 +16,7 @@
         "port_n": 1883
     },
     "telegram": {
-        "telegram_token": "5955365808:AAEadVSu3nphXmG66EKnT-FuKIrl3Yaelg4",
+        "telegram_token": "",
         "telegram_link": "http://t.me/Greenhouse101_bot"
     },
     "device_catalog": {

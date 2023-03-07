@@ -11,6 +11,26 @@ The catalog service is based on the ServicesCatalog class.
 
 The required parameters for this class are the catalog input path and the output path (default `"serv_cat_updated.json"`). The starting catalog path should be passed as command line argument when launching the program (the file is user-specific since it may contain sensitive information, like the telegram token).
 
+### Launching the container
+
+In order to launch this application as a Docker container, the following steps are needed:
+
+* Make sure to have Docker installed on your machine
+* Edit the configuration file (serv_catalog.json) with your own IP address nd make sure all other informations (Telegram and MQTT broker) are updated.
+* Run this command, having the shell open in the `serv_catalog` folder:
+
+    `$ docker build -t serv_catalog .`
+
+* Then, you are ready to launch the container:
+
+    `$ sudo docker run --name servCatalog -d -p 8081:8081 serv_catalog`
+
+* To check that it is working, run:
+
+    `$ docker ps`
+  
+  you should see the container you just created.
+
 ### List of available methods
 
 This is  list of all methods defined for the ServicesCatalog class.

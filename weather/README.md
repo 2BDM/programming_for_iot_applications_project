@@ -2,6 +2,26 @@
 
 This subfolder contains the programs used for the weather station and for weather forecasting.
 
+## Launching the container
+
+In order to launch this application as a Docker container, the following steps are needed:
+
+- Make sure to have Docker installed on your machine
+- Edit the configuration file (weather_station_conf.json) with your own IP address.
+- Run this command, having the shell open in the `weather` folder:
+
+    `$ docker build -t weather_station .`
+
+- Then, you are ready to launch the container:
+
+    `$ sudo docker run --name weatherStation -d -p 8084:8084 weather_station`
+
+- To check that it is working, run:
+
+    `$ docker ps`
+  
+  you should see the container you just created.
+
 ---
 
 ## Weather station
