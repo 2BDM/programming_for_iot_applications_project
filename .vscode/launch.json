@@ -1,5 +1,22 @@
 {
     "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: serv_catalog",
+            "type": "python",
+            "request": "launch",
+            "program": "./services_catalog.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/serv_catalog",
+            "justMyCode": true
+        }
         // {
         //     "name": "Docker: Python - serv_catalog",
         //     "type": "docker",
