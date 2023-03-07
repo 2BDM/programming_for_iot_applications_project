@@ -195,10 +195,10 @@ class WaterDeliveryStrategy():
                         if self._dev_cat_info != {}:
                             this_dev = {}
                             tries = 0
-                            addr = 'http://' + self._dev_cat_info["ip"] + ':' + str(self._dev_cat_info["port"]) + '/device?id=' + str(dev_id)
                             while this_dev == {} and tries < max_tries:
                                 tries += 1
                                 try:
+                                    addr = 'http://' + self._dev_cat_info["ip"] + ':' + str(self._dev_cat_info["port"]) + '/device?id=' + str(dev_id)
                                     r = requests.get(addr)
                                     if r.ok:
                                         this_dev = r.json()
@@ -538,10 +538,10 @@ class WaterDeliveryStrategy():
         if self._dev_cat_info != {}:
             # If here, the device info is not empty
             tries = 0
-            dc_addr = "http://" + self._dev_cat_info["ip"] + ":" + str(self._dev_cat_info["port"]) + "/devices"
             while tries < max_tries:
                 tries += 1
                 try:
+                    dc_addr = "http://" + self._dev_cat_info["ip"] + ":" + str(self._dev_cat_info["port"]) + "/devices"
                     r = requests.get(dc_addr)
                     
                     if r.ok:
