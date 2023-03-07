@@ -31,3 +31,16 @@ It is first required, however, that the configuration files of each microservice
 Once that has been done, it is enough to instantiate and run the Docker containers. If the IP addresses have been correctly set and the different containers run in the same network, the application will be launched. The application has been built in such a way that the order of launch of the containers does not matter.
 
 Inside each README file there are the detailed instructions on how to launch the containers (terminal commands).
+
+## Default port numbers
+
+Here are reported the default port numbers for the application microservices:
+
+* Services catalog: 8081
+* Device catalog: 8082
+* Device connector: 8083
+* MongoDB: 8282
+* Telegram bot: 9090
+* Weather station: 8084
+* Lighting strategy: 8088
+* Water delivery strategy: 8089
