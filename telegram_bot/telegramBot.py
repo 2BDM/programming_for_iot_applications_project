@@ -46,13 +46,15 @@ class RESTBot:
     ########################
     # Given a list of plant and a user, send to the user the list in the format <plant_name:plant_id>
     def sendPlantList(self, plantListDict, chat_ID):
-        plantList = plantListDict["plant_list"]
+        plantList = [json.loads(el) for el in list(plantListDict)]
+        print(plantList)
         if len(plantList)==0:
             self.bot.sendMessage(chat_ID, text="No plant in our database match your requirements.")
         else:
             message = "Here is a list of plants that match your requirements:"
             for current in plantList:
-                currentMessage = "\n"+current["name"]+" : "+ str(current["id"])
+                print(current)
+                currentMessage = "\n"+current["name"]+" : "+ str(current["_id"])
                 message = message+currentMessage
             self.bot.sendMessage(chat_ID, text=message)
     
@@ -192,7 +194,7 @@ to stain at a certain temperature send:\n/getPlantList\ntemperature:<value>\n- T
                 if parameter == "category":
                     
                     try:
-                        plantList = requests.get(self.databaseIP + "?coll=plants&categoty="+value+"&N=10").json()
+                        plantList = requests.get(self.databaseIP + "?coll=plants&category="+value+"&N=10").json()
                         self.sendPlantList(plantList, chat_ID)
 
                     except:
@@ -201,7 +203,7 @@ to stain at a certain temperature send:\n/getPlantList\ntemperature:<value>\n- T
                 elif parameter == "temperature":
 
                     try:
-                        plantList = requests.get(self.databaseIP + "?coll=plants&temperature="+value+"&N=10").json()
+                        r = requests.get(self.databaseIP + "?coll=plants&temperature="+value+"&N=10").json()
                         self.sendPlantList(plantList, chat_ID)
                     except:
                         self.bot.sendMessage(chat_ID, text="MongoDB is not answering.")

@@ -142,7 +142,7 @@ class mongoAdaptor():
                 val=str(val)
                 val = val.replace('\'','\"')
                 tmp_list.append(val)
-            return str(tmp_list)
+            return (tmp_list)
     
     
     #################################################################################
@@ -175,7 +175,7 @@ class mongoAdaptor():
                     count+=1
                 if count == N:
                     break
-            return str(list_correct)
+            return (list_correct)
     
     
     #################################################################################
@@ -203,7 +203,7 @@ class mongoAdaptor():
                     count+=1
                 if count==N:
                     break               
-        return str(list_correct)
+        return (list_correct)
     
     
     #################################################################################
@@ -232,7 +232,7 @@ class mongoAdaptor():
                     count+=1
                 if count==N:
                     break 
-        return str(list_correct)
+        return (list_correct)
     
     
     #################################################################################
@@ -262,7 +262,7 @@ class mongoAdaptor():
                     count+=1
                 if count==N:
                     break 
-        return  str(list_correct)
+        return  (list_correct)
     
     
     #################################################################################
@@ -291,7 +291,7 @@ class mongoAdaptor():
                     count+=1
                 if count==N:
                     break 
-        return str(list_correct)
+        return (list_correct)
     
     
     #################################################################################
@@ -323,7 +323,7 @@ class mongoAdaptor():
                 val=str(val)
                 val = val.replace('\'','\"')
                 tmp_list.append(val)
-            return str(tmp_list)
+            return (tmp_list)
     
     
     #################################################################################

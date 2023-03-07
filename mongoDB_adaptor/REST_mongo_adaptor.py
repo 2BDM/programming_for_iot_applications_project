@@ -89,19 +89,21 @@ class adaptor_mongo_interface(object):
                     return self.mongoP.find_by_name(params['name'])
                 
                 elif "category" in value and "N" in value:
-                    return self.mongoP.find_by_category(str(params['category']),int(params['N']))
+                    out = self.mongoP.find_by_category(str(params['category']),int(params['N']))
+                    print(out)
+                    return js.dumps(out)
 
                 elif "temperature" in value and "N" in value:
-                    return self.mongoP.find_by_temperature(int(params['temperature']),int(params['N']))
+                    return js.dumps(self.mongoP.find_by_temperature(int(params['temperature']),int(params['N'])))
                 
                 elif "humidity" in value and "N" in value:
-                    return self.mongoP.find_by_humidity(int(params['humidity']),int(params['N']))
+                    return js.dumps(self.mongoP.find_by_humidity(int(params['humidity']),int(params['N'])))
                 
                 elif "lux" in value and "N" in value:
-                    return self.mongoP.find_by_lux(int(params['lux']),int(params['N']))
+                    return js.dumps(self.mongoP.find_by_lux(int(params['lux']),int(params['N'])))
                 
                 elif "moisture" in value and "N" in value:
-                    return self.mongoP.find_by_moisture(int(params['moisture']),int(params['N']))
+                    return js.dumps(self.mongoP.find_by_moisture(int(params['moisture']),int(params['N'])))
 
                     
             elif params['coll']==self.coll2_name:

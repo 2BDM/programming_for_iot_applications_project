@@ -1,8 +1,9 @@
 # Telegram Bot
 
 It is the main interface of the user with the application.
-
 It provides functions to register users, manage greenhouses, obtaining informations about the available plants and requesting plots showing the data collected from the system.
+
+The bot is built in a resilient way: if for some reason it crashes, it is possible to restart it and retrieve the old information of users and greenhouses which was previously registered on the services catalog.
 
 **Important notice**: the telegram bot uses a key which is private and it has been requested via the BotFather (@BotFather on Telegram) service. Once the key is received, you will also get the telegram link for your own bot. For obvious reasons, the key is not present in the services catalog available in this repository, as it needs to be added manually. If the key is missing, the bot will not start.
 
