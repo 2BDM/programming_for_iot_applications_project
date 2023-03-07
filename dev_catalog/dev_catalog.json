@@ -3,7 +3,7 @@
     "project_owner": "2BDM",
     "device_catalog": {
         "ip": "100.127.117.69",
-        "port": 8080,
+        "port": 8082,
         "methods": [
             "GET",
             "POST",
