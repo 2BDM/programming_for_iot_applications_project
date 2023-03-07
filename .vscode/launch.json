@@ -41,11 +41,11 @@
         //     "python": {
         //         "pathMappings": [
         //             {
-        //                 "localRoot": "${workspaceFolder}",
-        //                 "remoteRoot": "/app"
+        //                 "localRoot": "${workspaceFolder}/serv_catalog",
+        //                 "remoteRoot": "."
         //             }
         //         ],
-        //         "projectType": "flask"
+        //         "projectType": "generic"
         //     }
     ]
 }
