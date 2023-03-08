@@ -585,11 +585,8 @@ class WaterDeliveryStrategy():
                                             for top in det["topic"]:
                                                 if top.endswith("act_water"):
                                                     act_ok = True
-                                                    top_a = top
+                                                    top_a = top                           
 
-                            # Check the topics are not already in a device record
-                            already_in = False
-                            
                             
                             # If both have been found, add the topics to self._devices
                             if sens_ok and act_ok:
@@ -616,13 +613,6 @@ class WaterDeliveryStrategy():
                                             time.sleep(5)
                                     except:
                                         print("Error - unable to reach services catalog to get greenhouse information")
-                                
-                                
-                                        
-
-                                #if already_in:
-                                    # Update needs
-
 
                                 if gh_info != {}:
                                     # Assign needs          %
@@ -635,7 +625,6 @@ class WaterDeliveryStrategy():
                                             print("Updated device information!")
                                             already_in = True
                                             
-
                                     for need in gh_info["plant_needs"]:
                                         keys = need.keys()
                                         if "min_soil_moist" in keys and not already_in:

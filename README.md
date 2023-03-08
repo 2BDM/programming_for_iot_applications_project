@@ -1,6 +1,12 @@
 # Programming for IoT applications project
 
+![Python Version](https://img.shields.io/badge/python-3.8%20|%203.10-informational?style=flat&logo=python&logoColor=white)
+![GitHub](https://img.shields.io/github/contributors/iotprojectMPEG/mainproject?style=flat&logo=github)
+![GitHub](https://img.shields.io/github/license/iotprojectMPEG/mainproject?style=flat)
+
 Project for the course Programming for IoT Applications at Politecnico di Torino, academic year 2022-2023.
+
+![ICT4SS_logo](/img/ict4ss_logo.jpg "Ict for Smart Societies")
 
 The project consists in the implementation of an application used to monitor and control smart greenhouses, based on the microservices programming paradigm. The system allows users to tailor the service based on the specific plant used and at the same time constantly monitor the environment, all by interfacing via a Telegram bot.
 
@@ -8,6 +14,8 @@ The project consists in the implementation of an application used to monitor and
 
 This applcation is developed as a collection of small, independent services (microservices), which communicate to exchange information used for the different functions.
 This means each component of this application is fully self contained and communicates by means of specific APIs, which are known and based on machine-to-machine communication protocols. As a result, the application is fully modular.
+
+![App architecture](/img/app_architecture.jpeg "Application architecture")
 
 The main components of the application are:
 
@@ -31,3 +39,16 @@ It is first required, however, that the configuration files of each microservice
 Once that has been done, it is enough to instantiate and run the Docker containers. If the IP addresses have been correctly set and the different containers run in the same network, the application will be launched. The application has been built in such a way that the order of launch of the containers does not matter.
 
 Inside each README file there are the detailed instructions on how to launch the containers (terminal commands).
+
+## Default port numbers
+
+Here are reported the default port numbers for the application microservices:
+
+* Services catalog: 8081
+* Device catalog: 8082
+* Device connector: 8083
+* MongoDB: 8282
+* Telegram bot: 9090
+* Weather station: 8084
+* Lighting strategy: 8088
+* Water delivery strategy: 8089
