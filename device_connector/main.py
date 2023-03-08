@@ -480,13 +480,13 @@ class DevConn:
                             if message["cmd"] == "start":
                                 if self.dev_agents_act[index].isOn() == False:
                                     self.dev_agents_act[index].start()
-                                    print(f"Actuator {act['id']} was turmed on at time {message['t']}")
+                                    print(f"Actuator {act['id']} was turned on at time {message['t']}")
                                 else:
                                     print(f"Tried to turn on actuator {act['id']}, but it was on!")
                             elif message["cmd"] == "stop":
                                 if self.dev_agents_act[index].isOn() == True:
                                     self.dev_agents_act[index].stop()
-                                    print(f"Actuator {act['id']} was turmed off at time {message['t']}")
+                                    print(f"Actuator {act['id']} was turned off at time {message['t']}")
                                 else:
                                     print(f"Tried to turn off actuator {act['id']}, but it was off!")
                     
