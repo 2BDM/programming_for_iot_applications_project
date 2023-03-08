@@ -1,4 +1,4 @@
-# Programming for IoT applications project
+# Programming for IoT applications project - Greenhouse 101
 
 ![Python Version](https://img.shields.io/badge/python-3.8%20|%203.10-informational?style=flat&logo=python&logoColor=white)
 ![GitHub](https://img.shields.io/github/contributors/iotprojectMPEG/mainproject?style=flat&logo=github)
@@ -8,14 +8,18 @@ Project for the course Programming for IoT Applications at Politecnico di Torino
 
 ![ICT4SS_logo](/img/ict4ss_logo.jpg "Ict for Smart Societies")
 
-The project consists in the implementation of an application used to monitor and control smart greenhouses, based on the microservices programming paradigm. The system allows users to tailor the service based on the specific plant used and at the same time constantly monitor the environment, all by interfacing via a Telegram bot.
+Greenhouse 101 consists in the implementation of an application used to monitor and control smart greenhouses, based on the microservices programming paradigm. The system allows users to tailor the service based on the specific plant used and at the same time constantly monitor the environment, all by interfacing via a Telegram bot.
+
+The purpose of this project is to provide an automated way to look after plants inside a greenhouse, while making sure resources, such as water, does not go wasted. The user will be guided by a Telegram bot, through which he/she will be able to manage the greenhouse(s) and be notified about its condition.
+
+The application is able to tailor the plant needs by retrieving information stored in a database.
 
 ## Application structure
 
 This applcation is developed as a collection of small, independent services (microservices), which communicate to exchange information used for the different functions.
 This means each component of this application is fully self contained and communicates by means of specific APIs, which are known and based on machine-to-machine communication protocols. As a result, the application is fully modular.
 
-![App architecture](/img/app_architecture.jpeg "Application architecture")
+![App architecture](/img/app_architecture.jpg "Application architecture")
 
 The main components of the application are:
 
@@ -36,9 +40,9 @@ The main components of the application are:
 Thanks to their nature, microservices are well-suited to be containerized and executed on any machine running Docker. For this reason, it is possible to create containers for each of the aforementioned components (excluded the message broker), as each subfolder of this repository includes a Dockerfile.
 It is first required, however, that the configuration files of each microservice are reviewed and updated, as they need to include the IP address of the machine on which they are running.
 
-Once that has been done, it is enough to instantiate and run the Docker containers. If the IP addresses have been correctly set and the different containers run in the same network, the application will be launched. The application has been built in such a way that the order of launch of the containers does not matter.
+Once that has been done, it is enough to instantiate and run the Docker containers. If the IP addresses have been correctly set and the different containers run in the same subnetwork, the application will be launched. The application has been built in such a way that the order of launch of the containers does not matter.
 
-Inside each README file there are the detailed instructions on how to launch the containers (terminal commands).
+Inside each README file there are the detailed instructions on how to create the containers (terminal commands).
 
 ## Default port numbers
 
