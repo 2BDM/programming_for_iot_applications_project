@@ -8,7 +8,7 @@ Project for the course Programming for IoT Applications at Politecnico di Torino
 
 ![ICT4SS_logo](/img/ict4ss_logo.jpg "Ict for Smart Societies")
 
-Greenhouse 101 consists in the implementation of an application used to monitor and control smart greenhouses, based on the microservices programming paradigm. The system allows users to tailor the service based on the specific plant used and at the same time constantly monitor the environment, all by interfacing via a Telegram bot.
+Greenhouse 101 is an application used to monitor and control smart greenhouses, based on the microservices programming paradigm. The system allows users to tailor the service based on the specific plant used and at the same time constantly monitor the environment, all by interfacing via a Telegram bot.
 
 The purpose of this project is to provide an automated way to look after plants inside a greenhouse, while making sure resources, such as water, does not go wasted. The user will be guided by a Telegram bot, through which he/she will be able to manage the greenhouse(s) and be notified about its condition.
 
