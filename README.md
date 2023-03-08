@@ -26,7 +26,7 @@ A promo video and a demo are available on YouTube:
 This applcation is developed as a collection of small, independent services (microservices), which communicate to exchange information used for the different functions.
 This means each component of this application is fully self contained and communicates by means of specific APIs, which are known and based on machine-to-machine communication protocols. As a result, the application is fully modular.
 
-![App architecture](/img/app_architecture.jpg "Application architecture")
+<img src="img/app_architecture.svg">
 
 The main components of the application are:
 
