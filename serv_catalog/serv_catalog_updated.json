@@ -1,5 +1,168 @@
-<<<<<<< Updated upstream
-{"project_name": "Smart greenhouse", "project_owner": "2BDM", "services_catalog": {"ip": "0.0.0.0", "port": 8081, "methods": ["GET", "PUT", "POST", "DELETE"]}, "broker": {"ip": "mqtt.eclipseprojects.io", "port_n": 1883}, "telegram": {"telegram_token": "5922785241:AAFeKlSnS4f54KIGs_qfYgEWpbqHRDRXcSw", "telegram_link": "http://t.me/Greenhouse101_bot"}, "device_catalog": {"ip": "100.106.123.125", "port": 8082, "methods": ["GET", "POST", "PUT"], "last_update": "2023-03-07 22:14:25"}, "users": [{"id": 809978261, "user_name": "Davide", "user_surname": "Macario", "email_addr": "dmacario@example.com", "greenhouse": [1], "last_update": "2023-03-07 22:14:24"}], "greenhouses": [{"id": "1", "user_id": 809978261, "device_id": "1", "plant_type": "10", "plant_needs": [{"max_light_lux": 35000, "unit": "lumen"}, {"min_light_lux": 1000, "unit": "lumen"}, {"max_temp": 35, "unit": "\u00b0C"}, {"min_temp": 6, "unit": "\u00b0C"}, {"max_env_humid": 80, "unit": "g/m3"}, {"min_env_humid": 30, "unit": "g/m3"}, {"max_soil_moist": 60, "unit": "g/m3"}, {"min_soil_moist": 15, "unit": "g/m3"}], "last_update": "2023-03-07 22:14:26"}], "services": [{"id": 5, "name": "mongoDB", "endpoints": ["REST"], "endpoints_details": {"endpoint": "REST", "address": "http://100.106.123.125:8282"}, "last_update": "2023-03-07 22:14:27"}, {"id": 123, "name": "telegramBot", "endpoints": ["REST"], "endpoints_details": [{"endpoint": "REST", "ip": "100.106.123.125", "port": 9090, "address": "http://100.106.123.125:9090"}], "last_update": "2023-03-07 22:14:22"}, {"id": 1, "name": "weather_station", "endpoints": ["REST", "MQTT"], "endpoints_details": [{"endpoint": "REST", "address": "http://100.106.123.125:8084"}, {"endpoint": "MQTT", "bn": "weather_station_1", "topics": []}], "last_update": "2023-03-07 22:14:23"}, {"id": 3, "name": "lighting_strategy", "endpoints": ["MQTT"], "endpoints_details": [{"endpoint": "MQTT", "bn": "lighting_strategy_3", "topics": []}], "last_update": "2023-03-07 22:14:25"}, {"id": 4, "name": "water_delivery", "endpoints": ["MQTT"], "endpoints_details": [{"endpoint": "MQTT", "bn": "water_strategy_4", "topics": []}], "last_update": "2023-03-07 22:14:17"}], "last_update": "2023-03-07 22:14:27"}
-=======
-{"project_name": "Smart greenhouse", "project_owner": "2BDM", "services_catalog": {"ip": "0.0.0.0", "port": 8081, "methods": ["GET", "PUT", "POST", "DELETE"]}, "broker": {"ip": "mqtt.eclipseprojects.io", "port_n": 1883}, "telegram": {"telegram_token": "5922785241:AAFeKlSnS4f54KIGs_qfYgEWpbqHRDRXcSw", "telegram_link": "http://t.me/Greenhouse101_bot"}, "device_catalog": {"ip": "100.106.123.125", "port": 8082, "methods": ["GET", "POST", "PUT"], "last_update": "2023-03-07 22:11:30"}, "users": [{"id": 809978261, "user_name": "Davide", "user_surname": "Macario", "email_addr": "dmacario@example.com", "greenhouse": [1], "last_update": "2023-03-07 22:11:59"}], "greenhouses": [{"id": "1", "user_id": 809978261, "device_id": "1", "plant_type": "10", "plant_needs": [{"max_light_lux": 35000, "unit": "lumen"}, {"min_light_lux": 1000, "unit": "lumen"}, {"max_temp": 35, "unit": "\u00b0C"}, {"min_temp": 6, "unit": "\u00b0C"}, {"max_env_humid": 80, "unit": "g/m3"}, {"min_env_humid": 30, "unit": "g/m3"}, {"max_soil_moist": 60, "unit": "g/m3"}, {"min_soil_moist": 15, "unit": "g/m3"}], "last_update": "2023-03-07 22:12:02"}], "services": [{"id": 5, "name": "mongoDB", "endpoints": ["REST"], "endpoints_details": {"endpoint": "REST", "address": "http://100.106.123.125:8282"}, "last_update": "2023-03-07 22:12:02"}, {"id": 123, "name": "telegramBot", "endpoints": ["REST"], "endpoints_details": [{"endpoint": "REST", "ip": "100.106.123.125", "port": 9090, "address": "http://100.106.123.125:9090"}], "last_update": "2023-03-07 22:11:57"}, {"id": 1, "name": "weather_station", "endpoints": ["REST", "MQTT"], "endpoints_details": [{"endpoint": "REST", "address": "http://100.106.123.125:8084"}, {"endpoint": "MQTT", "bn": "weather_station_1", "topics": []}], "last_update": "2023-03-07 22:11:58"}, {"id": 3, "name": "lighting_strategy", "endpoints": ["MQTT"], "endpoints_details": [{"endpoint": "MQTT", "bn": "lighting_strategy_3", "topics": []}], "last_update": "2023-03-07 22:11:59"}, {"id": 4, "name": "water_delivery", "endpoints": ["MQTT"], "endpoints_details": [{"endpoint": "MQTT", "bn": "water_strategy_4", "topics": []}], "last_update": "2023-03-07 22:11:57"}], "last_update": "2023-03-07 22:12:02"}
->>>>>>> Stashed changes
+{
+    "project_name": "Smart greenhouse",
+    "project_owner": "2BDM",
+    "services_catalog": {
+        "ip": "0.0.0.0",
+        "port": 8081,
+        "methods": [
+            "GET",
+            "PUT",
+            "POST",
+            "DELETE"
+        ]
+    },
+    "broker": {
+        "ip": "mqtt.eclipseprojects.io",
+        "port_n": 1883
+    },
+    "telegram": {
+        "telegram_token": "",
+        "telegram_link": "http://t.me/Greenhouse101_bot"
+    },
+    "device_catalog": {
+        "ip": "100.106.123.125",
+        "port": 8082,
+        "methods": [
+            "GET",
+            "POST",
+            "PUT"
+        ],
+        "last_update": "2023-03-08 02:26:57"
+    },
+    "users": [
+        {
+            "id": 809978261,
+            "user_name": "Davide",
+            "user_surname": "Macario",
+            "email_addr": "dmacario@gmail.com",
+            "greenhouse": [
+                1
+            ],
+            "last_update": "2023-03-08 02:26:34"
+        }
+    ],
+    "greenhouses": [
+        {
+            "id": "1",
+            "user_id": 809978261,
+            "device_id": "1",
+            "plant_type": "10",
+            "plant_needs": [
+                {
+                    "max_light_lux": 35000,
+                    "unit": "lumen"
+                },
+                {
+                    "min_light_lux": 1000,
+                    "unit": "lumen"
+                },
+                {
+                    "max_temp": 35,
+                    "unit": "\u00b0C"
+                },
+                {
+                    "min_temp": 6,
+                    "unit": "\u00b0C"
+                },
+                {
+                    "max_env_humid": 80,
+                    "unit": "g/m3"
+                },
+                {
+                    "min_env_humid": 30,
+                    "unit": "g/m3"
+                },
+                {
+                    "max_soil_moist": 60,
+                    "unit": "g/m3"
+                },
+                {
+                    "min_soil_moist": 15,
+                    "unit": "g/m3"
+                }
+            ],
+            "last_update": "2023-03-08 02:26:36"
+        }
+    ],
+    "services": [
+        {
+            "id": 5,
+            "name": "mongoDB",
+            "endpoints": [
+                "REST"
+            ],
+            "endpoints_details": {
+                "endpoint": "REST",
+                "address": "http://100.106.123.125:8282"
+            },
+            "last_update": "2023-03-08 02:27:03"
+        },
+        {
+            "id": 4,
+            "name": "water_delivery",
+            "endpoints": [
+                "MQTT"
+            ],
+            "endpoints_details": [
+                {
+                    "endpoint": "MQTT",
+                    "bn": "water_strategy_4",
+                    "topics": []
+                }
+            ],
+            "last_update": "2023-03-08 02:26:48"
+        },
+        {
+            "id": 123,
+            "name": "telegramBot",
+            "endpoints": [
+                "REST"
+            ],
+            "endpoints_details": [
+                {
+                    "endpoint": "REST",
+                    "ip": "100.106.123.125",
+                    "port": 9090,
+                    "address": "http://100.106.123.125:9090"
+                }
+            ],
+            "last_update": "2023-03-08 02:26:56"
+        },
+        {
+            "id": 1,
+            "name": "weather_station",
+            "endpoints": [
+                "REST",
+                "MQTT"
+            ],
+            "endpoints_details": [
+                {
+                    "endpoint": "REST",
+                    "address": "http://100.106.123.125:8084"
+                },
+                {
+                    "endpoint": "MQTT",
+                    "bn": "weather_station_1",
+                    "topics": []
+                }
+            ],
+            "last_update": "2023-03-08 02:26:59"
+        },
+        {
+            "id": 3,
+            "name": "lighting_strategy",
+            "endpoints": [
+                "MQTT"
+            ],
+            "endpoints_details": [
+                {
+                    "endpoint": "MQTT",
+                    "bn": "lighting_strategy_3",
+                    "topics": []
+                }
+            ],
+            "last_update": "2023-03-08 02:27:01"
+        }
+    ],
+    "last_update": "2023-03-08 02:27:03"
+}
