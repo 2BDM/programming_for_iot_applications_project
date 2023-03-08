@@ -44,7 +44,9 @@ Once that has been done, it is enough to instantiate and run the Docker containe
 
 Inside each README file there are the detailed instructions on how to create the containers (terminal commands).
 
-## Default port numbers
+(For reference, take a look here [here](https://docs.docker.com/get-started/))
+
+### Default port numbers
 
 Here are reported the default port numbers for the application microservices:
 
@@ -56,3 +58,26 @@ Here are reported the default port numbers for the application microservices:
 * Weather station: 8084
 * Lighting strategy: 8088
 * Water delivery strategy: 8089
+
+## Application use case
+
+<img src="img/telegram_logo.svg" width="100">
+
+Having launched the application infrastructure, and possibly having connected new devices, we are ready to start using the application.
+
+Users can register via the telegram bot which is found at [this address](http://t.me/IoT_project_group17_bot) - notice that this  bot is connected to a specific telegram token, which is not available in this repository.
+
+The bot will provide the user a series of available commands:
+
+* /addUser: use this command to register as a new user. Need to provide a name, surname and email address. Each user profile is associated with the telegram user.
+* /addGreenhouse: use this command to register a new greenhouse for your profile and link a new device. It is needed to provide the device ID (which will become the new greenhouse ID) - an unique identifier - and the plant ID, related to which plant you want to include.
+* /getPlantList: this command allows to retrieve a list of plants which satisfy some criteria.
+  * minSize/maxSize: get plants in a certain size range
+  * category: get plants of a specific category
+  * temperature: get plants based on the tolerated temperature
+  * humidity: get plants based on typical humidity values
+  * lux: get plants based on the required illumination
+  * moisture: get plants based on water needs
+* /getPlantInformation: use this command to get the complete information about a specific plant given its ID. The response message also includes a photograph.
+* /getGraph: obtain a link to the data visualization dashboard provided by MongoDB. The plots refer to weather data provided daily by the weather station (min/max/mean temperature, mean pressure, mean humidity and precipitations).
+* /myInformation: print out the information about the user. This command also shows a list of the registered greenhouses with their ID and plants.
