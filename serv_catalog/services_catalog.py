@@ -464,7 +464,7 @@ class ServicesCatalogWebService():
         
         # Depending on uri path, show what is required
         if (len(uri) >= 1):
-            if (str(uri[0]) == "projectInfo"):
+            if (str(uri[0]) == "project_info"):
                 # Return project info
                 p_name = json.dumps(self.catalog.gerProjectName())
                 p_owner = json.dumps(self.catalog.gerProjectOwner())
