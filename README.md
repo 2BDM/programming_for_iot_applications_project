@@ -14,6 +14,8 @@ The purpose of this project is to provide an automated way to look after plants 
 
 The application is able to tailor the plant needs by retrieving information stored in a database.
 
+<img src="img/youtube.svg" width="80">
+
 A promo video and a demo are available on YouTube:
 
 * [Promo](https://youtu.be/0MKoJqTkVQ4)
