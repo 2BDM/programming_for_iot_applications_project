@@ -167,7 +167,7 @@ These are the possible request formats.
 
 If the element is not found, error code 404. If the parameter is wrong (when searching by ID or name), the code is 400.
 
-* `/projectInfo`: returns the string containing the name of the project and the owner.
+* `/project_info`: returns the string containing the name of the project and the owner.
 * `/broker`: get the json containing the broker information.
 * `/telegram`: get the json containing the Telegram information.
 * `/device_catalog`: get the json containing the device catalog information.
