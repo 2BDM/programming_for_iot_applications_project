@@ -1,0 +1,56 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "docker-build",
+			"label": "docker-build serv_catalog",
+			"dockerBuild": {
+				"tag": "serv_catalog:latest",
+				"dockerfile": "${workspaceFolder}/serv_catalog/Dockerfile",
+				"context": "${workspaceFolder}/serv_catalog",
+				"pull": true
+			},
+			"platform": "python",
+			"problemMatcher": [],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"type": "docker-run",
+			"label": "docker-run: debug serv_catalog",
+			"dependsOn": [
+				"docker-build serv_catalog"
+			],
+			"dockerRun": {},
+			"python": {
+				"file": "services_catalog.py",
+				"args": [
+					"help"
+				]
+			}
+		},
+		// {
+		// 	"type": "docker-build",
+		// 	"label": "docker-build",
+		// 	"platform": "python",
+		// 	"dockerBuild": {
+		// 		"tag": "programmingforiotapplicationsproject:latest",
+		// 		"dockerfile": "${workspaceFolder}/Dockerfile",
+		// 		"context": "${workspaceFolder}",
+		// 		"pull": true
+		// 	}
+		// },
+		// {
+		// 	"type": "docker-run",
+		// 	"label": "docker-run: debug",
+		// 	"dependsOn": [
+		// 		"docker-build"
+		// 	],
+		// 	"python": {
+		// 		"file": "serv_catalog/services_catalog.py"
+		// 	}
+		// }
+	]
+}
