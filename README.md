@@ -1,8 +1,8 @@
 # Programming for IoT applications project - Greenhouse 101
 
 ![Python Version](https://img.shields.io/badge/python-3.8%20|%203.10-informational?style=flat&logo=python&logoColor=white)
-![GitHub](https://img.shields.io/github/contributors/iotprojectMPEG/mainproject?style=flat&logo=github)
-![GitHub](https://img.shields.io/github/license/iotprojectMPEG/mainproject?style=flat)
+![GitHub](https://img.shields.io/github/contributors/2BDM/programming_for_iot_applications_project?style=flat&logo=github)
+![GitHub](https://img.shields.io/github/license/2BDM/programming_for_iot_applications_project?style=flat)
 
 Project for the course Programming for IoT Applications at Politecnico di Torino, academic year 2022-2023.
 
