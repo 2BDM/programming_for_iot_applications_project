@@ -88,3 +88,7 @@ The bot will provide the user a series of available commands:
 * /getPlantInformation: use this command to get the complete information about a specific plant given its ID. The response message also includes a photograph.
 * /getGraph: obtain a link to the data visualization dashboard provided by MongoDB. The plots refer to weather data provided daily by the weather station (min/max/mean temperature, mean pressure, mean humidity and precipitations).
 * /myInformation: print out the information about the user. This command also shows a list of the registered greenhouses with their ID and plants.
+
+## License
+
+[GPL-3.0](https://github.com/2BDM/programming_for_iot_applications_project/blob/main/LICENSE)
